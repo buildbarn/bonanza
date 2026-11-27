@@ -28,14 +28,14 @@ func TestMaybeInlineFileContents(t *testing.T) {
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
 			Access: &model_filesystem_pb.FileAccessParameters{},
-			ChunkParameters: &model_chunking_pb.Parameters{
+			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
 				HorizonSizeBytes: 1 << 19,
-			},
-			FileContentsListParameters: &model_chunking_pb.Parameters{
+			}.Build(),
+			FileContentsListParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 12,
 				HorizonSizeBytes: 8 << 12,
-			},
+			}.Build(),
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

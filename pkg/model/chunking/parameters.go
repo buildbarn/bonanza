@@ -39,14 +39,14 @@ func NewParametersFromProto(m *model_chunking_pb.Parameters, referenceFormat obj
 		return Parameters{}, status.Error(codes.InvalidArgument, "No chunking parameters provided")
 	}
 
-	minimumSizeBytes := uint64(m.MinimumSizeBytes)
+	minimumSizeBytes := uint64(m.GetMinimumSizeBytes())
 	if minimumSizeBytes < minimumMinimumSizeBytes {
 		return Parameters{}, status.Errorf(codes.InvalidArgument, "Minimum size is below %d bytes", minimumMinimumSizeBytes)
 	}
 	if maximumObjectSizeBytes := uint64(referenceFormat.GetMaximumObjectSizeBytes()); minimumSizeBytes*2-1 > maximumObjectSizeBytes {
 		return Parameters{}, status.Errorf(codes.InvalidArgument, "Maximum size (twice the minimum size) is above maximum object size of %d bytes", maximumObjectSizeBytes)
 	}
-	horizonSizeBytes := uint64(m.HorizonSizeBytes)
+	horizonSizeBytes := uint64(m.GetHorizonSizeBytes())
 	if horizonSizeBytes > maximumHorizonMultiplier*minimumSizeBytes {
 		return Parameters{}, status.Errorf(codes.InvalidArgument, "Horizon size is more than %d times as large as the minimum size", maximumHorizonMultiplier)
 	}

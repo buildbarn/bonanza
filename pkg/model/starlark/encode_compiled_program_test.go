@@ -103,13 +103,13 @@ my_transition = transition(implementation = _transition_impl, inputs = [], outpu
 		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
 		ObjectCapturer:        objectManager,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1024,
 			HorizonSizeBytes: 8 * 1024,
-		}, object.SHA256V1ReferenceFormat)),
+		}.Build(), object.SHA256V1ReferenceFormat)),
 	})
 	require.NoError(t, err)
-	require.Len(t, encodedProgram.Message.Globals.Keys, 9)
+	require.Len(t, encodedProgram.Message.GetGlobals().GetKeys(), 9)
 
 	// All metadata should be owned by the resulting message.
 	encodedProgram.Discard()

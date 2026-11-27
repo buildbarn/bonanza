@@ -24,6 +24,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	xpb "google.golang.org/protobuf/types/known/emptypb"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -59,10 +61,10 @@ func TestPackage(t *testing.T) {
 			ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 			ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
 			ObjectCapturer:        capturer,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 32 * 1024,
 				HorizonSizeBytes: 8 * 32 * 1024,
-			}, object.SHA256V1ReferenceFormat)),
+			}.Build(), object.SHA256V1ReferenceFormat)),
 		}
 		encodedFunction, err := model_starlark.EncodeFunction(
 			thread,
@@ -79,10 +81,8 @@ func TestPackage(t *testing.T) {
 		return &model_starlark_pb.NamedAttr{
 			Name: name,
 			Attr: &model_starlark_pb.Attr{
-				Default: defaultValue,
-				Type: &model_starlark_pb.Attr_String_{
-					String_: &model_starlark_pb.Attr_StringType{},
-				},
+				Default:      defaultValue,
+				Type:         &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
 				Configurable: true,
 			},
 		}
@@ -120,7 +120,7 @@ func TestPackage(t *testing.T) {
 			},
 		}
 		for _, v := range publicAttrValues {
-			definition.PublicAttrValues = append(definition.PublicAttrValues, &model_starlark_pb.RuleTarget_PublicAttrValue{
+			definition.PublicAttrValues = append(definition.GetPublicAttrValues(), &model_starlark_pb.RuleTarget_PublicAttrValue{
 				ValueParts: []*model_starlark_pb.Select_Group{valueSelectGroup(v)},
 			})
 		}
@@ -155,16 +155,12 @@ func TestPackage(t *testing.T) {
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_macro"}),
 		).Return(model_core.Nested(implementation, &model_analysis_pb.CompiledBzlFileGlobal_Value{
 			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Macro{
-					Macro: &model_starlark_pb.Macro{
-						Kind: &model_starlark_pb.Macro_Definition_{
-							Definition: &model_starlark_pb.Macro_Definition{
-								Attrs:          attrs,
-								Implementation: implementation.Message,
-							},
-						},
-					},
-				},
+				Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{
+					Kind: &model_starlark_pb.Macro_Definition_{Definition: &model_starlark_pb.Macro_Definition{
+						Attrs:          attrs,
+						Implementation: implementation.Message,
+					}},
+				}},
 			},
 		}))
 	}
@@ -231,54 +227,42 @@ def _impl(name, visibility, actual, _private):
 		testutil.RequireEqualProto(t, &model_analysis_pb.Package_Value{
 			Targets: []*model_analysis_pb.Package_Value_Target{
 				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{
-						Leaf: &model_starlark_pb.Target{
-							Name: "m",
-							Definition: &model_starlark_pb.Target_Definition{
-								Kind: &model_starlark_pb.Target_Definition_Alias{
-									Alias: &model_starlark_pb.Alias{
-										Actual:     valueSelectGroup(labelValue("@@main+//qux:actual")),
-										Visibility: newVisibility("@@main+//bar:__pkg__", "@@main+//foo:__pkg__", "@@rules+//:__pkg__"),
-									},
-								},
-							},
+					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: &model_starlark_pb.Target{
+						Name: "m",
+						Definition: &model_starlark_pb.Target_Definition{
+							Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{
+								Actual:     valueSelectGroup(labelValue("@@main+//qux:actual")),
+								Visibility: newVisibility("@@main+//bar:__pkg__", "@@main+//foo:__pkg__", "@@rules+//:__pkg__"),
+							}},
 						},
-					},
+					}},
 				},
 				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{
-						Leaf: &model_starlark_pb.Target{
-							Name: "m_private",
-							Definition: &model_starlark_pb.Target_Definition{
-								Kind: &model_starlark_pb.Target_Definition_Alias{
-									Alias: &model_starlark_pb.Alias{
-										Actual:     valueSelectGroup(labelValue("@@main+//baz:private")),
-										Visibility: newVisibility("@@rules+//:__pkg__"),
-									},
-								},
-							},
+					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: &model_starlark_pb.Target{
+						Name: "m_private",
+						Definition: &model_starlark_pb.Target_Definition{
+							Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{
+								Actual:     valueSelectGroup(labelValue("@@main+//baz:private")),
+								Visibility: newVisibility("@@rules+//:__pkg__"),
+							}},
 						},
-					},
+					}},
 				},
 				{
-					Level: &model_analysis_pb.Package_Value_Target_Leaf{
-						Leaf: &model_starlark_pb.Target{
-							Name: "m_tests",
-							Definition: &model_starlark_pb.Target_Definition{
-								Kind: &model_starlark_pb.Target_Definition_TestSuite{
-									TestSuite: &model_starlark_pb.TestSuite{
-										Sizes: []model_starlark_pb.TestSize{
-											model_starlark_pb.TestSize_SMALL,
-											model_starlark_pb.TestSize_MEDIUM,
-											model_starlark_pb.TestSize_LARGE,
-											model_starlark_pb.TestSize_ENORMOUS,
-										},
-										Visibility: newVisibility("@@rules+//:__pkg__"),
-									},
+					Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: &model_starlark_pb.Target{
+						Name: "m_tests",
+						Definition: &model_starlark_pb.Target_Definition{
+							Kind: &model_starlark_pb.Target_Definition_TestSuite{TestSuite: &model_starlark_pb.TestSuite{
+								Sizes: []model_starlark_pb.TestSize{
+									model_starlark_pb.TestSize_SMALL,
+									model_starlark_pb.TestSize_MEDIUM,
+									model_starlark_pb.TestSize_LARGE,
+									model_starlark_pb.TestSize_ENORMOUS,
 								},
-							},
+								Visibility: newVisibility("@@rules+//:__pkg__"),
+							}},
 						},
-					},
+					}},
 				},
 			},
 		}, value)
@@ -312,18 +296,18 @@ def _impl(name, visibility, mandatory, with_default, without_default):
 				stringAttr("mandatory", nil),
 				stringAttr("with_default", stringValue("//baz:default")),
 				stringAttr("without_default", &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_None{},
+					Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}},
 				}),
 			},
-			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
-			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
-			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}}},
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}}},
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}}},
 		)
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
-		require.Len(t, value.Targets, 1)
-		testutil.RequireEqualProto(t, valueSelectGroup(labelValue("@@main+//baz:default")), value.Targets[0].GetLeaf().GetDefinition().GetAlias().GetActual())
+		require.Len(t, value.GetTargets(), 1)
+		testutil.RequireEqualProto(t, valueSelectGroup(labelValue("@@main+//baz:default")), value.GetTargets()[0].GetLeaf().GetDefinition().GetAlias().GetActual())
 	})
 
 	t.Run("NonConfigurable", func(t *testing.T) {
@@ -332,7 +316,7 @@ def _impl(name, visibility, mandatory, with_default, without_default):
 		// inspected. This also applies to default values.
 		nonConfigurableAttr := func(name string, defaultValue *model_starlark_pb.Value) *model_starlark_pb.NamedAttr {
 			attr := stringAttr(name, defaultValue)
-			attr.Attr.Configurable = false
+			attr.GetAttr().Configurable = false
 			return attr
 		}
 		e := NewMockPackageEnvironmentForTesting(ctrl)
@@ -352,14 +336,14 @@ def _impl(name, visibility, explicit, with_default):
 				nonConfigurableAttr("with_default", stringValue("default")),
 			},
 			stringValue("explicit"),
-			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{}},
+			&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}}},
 		)
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
-		require.Len(t, value.Targets, 2)
-		require.Equal(t, "m_default", value.Targets[0].GetLeaf().GetName())
-		require.Equal(t, "m_explicit", value.Targets[1].GetLeaf().GetName())
+		require.Len(t, value.GetTargets(), 2)
+		require.Equal(t, "m_default", value.GetTargets()[0].GetLeaf().GetName())
+		require.Equal(t, "m_explicit", value.GetTargets()[1].GetLeaf().GetName())
 	})
 
 	t.Run("NonConfigurableWithSelect", func(t *testing.T) {
@@ -371,7 +355,7 @@ def _impl(name, visibility, explicit, with_default):
 			}
 		}
 		for name, valueParts := range map[string][]*model_starlark_pb.Select_Group{
-			"Conditions": {{
+			"Conditions": {&model_starlark_pb.Select_Group{
 				Conditions: []*model_starlark_pb.Select_Condition{{
 					ConditionIdentifier: "@@main+//:opt",
 					Value:               stringValue("opt"),
@@ -382,7 +366,7 @@ def _impl(name, visibility, explicit, with_default):
 				unconditional(stringValue("a")),
 				unconditional(stringValue("b")),
 			},
-			"NoMatchError": {{
+			"NoMatchError": {&model_starlark_pb.Select_Group{
 				NoMatch: &model_starlark_pb.Select_Group_NoMatchError{NoMatchError: "oops"},
 			}},
 		} {
@@ -393,10 +377,10 @@ def _impl(name, visibility, explicit, with_default):
 				e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 				e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 				attr := stringAttr("explicit", nil)
-				attr.Attr.Configurable = false
+				attr.GetAttr().Configurable = false
 				expectMacroGlobal(e, []*model_starlark_pb.NamedAttr{attr}, model_core.Message[*model_starlark_pb.Function, model_core.CreatedObjectTree]{})
 				definition := newMacroExpansionContextDefinition()
-				definition.RootMacroInstanceDefinition.PublicAttrValues = []*model_starlark_pb.RuleTarget_PublicAttrValue{{
+				definition.GetRootMacroInstanceDefinition().PublicAttrValues = []*model_starlark_pb.RuleTarget_PublicAttrValue{{
 					ValueParts: valueParts,
 				}}
 				expectMacroExpansionContext(e, definition)
@@ -454,7 +438,7 @@ def _impl(name, visibility):
 		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
-		definition.RootMacroInstanceDefinition.InheritableAttrs.Visibility = nil
+		definition.GetRootMacroInstanceDefinition().GetInheritableAttrs().Visibility = nil
 		expectMacroExpansionContext(e, definition)
 
 		_, err := computeMacroInstance(e, "m")
@@ -480,15 +464,15 @@ def _impl(name, visibility):
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
-		require.Len(t, value.Targets, 2)
-		require.Equal(t, "m_gen.h", value.Targets[0].GetLeaf().GetName())
-		require.NotNil(t, value.Targets[0].GetLeaf().GetDefinition().GetAlias())
-		require.Equal(t, "m_src.c", value.Targets[1].GetLeaf().GetName())
+		require.Len(t, value.GetTargets(), 2)
+		require.Equal(t, "m_gen.h", value.GetTargets()[0].GetLeaf().GetName())
+		require.NotNil(t, value.GetTargets()[0].GetLeaf().GetDefinition().GetAlias())
+		require.Equal(t, "m_src.c", value.GetTargets()[1].GetLeaf().GetName())
 		testutil.RequireEqualProto(t, &model_starlark_pb.SourceFileTarget{
 			Visibility: &model_starlark_pb.PackageGroup{
 				Tree: &model_starlark_pb.PackageGroup_Subpackages{},
 			},
-		}, value.Targets[1].GetLeaf().GetDefinition().GetSourceFileTarget())
+		}, value.GetTargets()[1].GetLeaf().GetDefinition().GetSourceFileTarget())
 	})
 
 	t.Run("InvalidReferencedTargetName", func(t *testing.T) {
@@ -534,24 +518,18 @@ def _impl(name, visibility):
 		// that don't exist should yield None.
 		newAlias := func(name string) *model_analysis_pb.Package_Value_Target {
 			return &model_analysis_pb.Package_Value_Target{
-				Level: &model_analysis_pb.Package_Value_Target_Leaf{
-					Leaf: &model_starlark_pb.Target{
-						Name: name,
-						Definition: &model_starlark_pb.Target_Definition{
-							Kind: &model_starlark_pb.Target_Definition_Alias{
-								Alias: &model_starlark_pb.Alias{
-									Actual: &model_starlark_pb.Select_Group{
-										NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-											NoMatchValue: &model_starlark_pb.Value{
-												Kind: &model_starlark_pb.Value_Label{Label: "@@main+//baz:actual"},
-											},
-										},
-									},
-								},
+				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: &model_starlark_pb.Target{
+					Name: name,
+					Definition: &model_starlark_pb.Target_Definition{
+						Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{
+							Actual: &model_starlark_pb.Select_Group{
+								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: &model_starlark_pb.Value{
+									Kind: &model_starlark_pb.Value_Label{Label: "@@main+//baz:actual"},
+								}},
 							},
-						},
+						}},
 					},
-				},
+				}},
 			}
 		}
 
@@ -561,7 +539,7 @@ def _impl(name, visibility):
 		e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		definition := newMacroExpansionContextDefinition()
-		definition.RootMacroInstanceDefinition.Finalizer = model_starlark_pb.MacroInstance_FINALIZER
+		definition.GetRootMacroInstanceDefinition().Finalizer = model_starlark_pb.MacroInstance_FINALIZER
 		expectMacroExpansionContext(e, definition)
 		expectMacroDefinition(e, `
 def _impl(name, visibility):
@@ -581,13 +559,13 @@ def _impl(name, visibility):
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:other_y"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: newAlias("other_y").GetLeaf().Definition,
+			Definition: newAlias("other_y").GetLeaf().GetDefinition(),
 		}))
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
 		var targetNames []string
-		for _, target := range value.Targets {
+		for _, target := range value.GetTargets() {
 			targetNames = append(targetNames, target.GetLeaf().GetName())
 		}
 		require.Equal(t, []string{"m_checked", "m_top"}, targetNames)
@@ -607,7 +585,7 @@ def _impl(name, visibility):
 			e.EXPECT().GetFileCreationParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			definition := newMacroExpansionContextDefinition()
-			definition.RootMacroInstanceDefinition.Finalizer = finalizer
+			definition.GetRootMacroInstanceDefinition().Finalizer = finalizer
 			expectMacroExpansionContext(e, definition)
 			expectMacroDefinition(e, `
 def _impl(name, visibility):
@@ -665,9 +643,9 @@ def _impl(name, visibility):
 
 				value, err := computeMacroInstance(e, "m")
 				require.NoError(t, err)
-				require.Len(t, value.Targets, 1)
-				require.Equal(t, "m_lib_y", value.Targets[0].GetLeaf().GetName())
-				require.Len(t, value.MacroExpansionContexts, 1)
+				require.Len(t, value.GetTargets(), 1)
+				require.Equal(t, "m_lib_y", value.GetTargets()[0].GetLeaf().GetName())
+				require.Len(t, value.GetMacroExpansionContexts(), 1)
 				testutil.RequireEqualProto(t, &model_starlark_pb.MacroExpansionContext{
 					NameSuffix: "_lib",
 					Definition: &model_starlark_pb.MacroExpansionContext_Definition{
@@ -679,7 +657,7 @@ def _impl(name, visibility):
 							newMacroInstanceEntry("_x"),
 						},
 					},
-				}, value.MacroExpansionContexts[0].GetLeaf())
+				}, value.GetMacroExpansionContexts()[0].GetLeaf())
 			})
 		}
 	})
@@ -712,7 +690,7 @@ def _impl(name, visibility):
 
 		value, err := computeMacroInstance(e, "m")
 		require.NoError(t, err)
-		require.Len(t, value.Targets, 1)
+		require.Len(t, value.GetTargets(), 1)
 	})
 
 	t.Run("MissingDependency", func(t *testing.T) {

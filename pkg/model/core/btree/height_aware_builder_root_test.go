@@ -20,10 +20,10 @@ import (
 func TestHeightAwareBuilderRootSize(t *testing.T) {
 	const minimumSizeBytes = 1024
 	parameters, err := chunking.NewParametersFromProto(
-		&model_chunking_pb.Parameters{
+		model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: minimumSizeBytes,
 			HorizonSizeBytes: 8 * 1024,
-		},
+		}.Build(),
 		object.SHA256V1ReferenceFormat,
 	)
 	require.NoError(t, err)
@@ -42,23 +42,21 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 				/* parentNodeComputer = */ func(createdObject model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], childNodes []*model_filesystem_pb.FileContents) (model_core.PatchedMessage[*model_filesystem_pb.FileContents, model_core.CreatedObjectTree], error) {
 					totalSizeBytes := uint64(0)
 					for _, childNode := range childNodes {
-						totalSizeBytes += childNode.TotalSizeBytes
+						totalSizeBytes += childNode.GetTotalSizeBytes()
 					}
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_filesystem_pb.FileContents {
 						return &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{
-								List: &model_filesystem_pb.FileContents_List{
-									Reference: patcher.AddDecodableReference(
-										model_core.CopyDecodable(
-											createdObject,
-											model_core.MetadataEntry[model_core.CreatedObjectTree]{
-												LocalReference: createdObject.Value.GetLocalReference(),
-												Metadata:       model_core.CreatedObjectTree(createdObject.Value),
-											},
-										),
+							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+								Reference: patcher.AddDecodableReference(
+									model_core.CopyDecodable(
+										createdObject,
+										model_core.MetadataEntry[model_core.CreatedObjectTree]{
+											LocalReference: createdObject.Value.GetLocalReference(),
+											Metadata:       model_core.CreatedObjectTree(createdObject.Value),
+										},
 									),
-								},
-							},
+								),
+							}},
 							TotalSizeBytes: totalSizeBytes,
 						}
 					}), nil
@@ -107,7 +105,7 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 			expectedTotalSizeBytes += uint64(i*7919%1000 + 1)
 		}
 		for _, node := range root {
-			totalSizeBytes += node.TotalSizeBytes
+			totalSizeBytes += node.GetTotalSizeBytes()
 			if node.GetList() != nil {
 				sawParents = true
 			}

@@ -62,10 +62,10 @@ func TestTestSuite(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: referenceFormat,
 			ObjectCapturer:        objectManager,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 32 * 1024,
 				HorizonSizeBytes: 8 * 32 * 1024,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 		})
 		return thread, targetRegistrar
 	}

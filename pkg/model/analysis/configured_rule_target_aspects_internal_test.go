@@ -41,10 +41,10 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 		Context:               t.Context(),
 		ObjectEncoder:         encoder,
 		ObjectReferenceFormat: referenceFormat,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 32 * 1024,
 			HorizonSizeBytes: 8 * 32 * 1024,
-		}, referenceFormat)),
+		}.Build(), referenceFormat)),
 	}
 	boolAttr := func(defaultValue bool) *model_starlark_pb.Attr {
 		return &model_starlark_pb.Attr{

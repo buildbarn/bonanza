@@ -1,7 +1,8 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.chunking;
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/chunking";
 
 // Parameters of a chunking algorithm that partitions data into objects

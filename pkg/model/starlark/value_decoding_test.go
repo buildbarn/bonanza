@@ -73,10 +73,10 @@ func TestDecodeValue(t *testing.T) {
 		ObjectEncoder:         encoder,
 		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:        store,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1024,
 			HorizonSizeBytes: 8 * 1024,
-		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+		}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	}
 	decodingOptions := &model_starlark.ValueDecodingOptions[object.LocalReference]{
 		Readers: &model_starlark.ValueReaders[object.LocalReference]{

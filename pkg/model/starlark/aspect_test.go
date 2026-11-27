@@ -17,9 +17,10 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestAspect(t *testing.T) {
@@ -28,10 +29,10 @@ func TestAspect(t *testing.T) {
 		Context:               t.Context(),
 		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		ObjectReferenceFormat: referenceFormat,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 32 * 1024,
 			HorizonSizeBytes: 8 * 32 * 1024,
-		}, referenceFormat)),
+		}.Build(), referenceFormat)),
 	}
 	const preamble = "A = provider()\nB = provider()\nC = provider()\ndef _impl(target, ctx):\n    pass\n"
 	exec := func(t *testing.T, code string) (map[string]eval.Value, error) {
@@ -53,18 +54,19 @@ func TestAspect(t *testing.T) {
 		return encodedAspect.Message.GetAspect().GetDefinition()
 	}
 	attrNames := func(definition *model_starlark_pb.Aspect_Definition) []string {
-		names := make([]string, 0, len(definition.Attrs))
-		for _, namedAttr := range definition.Attrs {
-			names = append(names, namedAttr.Name)
+		namedAttrs := definition.GetAttrs()
+		names := make([]string, 0, len(namedAttrs))
+		for _, namedAttr := range namedAttrs {
+			names = append(names, namedAttr.GetName())
 		}
 		return names
 	}
 
 	t.Run("Defaults", func(t *testing.T) {
 		definition := encodeAspect(t, "ARGS = {}")
-		require.NotNil(t, definition.Implementation)
-		require.Nil(t, definition.AttrAspects)
-		require.Nil(t, definition.ToolchainsAspects)
+		require.NotNil(t, definition.GetImplementation())
+		require.Nil(t, definition.GetAttrAspects())
+		require.Nil(t, definition.GetToolchainsAspects())
 
 		// Aspects get the same private attrs as rules, except
 		// for the public "toolchains" attr.
@@ -72,15 +74,15 @@ func TestAspect(t *testing.T) {
 
 		// Toolchains are placed in the default exec group,
 		// which is always present.
-		require.Len(t, definition.ExecGroups, 1)
-		require.Equal(t, "", definition.ExecGroups[0].Name)
+		require.Len(t, definition.GetExecGroups(), 1)
+		require.Equal(t, "", definition.GetExecGroups()[0].GetName())
 
 		// By default, aspects apply to all targets, but don't
 		// see the providers of other aspects.
-		require.Len(t, definition.RequiredProviders, 1)
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{}, definition.RequiredProviders[0])
-		require.Empty(t, definition.RequiredAspectProviders)
-		require.Nil(t, definition.PropagationPredicate)
+		require.Len(t, definition.GetRequiredProviders(), 1)
+		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{}, definition.GetRequiredProviders()[0])
+		require.Empty(t, definition.GetRequiredAspectProviders())
+		require.Nil(t, definition.GetPropagationPredicate())
 	})
 
 	t.Run("AllFields", func(t *testing.T) {
@@ -106,25 +108,25 @@ ARGS = {
     "toolchains": ["//:toolchain_type"],
     "toolchains_aspects": ["//:z_type", "//:toolchain_type"],
 }`)
-		require.True(t, definition.ApplyToGeneratingRules)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps", "srcs"}}}}, definition.AttrAspects)
+		require.True(t, definition.GetApplyToGeneratingRules())
+		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps", "srcs"}}}}, definition.GetAttrAspects())
 		require.Equal(t, []string{"__configuration", "__default_toolchains", "__fragments", "__target_platform", "_tool", "count", "flag", "mode"}, attrNames(definition))
-		require.NotNil(t, definition.PropagationPredicate)
-		require.Equal(t, []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}, definition.Provides)
-		require.Len(t, definition.RequiredAspectProviders, 2)
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}}, definition.RequiredAspectProviders[0])
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%C"}}, definition.RequiredAspectProviders[1])
-		require.Len(t, definition.RequiredProviders, 1)
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A"}}, definition.RequiredProviders[0])
-		require.Equal(t, []string{"@@rules+//:defs.bzl%_dep"}, definition.Requires)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"@@rules+//:toolchain_type", "@@rules+//:z_type"}}}}, definition.ToolchainsAspects)
-		require.Len(t, definition.ExecGroups, 1)
-		require.Len(t, definition.ExecGroups[0].ExecGroup.Toolchains, 1)
+		require.NotNil(t, definition.GetPropagationPredicate())
+		require.Equal(t, []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}, definition.GetProvides())
+		require.Len(t, definition.GetRequiredAspectProviders(), 2)
+		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}}, definition.GetRequiredAspectProviders()[0])
+		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%C"}}, definition.GetRequiredAspectProviders()[1])
+		require.Len(t, definition.GetRequiredProviders(), 1)
+		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A"}}, definition.GetRequiredProviders()[0])
+		require.Equal(t, []string{"@@rules+//:defs.bzl%_dep"}, definition.GetRequires())
+		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"@@rules+//:toolchain_type", "@@rules+//:z_type"}}}}, definition.GetToolchainsAspects())
+		require.Len(t, definition.GetExecGroups(), 1)
+		require.Len(t, definition.GetExecGroups()[0].GetExecGroup().GetToolchains(), 1)
 	})
 
 	t.Run("AttrAspectsWildcard", func(t *testing.T) {
 		definition := encodeAspect(t, `ARGS = {"attr_aspects": ["*"]}`)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.AttrAspects)
+		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.GetAttrAspects())
 
 		_, err := exec(t, `ASPECT = aspect(implementation = _impl, attr_aspects = ["*", "deps"])`)
 		require.ErrorContains(t, err, "for parameter attr_aspects: at index 0: invalid Starlark identifier")
@@ -132,7 +134,7 @@ ARGS = {
 
 	t.Run("ToolchainsAspectsWildcard", func(t *testing.T) {
 		definition := encodeAspect(t, `ARGS = {"toolchains_aspects": ["*"]}`)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.ToolchainsAspects)
+		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.GetToolchainsAspects())
 	})
 
 	t.Run("PropagationFunctions", func(t *testing.T) {
@@ -145,14 +147,14 @@ ARGS = {
     "attr_aspects": _attr_aspects,
     "toolchains_aspects": _toolchains_aspects,
 }`)
-		require.NotNil(t, definition.AttrAspects.GetFunction())
-		require.NotNil(t, definition.ToolchainsAspects.GetFunction())
+		require.NotNil(t, definition.GetAttrAspects().GetFunction())
+		require.NotNil(t, definition.GetToolchainsAspects().GetFunction())
 	})
 
 	t.Run("EmptyPropagationEdges", func(t *testing.T) {
 		definition := encodeAspect(t, `ARGS = {"attr_aspects": [], "toolchains_aspects": []}`)
-		require.Nil(t, definition.AttrAspects)
-		require.Nil(t, definition.ToolchainsAspects)
+		require.Nil(t, definition.GetAttrAspects())
+		require.Nil(t, definition.GetToolchainsAspects())
 	})
 
 	t.Run("InvalidAttrs", func(t *testing.T) {

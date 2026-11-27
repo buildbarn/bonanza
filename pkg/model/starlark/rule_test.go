@@ -20,9 +20,10 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
-	"go.uber.org/mock/gomock"
-
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestRuleCallTest(t *testing.T) {
@@ -54,10 +55,10 @@ func TestRuleCallTest(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: referenceFormat,
 			ObjectCapturer:        objectManager,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 32 * 1024,
 				HorizonSizeBytes: 8 * 32 * 1024,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 		})
 
 		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_rule"))
@@ -82,7 +83,7 @@ func TestRuleCallTest(t *testing.T) {
 	}
 	intValue := func(i int64) *model_starlark_pb.Value {
 		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(i))},
+			Kind: &model_starlark_pb.Value_Int{Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(i)))},
 		}
 	}
 	noMatchGroup := func(v *model_starlark_pb.Value) *model_starlark_pb.Select_Group {
@@ -96,7 +97,7 @@ func TestRuleCallTest(t *testing.T) {
 		// by other rules.
 		ruleTarget, err := callRule(t, model_starlark_pb.Rule_Definition_NON_EXECUTABLE)
 		require.NoError(t, err)
-		require.Nil(t, ruleTarget.Test)
+		require.Nil(t, ruleTarget.GetTest())
 
 		_, err = callRule(t, model_starlark_pb.Rule_Definition_NON_EXECUTABLE, eval.NamedArg{Name: "size", Value: eval.String("small")})
 		require.ErrorContains(t, err, "unexpected keyword argument 'size'")
@@ -112,14 +113,14 @@ func TestRuleCallTest(t *testing.T) {
 			Args: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
 				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}},
 			})},
-		}, ruleTarget.Test)
+		}, ruleTarget.GetTest())
 	})
 
 	t.Run("TimeoutDerivedFromSize", func(t *testing.T) {
 		ruleTarget, err := callRule(t, model_starlark_pb.Rule_Definition_TEST, eval.NamedArg{Name: "size", Value: eval.String("enormous")})
 		require.NoError(t, err)
-		require.Equal(t, model_starlark_pb.TestSize_ENORMOUS, ruleTarget.Test.Size)
-		require.Equal(t, model_starlark_pb.TestTimeout_ETERNAL, ruleTarget.Test.Timeout)
+		require.Equal(t, model_starlark_pb.TestSize_ENORMOUS, ruleTarget.GetTest().GetSize())
+		require.Equal(t, model_starlark_pb.TestTimeout_ETERNAL, ruleTarget.GetTest().GetTimeout())
 	})
 
 	t.Run("Explicit", func(t *testing.T) {
@@ -164,7 +165,7 @@ func TestRuleCallTest(t *testing.T) {
 					}},
 				}},
 			})},
-		}, ruleTarget.Test)
+		}, ruleTarget.GetTest())
 	})
 
 	t.Run("InvalidValues", func(t *testing.T) {
@@ -192,10 +193,10 @@ func TestRuleCallOutputAttr(t *testing.T) {
 		Context:               ctx,
 		ObjectEncoder:         encoder,
 		ObjectReferenceFormat: referenceFormat,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 32 * 1024,
 			HorizonSizeBytes: 8 * 32 * 1024,
-		}, referenceFormat)),
+		}.Build(), referenceFormat)),
 	}
 	attr := model_starlark.NewAttr[object.LocalReference, model_core.CreatedObjectTree](
 		model_starlark.NewOutputAttrType[object.LocalReference, model_core.CreatedObjectTree](""),
@@ -287,10 +288,10 @@ func TestRuleCallBuildSetting(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: referenceFormat,
 			ObjectCapturer:        objectManager,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 32 * 1024,
 				HorizonSizeBytes: 8 * 32 * 1024,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 		})
 
 		identifier := util.Must(label.NewCanonicalStarlarkIdentifier("@@rules+//:defs.bzl%my_flag"))
@@ -317,7 +318,7 @@ func TestRuleCallBuildSetting(t *testing.T) {
 		)}); err != nil {
 			return nil, err
 		}
-		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget().BuildSetting, nil
+		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget().GetBuildSetting(), nil
 	}
 	targetScope := &model_starlark_pb.BuildSettingScope{
 		Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
@@ -326,8 +327,8 @@ func TestRuleCallBuildSetting(t *testing.T) {
 	t.Run("Defaults", func(t *testing.T) {
 		buildSetting, err := callRule(t, nil)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, targetScope, buildSetting.Scope)
-		require.Nil(t, buildSetting.OnLeaveScope)
+		testutil.RequireEqualProto(t, targetScope, buildSetting.GetScope())
+		require.Nil(t, buildSetting.GetOnLeaveScope())
 	})
 
 	t.Run("Explicit", func(t *testing.T) {
@@ -340,10 +341,10 @@ func TestRuleCallBuildSetting(t *testing.T) {
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.BuildSettingScope{
 			Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//foo:host_flag"},
-		}, buildSetting.Scope)
+		}, buildSetting.GetScope())
 		testutil.RequireEqualProto(t, &model_starlark_pb.Value{
 			Kind: &model_starlark_pb.Value_Bool{Bool: false},
-		}, buildSetting.OnLeaveScope)
+		}, buildSetting.GetOnLeaveScope())
 	})
 
 	t.Run("InvalidScope", func(t *testing.T) {

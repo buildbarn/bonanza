@@ -31,10 +31,10 @@ func TestProllyChunkerFactory(t *testing.T) {
 		// PopMultiple() should always return a nil node, even
 		// when finalizing.
 		chunkerFactory := btree.NewProllyChunkerFactory[*MockReferenceMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
-			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+			}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
 				return contents.GetList() != nil
 			},
@@ -54,10 +54,10 @@ func TestProllyChunkerFactory(t *testing.T) {
 		// respect the minimum size.
 		const minimumSizeBytes = 1024
 		chunkerFactory := btree.NewProllyChunkerFactory[*MockReferenceMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: minimumSizeBytes,
 				HorizonSizeBytes: 8 * minimumSizeBytes,
-			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+			}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 			/* isParent = */ func(contents *model_filesystem_pb.FileContents) bool {
 				return contents.GetList() != nil
 			},

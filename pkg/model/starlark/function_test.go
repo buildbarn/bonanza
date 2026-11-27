@@ -100,10 +100,10 @@ adder = make_adder(3)
 				ObjectEncoder:         encoder,
 				ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 				ObjectCapturer:        store,
-				ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+				ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 					MinimumSizeBytes: uint32(minimumSizeBytes),
 					HorizonSizeBytes: uint32(8 * minimumSizeBytes),
-				}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+				}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 			}
 			encodingThread := newTestThread(t)
 			encodedProgram, err := model_starlark.EncodeCompiledProgram(encodingThread, program, module.Globals(), encodingOptions)
@@ -113,8 +113,8 @@ adder = make_adder(3)
 
 			// Only public globals and private globals that are
 			// referenced by functions should be encoded.
-			require.Equal(t, []string{"_PREFIX", "adder", "constants", "greet", "make_adder", "make_multiplier", "padding0", "padding1", "padding2"}, globals.Message.Globals.Keys)
-			require.Equal(t, tc.spansMultipleObjects, globals.Message.Functions[0].GetParent() != nil)
+			require.Equal(t, []string{"_PREFIX", "adder", "constants", "greet", "make_adder", "make_multiplier", "padding0", "padding1", "padding2"}, globals.Message.GetGlobals().GetKeys())
+			require.Equal(t, tc.spansMultipleObjects, globals.Message.GetFunctions()[0].GetParent() != nil)
 
 			// Load the functions on another thread, resolving
 			// globals through the GlobalResolver.
@@ -128,7 +128,7 @@ adder = make_adder(3)
 			}
 			thread := newTestThread(t)
 			thread.SetLocal(model_starlark.ValueDecodingOptionsKey, decodingOptions)
-			decodedGlobals, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(globals, globals.Message.Globals), filename)
+			decodedGlobals, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(globals, globals.Message.GetGlobals()), filename)
 			require.NoError(t, err)
 			thread.SetLocal(model_starlark.CompiledProgramResolverKey, model_starlark.CompiledProgramResolver[object.LocalReference](func(filename label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, object.LocalReference], error) {
 				return globals, nil
@@ -139,7 +139,7 @@ adder = make_adder(3)
 				if identifier.GetCanonicalLabel() == otherFilename {
 					return model_core.NewSimpleMessage[object.LocalReference](newStringValue(".")), nil
 				}
-				return model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.Globals), identifier.GetStarlarkIdentifier().String())
+				return model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.GetGlobals()), identifier.GetStarlarkIdentifier().String())
 			}))
 
 			call := func(fn eval.Value, args ...eval.Value) eval.Value {
@@ -185,7 +185,7 @@ adder = make_adder(3)
 			reencoded, err := model_starlark.EncodeValue(thread, decodedGlobals["greet"], nil, nil, encodingOptions)
 			require.NoError(t, err)
 			reencodedTopLevel, _ := reencoded.SortAndSetReferences()
-			originalGreet, err := model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.Globals), "greet")
+			originalGreet, err := model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.GetGlobals()), "greet")
 			require.NoError(t, err)
 			originalTopLevel, _ := model_core.Patch(store, originalGreet).SortAndSetReferences()
 			require.True(t, model_core.TopLevelMessagesEqual(originalTopLevel, reencodedTopLevel))
@@ -227,10 +227,10 @@ func TestFunctionStorageLines(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			ObjectCapturer:        store,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: uint32(objectMinimumSizeBytes),
 				HorizonSizeBytes: uint32(8 * objectMinimumSizeBytes),
-			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+			}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
@@ -247,7 +247,7 @@ func TestFunctionStorageLines(t *testing.T) {
 		thread.SetLocal(model_starlark.CompiledProgramResolverKey, model_starlark.CompiledProgramResolver[object.LocalReference](func(label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, object.LocalReference], error) {
 			return program, nil
 		}))
-		globals, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(program, program.Message.Globals), filename)
+		globals, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(program, program.Message.GetGlobals()), filename)
 		require.NoError(t, err)
 		return thread, globals
 	}
@@ -263,8 +263,8 @@ func TestFunctionStorageLines(t *testing.T) {
 	}
 
 	original := encode(source.String(), 1024)
-	require.NotEmpty(t, original.Message.Functions)
-	require.NotNil(t, original.Message.Functions[0].GetParent())
+	require.NotEmpty(t, original.Message.GetFunctions())
+	require.NotNil(t, original.Message.GetFunctions()[0].GetParent())
 	check(original, 0)
 
 	// Adding lines to the start of the file should only affect the
@@ -279,29 +279,29 @@ func TestFunctionStorageLines(t *testing.T) {
 		// The message is too large, meaning the top-level
 		// elements of the B-trees should be moved to separate
 		// objects. Keys and line numbers have no external form.
-		require.Len(t, original.Message.Functions, 1)
-		require.Equal(t, uint32(functionCount), original.Message.Functions[0].GetParent().GetFunctionCount())
-		require.Len(t, original.Message.Globals.Values, 1)
-		require.NotNil(t, original.Message.Globals.Values[0].GetParent())
-		require.Len(t, original.Message.Globals.Keys, functionCount)
-		require.Len(t, original.Message.TopLevelFunctionLines, functionCount)
+		require.Len(t, original.Message.GetFunctions(), 1)
+		require.Equal(t, uint32(functionCount), original.Message.GetFunctions()[0].GetParent().GetFunctionCount())
+		require.Len(t, original.Message.GetGlobals().GetValues(), 1)
+		require.NotNil(t, original.Message.GetGlobals().GetValues()[0].GetParent())
+		require.Len(t, original.Message.GetGlobals().GetKeys(), functionCount)
+		require.Len(t, original.Message.GetTopLevelFunctionLines(), functionCount)
 	})
 
 	t.Run("InlineGlobalsAndFunctions", func(t *testing.T) {
 		// With a sufficiently large object size, everything
 		// should fit in a single message.
 		inline := encode(source.String(), 512*1024)
-		require.Len(t, inline.Message.Functions, functionCount)
-		require.Nil(t, inline.Message.Functions[0].GetParent())
-		require.Len(t, inline.Message.Globals.Values, functionCount)
-		require.Nil(t, inline.Message.Globals.Values[0].GetParent())
+		require.Len(t, inline.Message.GetFunctions(), functionCount)
+		require.Nil(t, inline.Message.GetFunctions()[0].GetParent())
+		require.Len(t, inline.Message.GetGlobals().GetValues(), functionCount)
+		require.Nil(t, inline.Message.GetGlobals().GetValues()[0].GetParent())
 		check(inline, 0)
 	})
 
 	t.Run("MissingLines", func(t *testing.T) {
 		thread, globals := decode(model_core.Nested(original, &model_starlark_pb.CompiledProgram{
-			Globals:   original.Message.Globals,
-			Functions: original.Message.Functions,
+			Globals:   original.Message.GetGlobals(),
+			Functions: original.Message.GetFunctions(),
 		}))
 		_, err := globals["f0"].(eval.Function).Funcode(thread)
 		require.ErrorContains(t, err, "line of function does not exist")
@@ -356,20 +356,20 @@ def factorial(n):
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 			ObjectCapturer:        store,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
-			}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+			}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 		})
 		require.NoError(t, err)
 		topLevel, _ := encodedProgram.SortAndSetReferences()
 		encodedGlobals[filename] = topLevel.Decay()
-		decodedGlobals[filename], err = model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(encodedGlobals[filename], encodedGlobals[filename].Message.Globals), filename)
+		decodedGlobals[filename], err = model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(encodedGlobals[filename], encodedGlobals[filename].Message.GetGlobals()), filename)
 		require.NoError(t, err)
 	}
 	thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 		globals := encodedGlobals[identifier.GetCanonicalLabel()]
-		return model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.Globals), identifier.GetStarlarkIdentifier().String())
+		return model_starlark.GetStructFieldValue(t.Context(), decodingOptions.Readers.List, model_core.Nested(globals, globals.Message.GetGlobals()), identifier.GetStarlarkIdentifier().String())
 	}))
 	thread.SetLocal(model_starlark.CompiledProgramResolverKey, model_starlark.CompiledProgramResolver[object.LocalReference](func(filename label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, object.LocalReference], error) {
 		return encodedGlobals[filename], nil
@@ -413,10 +413,10 @@ func TestFunctionNamePaths(t *testing.T) {
 		ObjectEncoder:         encoder,
 		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:        store,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1024,
 			HorizonSizeBytes: 8 * 1024,
-		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+		}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	}
 
 	// execAndEncode executes the provided source, and encodes the
@@ -444,7 +444,7 @@ func TestFunctionNamePaths(t *testing.T) {
 		encoded, err := model_starlark.EncodeFunction(thread, function.(eval.Function), nil, encodingOptions)
 		require.NoError(t, err)
 		defer encoded.Discard()
-		return encoded.Message.NamePath
+		return encoded.Message.GetNamePath()
 	}
 	call := func(t *testing.T, thread *eval.Thread, function eval.Value, args ...eval.Value) eval.Value {
 		v, err := eval.Call(thread, function, eval.Args{Positional: args})
@@ -478,7 +478,7 @@ SECOND = lambda: "second"
 		fmt.Fprintf(&source, "def f%d():\n    return %d\n", i, i)
 	}
 	globals, program := execAndEncode(t, source.String())
-	require.NotNil(t, program.Message.Functions[0].GetParent())
+	require.NotNil(t, program.Message.GetFunctions()[0].GetParent())
 
 	name := func(name string, index int32) *model_starlark_pb.Function_Name {
 		return &model_starlark_pb.Function_Name{Name: name, DisambiguationIndex: index}
@@ -512,7 +512,7 @@ SECOND = lambda: "second"
 		thread.SetLocal(model_starlark.CompiledProgramResolverKey, model_starlark.CompiledProgramResolver[object.LocalReference](func(label.CanonicalLabel) (model_core.Message[*model_starlark_pb.CompiledProgram, object.LocalReference], error) {
 			return program, nil
 		}))
-		decoded, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(program, program.Message.Globals), filename)
+		decoded, err := model_starlark.DecodeGlobals[object.LocalReference, model_core.NoopReferenceMetadata](thread, model_core.Nested(program, program.Message.GetGlobals()), filename)
 		require.NoError(t, err)
 
 		// Functions should resolve to the right code, regardless
@@ -560,7 +560,7 @@ SECOND = lambda: "second"
 			encoded, err := model_starlark.EncodeFunction(newTestThread(t), globals["f"].(eval.Function), nil, encodingOptions)
 			require.NoError(t, err)
 			defer encoded.Discard()
-			return encoded.Message, program.Message.Functions
+			return encoded.Message, program.Message.GetFunctions()
 		}
 		function1, code1 := encode(t, "def f():\n    return 1\n")
 		function2, code2 := encode(t, "def f():\n    return 2\n")

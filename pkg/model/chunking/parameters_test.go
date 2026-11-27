@@ -27,42 +27,42 @@ func TestNewParametersFromProto(t *testing.T) {
 	})
 
 	t.Run("MinimumSizeTooSmall", func(t *testing.T) {
-		_, err := chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		_, err := chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1023,
 			HorizonSizeBytes: 8 * 1023,
-		}, referenceFormat)
+		}.Build(), referenceFormat)
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Minimum size is below 1024 bytes"), err)
 	})
 
 	t.Run("MaximumSizeTooLarge", func(t *testing.T) {
-		_, err := chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		_, err := chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: maximumObjectSizeBytes/2 + 1,
-		}, referenceFormat)
+		}.Build(), referenceFormat)
 		testutil.RequireEqualStatus(t, status.Errorf(codes.InvalidArgument, "Maximum size (twice the minimum size) is above maximum object size of %d bytes", maximumObjectSizeBytes), err)
 	})
 
 	t.Run("HorizonSizeTooLarge", func(t *testing.T) {
-		_, err := chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		_, err := chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 4096,
 			HorizonSizeBytes: 32*4096 + 1,
-		}, referenceFormat)
+		}.Build(), referenceFormat)
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Horizon size is more than 32 times as large as the minimum size"), err)
 	})
 
 	t.Run("Success", func(t *testing.T) {
 		for _, m := range []*model_chunking_pb.Parameters{
-			{MinimumSizeBytes: 1024, HorizonSizeBytes: 0},
-			{MinimumSizeBytes: 4096, HorizonSizeBytes: 32 * 4096},
-			{MinimumSizeBytes: maximumObjectSizeBytes / 2, HorizonSizeBytes: maximumObjectSizeBytes * 4},
+			model_chunking_pb.Parameters_builder{MinimumSizeBytes: 1024, HorizonSizeBytes: 0}.Build(),
+			model_chunking_pb.Parameters_builder{MinimumSizeBytes: 4096, HorizonSizeBytes: 32 * 4096}.Build(),
+			model_chunking_pb.Parameters_builder{MinimumSizeBytes: maximumObjectSizeBytes / 2, HorizonSizeBytes: maximumObjectSizeBytes * 4}.Build(),
 		} {
 			parameters, err := chunking.NewParametersFromProto(m, referenceFormat)
 			require.NoError(t, err)
-			require.Equal(t, int(m.MinimumSizeBytes), parameters.GetMinimumSizeBytes())
+			require.Equal(t, int(m.GetMinimumSizeBytes()), parameters.GetMinimumSizeBytes())
 			require.Equal(t, inlinedtree.Options{
 				ReferenceFormat:  referenceFormat,
-				MaximumSizeBytes: int(m.MinimumSizeBytes)*2 - 1,
+				MaximumSizeBytes: int(m.GetMinimumSizeBytes())*2 - 1,
 			}, parameters.GetInlinedTreeOptions())
-			require.Equal(t, int(m.HorizonSizeBytes), parameters.GetHorizonSizeBytes())
+			require.Equal(t, int(m.GetHorizonSizeBytes()), parameters.GetHorizonSizeBytes())
 		}
 	})
 }

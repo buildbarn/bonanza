@@ -56,10 +56,10 @@ func newMergedDirectoryTester(t *testing.T) *mergedDirectoryTester {
 	parameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
-			DirectoriesParameters: &model_chunking_pb.Parameters{
+			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
-			},
+			}.Build(),
 		},
 		object.SHA256V1ReferenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),

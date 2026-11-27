@@ -61,10 +61,10 @@ func newBaseComputerTester(ctrl *gomock.Controller) *baseComputerTester {
 			parsedObjectPoolIngester,
 			object.SHA256V1ReferenceFormat,
 			util.Must(chunking.NewParametersFromProto(
-				&model_chunking_pb.Parameters{
+				model_chunking_pb.Parameters_builder{
 					MinimumSizeBytes: 32 * 1024,
 					HorizonSizeBytes: 8 * 32 * 1024,
-				},
+				}.Build(),
 				object.SHA256V1ReferenceFormat,
 			)),
 			filePool,
@@ -113,10 +113,10 @@ func (baseComputerTester) newDirectoryCreationParameters() *model_filesystem.Dir
 	return util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
-			DirectoriesParameters: &model_chunking_pb.Parameters{
+			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 15,
 				HorizonSizeBytes: 1 << 18,
-			},
+			}.Build(),
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -139,14 +139,14 @@ func (baseComputerTester) newFileCreationParameters() *model_filesystem.FileCrea
 	return util.Must(model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
 			Access: &model_filesystem_pb.FileAccessParameters{},
-			ChunkParameters: &model_chunking_pb.Parameters{
+			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
 				HorizonSizeBytes: 1 << 19,
-			},
-			FileContentsListParameters: &model_chunking_pb.Parameters{
+			}.Build(),
+			FileContentsListParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
 				HorizonSizeBytes: 8 << 16,
-			},
+			}.Build(),
 		},
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),

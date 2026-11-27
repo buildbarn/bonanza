@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -22,11 +21,11 @@ const (
 )
 
 type Parameters struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	MinimumSizeBytes uint32                 `protobuf:"varint,1,opt,name=minimum_size_bytes,json=minimumSizeBytes,proto3" json:"minimum_size_bytes,omitempty"`
-	HorizonSizeBytes uint32                 `protobuf:"varint,2,opt,name=horizon_size_bytes,json=horizonSizeBytes,proto3" json:"horizon_size_bytes,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MinimumSizeBytes uint32                 `protobuf:"varint,1,opt,name=minimum_size_bytes,json=minimumSizeBytes"`
+	xxx_hidden_HorizonSizeBytes uint32                 `protobuf:"varint,2,opt,name=horizon_size_bytes,json=horizonSizeBytes"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *Parameters) Reset() {
@@ -54,23 +53,42 @@ func (x *Parameters) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Parameters.ProtoReflect.Descriptor instead.
-func (*Parameters) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Parameters) GetMinimumSizeBytes() uint32 {
 	if x != nil {
-		return x.MinimumSizeBytes
+		return x.xxx_hidden_MinimumSizeBytes
 	}
 	return 0
 }
 
 func (x *Parameters) GetHorizonSizeBytes() uint32 {
 	if x != nil {
-		return x.HorizonSizeBytes
+		return x.xxx_hidden_HorizonSizeBytes
 	}
 	return 0
+}
+
+func (x *Parameters) SetMinimumSizeBytes(v uint32) {
+	x.xxx_hidden_MinimumSizeBytes = v
+}
+
+func (x *Parameters) SetHorizonSizeBytes(v uint32) {
+	x.xxx_hidden_HorizonSizeBytes = v
+}
+
+type Parameters_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MinimumSizeBytes uint32
+	HorizonSizeBytes uint32
+}
+
+func (b0 Parameters_builder) Build() *Parameters {
+	m0 := &Parameters{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_MinimumSizeBytes = b.MinimumSizeBytes
+	x.xxx_hidden_HorizonSizeBytes = b.HorizonSizeBytes
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_chunking_chunking_proto protoreflect.FileDescriptor
@@ -81,19 +99,7 @@ const file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDesc = "" +
 	"\n" +
 	"Parameters\x12,\n" +
 	"\x12minimum_size_bytes\x18\x01 \x01(\rR\x10minimumSizeBytes\x12,\n" +
-	"\x12horizon_size_bytes\x18\x02 \x01(\rR\x10horizonSizeBytesB(Z&bonanza.build/pkg/proto/model/chunkingb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_chunking_chunking_proto_rawDescData
-}
+	"\x12horizon_size_bytes\x18\x02 \x01(\rR\x10horizonSizeBytesB-Z&bonanza.build/pkg/proto/model/chunking\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_chunking_chunking_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_model_chunking_chunking_proto_goTypes = []any{

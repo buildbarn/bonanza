@@ -29,13 +29,9 @@ func TestRepositoryRuleReference(t *testing.T) {
 	repositoryRule, err := model_starlark.DecodeValue[object.LocalReference, model_core.NoopReferenceMetadata](
 		thread,
 		model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_RepositoryRule{
-				RepositoryRule: &model_starlark_pb.RepositoryRule{
-					Kind: &model_starlark_pb.RepositoryRule_Reference{
-						Reference: "@@rules+//:defs.bzl%my_repository_rule",
-					},
-				},
-			},
+			Kind: &model_starlark_pb.Value_RepositoryRule{RepositoryRule: &model_starlark_pb.RepositoryRule{
+				Kind: &model_starlark_pb.RepositoryRule_Reference{Reference: "@@rules+//:defs.bzl%my_repository_rule"},
+			}},
 		}),
 		/* currentIdentifier = */ nil,
 	)
@@ -45,20 +41,16 @@ func TestRepositoryRuleReference(t *testing.T) {
 	thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 		resolvedIdentifiers = append(resolvedIdentifiers, identifier.String())
 		return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_RepositoryRule{
-				RepositoryRule: &model_starlark_pb.RepositoryRule{
-					Kind: &model_starlark_pb.RepositoryRule_Definition_{
-						Definition: &model_starlark_pb.RepositoryRule_Definition{
-							Attrs: []*model_starlark_pb.NamedAttr{{
-								Name: "value",
-								Attr: &model_starlark_pb.Attr{
-									Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-								},
-							}},
+			Kind: &model_starlark_pb.Value_RepositoryRule{RepositoryRule: &model_starlark_pb.RepositoryRule{
+				Kind: &model_starlark_pb.RepositoryRule_Definition_{Definition: &model_starlark_pb.RepositoryRule_Definition{
+					Attrs: []*model_starlark_pb.NamedAttr{{
+						Name: "value",
+						Attr: &model_starlark_pb.Attr{
+							Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
 						},
-					},
-				},
-			},
+					}},
+				}},
+			}},
 		}), nil
 	}))
 	repoRegistrar := model_starlark.NewRepoRegistrar[model_core.NoopReferenceMetadata]()
@@ -69,10 +61,10 @@ func TestRepositoryRuleReference(t *testing.T) {
 		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		ObjectReferenceFormat: object.SHA256V1ReferenceFormat,
 		ObjectCapturer:        model_core.NewDiscardingObjectCapturer[object.LocalReference](),
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1024,
 			HorizonSizeBytes: 8 * 1024,
-		}, object.SHA256V1ReferenceFormat)),
+		}.Build(), object.SHA256V1ReferenceFormat)),
 	})
 
 	_, err = eval.Call(thread, repositoryRule, eval.Args{
@@ -82,5 +74,5 @@ func TestRepositoryRuleReference(t *testing.T) {
 	require.Equal(t, []string{"@@rules+//:defs.bzl%my_repository_rule"}, resolvedIdentifiers)
 	repos := repoRegistrar.GetRepos()
 	require.Contains(t, repos, "repo")
-	require.Equal(t, "@@rules+//:defs.bzl%my_repository_rule", repos["repo"].Message.Definition.RepositoryRuleIdentifier)
+	require.Equal(t, "@@rules+//:defs.bzl%my_repository_rule", repos["repo"].Message.GetDefinition().GetRepositoryRuleIdentifier())
 }

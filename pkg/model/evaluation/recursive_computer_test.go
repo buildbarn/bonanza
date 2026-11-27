@@ -53,10 +53,10 @@ func protoValue(m proto.Message) model_core.PatchedMessage[encoding.BinaryMarsha
 // testChunkingParameters are the chunking parameters that are used by
 // RecursiveComputer in these tests.
 var testChunkingParameters = util.Must(chunking.NewParametersFromProto(
-	&model_chunking_pb.Parameters{
+	model_chunking_pb.Parameters_builder{
 		MinimumSizeBytes: 1 << 16,
 		HorizonSizeBytes: 8 << 16,
-	},
+	}.Build(),
 	object.SHA256V1ReferenceFormat,
 ))
 

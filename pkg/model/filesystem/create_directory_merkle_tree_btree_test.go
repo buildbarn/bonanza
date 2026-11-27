@@ -146,10 +146,10 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 	directoryParameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
 		&model_filesystem_pb.DirectoryCreationParameters{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
-			DirectoriesParameters: &model_chunking_pb.Parameters{
+			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
-			},
+			}.Build(),
 		},
 		object.SHA256V1ReferenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -222,7 +222,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 		var errIter error
 		var names []string
 		for node := range model_filesystem.DirectoryAllNodes(ctx, entriesReader, rootDirectory, &errIter) {
-			names = append(names, node.Message.Name)
+			names = append(names, node.Message.GetName())
 		}
 		require.NoError(t, errIter)
 		require.Equal(t, expectedNodeNames, names)
@@ -232,10 +232,10 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 		var errIter error
 		i := 0
 		for node, child := range model_filesystem.DirectoryAllChildren(ctx, entriesReader, rootDirectory, &errIter) {
-			require.Equal(t, fmt.Sprintf("dir%04d", i), node.Message.Name)
+			require.Equal(t, fmt.Sprintf("dir%04d", i), node.Message.GetName())
 			childDirectoriesCount, err := model_filesystem.GetDirectoryDirectoriesCount(child.Message)
 			require.NoError(t, err)
-			require.Equal(t, node.Message.GetDirectory().DirectoriesCount, childDirectoriesCount)
+			require.Equal(t, node.Message.GetDirectory().GetDirectoriesCount(), childDirectoriesCount)
 			i++
 		}
 		require.NoError(t, errIter)
@@ -263,13 +263,11 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 				require.Len(t, nodes, 2)
 				testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
 					Name: "link",
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-						Symlink: &model_filesystem_pb.SymlinkProperties{
-							Target: "../../../target",
-						},
-					},
+					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{Symlink: &model_filesystem_pb.SymlinkProperties{
+						Target: "../../../target",
+					}},
 				}, nodes[0])
-				require.Equal(t, "nested", nodes[1].Name)
+				require.Equal(t, "nested", nodes[1].GetName())
 			} else {
 				require.Empty(t, nodes)
 			}
@@ -281,16 +279,14 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
 			Name: "dir0550.lnk",
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-				Symlink: &model_filesystem_pb.SymlinkProperties{
-					Target: "dir0550",
-				},
-			},
+			Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{Symlink: &model_filesystem_pb.SymlinkProperties{
+				Target: "dir0550",
+			}},
 		}, node.Message)
 
 		node, directoryIndex, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, rootDirectory, path.MustNewComponent("dir0789"))
 		require.NoError(t, err)
-		require.Equal(t, "dir0789", node.Message.Name)
+		require.Equal(t, "dir0789", node.Message.GetName())
 		require.Equal(t, uint64(789), directoryIndex)
 
 		// Names that sort before, between and after the
@@ -337,7 +333,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 				require.Equal(t, uint64(skip), node.Ordinal)
 				firstDirectoryIndex = node.DirectoryIndex
 			}
-			names = append(names, node.GetNode().Message.Name)
+			names = append(names, node.GetNode().Message.GetName())
 		}
 		require.NoError(t, errIter)
 		require.Equal(t, expectedNodeNames[skip:], names)
@@ -374,7 +370,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 		linkNode, found, err := model_filesystem.LookupDirectoryClusterNode(ctx, clusterReader, &childLocation, "link")
 		require.NoError(t, err)
 		require.True(t, found)
-		require.Equal(t, "../../../target", linkNode.GetNode().Message.GetSymlink().Target)
+		require.Equal(t, "../../../target", linkNode.GetNode().Message.GetSymlink().GetTarget())
 	})
 
 	t.Run("CapturedDirectoryWalker", func(t *testing.T) {

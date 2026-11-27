@@ -1989,18 +1989,16 @@ func newArgumentsBuilder[TMetadata model_core.ReferenceMetadata](ctx context.Con
 	parentNodeComputer := btree.Capturing(ctx, objectCapturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_command_pb.ArgumentList_Element, object.LocalReference]) model_core.PatchedMessage[*model_command_pb.ArgumentList_Element, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_command_pb.ArgumentList_Element {
 			return &model_command_pb.ArgumentList_Element{
-				Level: &model_command_pb.ArgumentList_Element_Parent{
-					Parent: patcher.AddDecodableReference(createdObject),
-				},
+				Level: &model_command_pb.ArgumentList_Element_Parent{Parent: patcher.AddDecodableReference(createdObject)},
 			}
 		})
 	})
 	return btree.NewHeightAwareBuilder(
 		btree.NewProllyChunkerFactory[TMetadata](
-			util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
 				HorizonSizeBytes: 8 << 16,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 			/* isParent = */ func(element *model_command_pb.ArgumentList_Element) bool {
 				return element.GetParent() != nil
 			},

@@ -38,14 +38,14 @@ func TestStringStorage(t *testing.T) {
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
 		&model_filesystem_pb.FileCreationParameters{
 			Access: &model_filesystem_pb.FileAccessParameters{},
-			ChunkParameters: &model_chunking_pb.Parameters{
+			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 12,
 				HorizonSizeBytes: 1 << 14,
-			},
-			FileContentsListParameters: &model_chunking_pb.Parameters{
+			}.Build(),
+			FileContentsListParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 10,
 				HorizonSizeBytes: 8 << 10,
-			},
+			}.Build(),
 		},
 		referenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
@@ -58,10 +58,10 @@ func TestStringStorage(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: referenceFormat,
 			ObjectCapturer:        store,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 			FileCreationParameters: fileCreationParameters,
 		}
 		return options
@@ -318,6 +318,6 @@ def char_to_int(c):
 		topLevel, _ := encodedProgram.SortAndSetReferences()
 		_, err = proto.Marshal(topLevel.Message)
 		require.NoError(t, err)
-		require.Equal(t, []string{"CHAR_TO_INT", "char_to_int"}, topLevel.Message.Globals.Keys)
+		require.Equal(t, []string{"CHAR_TO_INT", "char_to_int"}, topLevel.Message.GetGlobals().GetKeys())
 	})
 }

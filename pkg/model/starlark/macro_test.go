@@ -24,6 +24,9 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+	xpb "google.golang.org/protobuf/types/known/emptypb"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -57,10 +60,10 @@ func TestMacro(t *testing.T) {
 			ObjectEncoder:         encoder,
 			ObjectReferenceFormat: referenceFormat,
 			ObjectCapturer:        objectManager,
-			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+			ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 32 * 1024,
 				HorizonSizeBytes: 8 * 32 * 1024,
-			}, referenceFormat)),
+			}.Build(), referenceFormat)),
 		})
 		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{
 			Readers: &model_starlark.ValueReaders[object.LocalReference]{},
@@ -134,9 +137,7 @@ func TestMacro(t *testing.T) {
 		elements := make([]*model_starlark_pb.List_Element, 0, len(labels))
 		for _, l := range labels {
 			elements = append(elements, &model_starlark_pb.List_Element{
-				Level: &model_starlark_pb.List_Element_Leaf{
-					Leaf: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: l}},
-				},
+				Level: &model_starlark_pb.List_Element_Leaf{Leaf: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: l}}},
 			})
 		}
 		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{Elements: elements}}}
@@ -180,8 +181,8 @@ func TestMacro(t *testing.T) {
 		require.NoError(t, finalize(thread, targetRegistrar))
 		macroExpansionContext := targetRegistrar.GetAndRemoveMacroExpansionContext(name).Message
 		return &model_starlark_pb.MacroInstance{
-			NameSuffix: macroExpansionContext.NameSuffix,
-			Definition: macroExpansionContext.Definition.RootMacroInstanceDefinition,
+			NameSuffix: macroExpansionContext.GetNameSuffix(),
+			Definition: macroExpansionContext.GetDefinition().GetRootMacroInstanceDefinition(),
 		}
 	}
 
@@ -206,7 +207,7 @@ func TestMacro(t *testing.T) {
 				MacroIdentifier: "@@rules+//:defs.bzl%my_macro",
 				PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
 					{ValueParts: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(3))},
+						Kind: &model_starlark_pb.Value_Int{Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(3)))},
 					})}},
 					{ValueParts: []*model_starlark_pb.Select_Group{noMatchGroup(labelList("@@main+//foo:a.txt", "@@main+//other:b.txt"))}},
 				},
@@ -226,7 +227,7 @@ func TestMacro(t *testing.T) {
 		// the targets that finalizers observe.
 		thread, targetRegistrar := newTopLevel(t)
 		require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", eval.String("f"))))
-		require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, getMacroInstance(t, thread, targetRegistrar, "f").Definition.Finalizer)
+		require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, getMacroInstance(t, thread, targetRegistrar, "f").GetDefinition().GetFinalizer())
 	})
 
 	t.Run("TopLevelVisibility", func(t *testing.T) {
@@ -245,7 +246,7 @@ func TestMacro(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				thread, targetRegistrar := newTopLevel(t)
 				require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", eval.String("m")), kwarg("count", eval.MakeInt(1)), kwarg("visibility", testCase.visibility)))
-				testutil.RequireEqualProto(t, testCase.expectedVisibility, getMacroInstance(t, thread, targetRegistrar, "m").Definition.InheritableAttrs.GetVisibility())
+				testutil.RequireEqualProto(t, testCase.expectedVisibility, getMacroInstance(t, thread, targetRegistrar, "m").GetDefinition().GetInheritableAttrs().GetVisibility())
 			})
 		}
 
@@ -270,7 +271,7 @@ func TestMacro(t *testing.T) {
 					}))
 					thread := newThread(t, targetRegistrar, objectManager)
 					require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", eval.String("m")), kwarg("count", eval.MakeInt(1)), kwarg("visibility", testCase.visibility)))
-					testutil.RequireEqualProto(t, testCase.expectedVisibility, getMacroInstance(t, thread, targetRegistrar, "m").Definition.InheritableAttrs.GetVisibility())
+					testutil.RequireEqualProto(t, testCase.expectedVisibility, getMacroInstance(t, thread, targetRegistrar, "m").GetDefinition().GetInheritableAttrs().GetVisibility())
 				})
 			}
 		})
@@ -292,12 +293,12 @@ func TestMacro(t *testing.T) {
 			kwarg("count", eval.MakeInt(3)),
 		))
 		macroInstance := getMacroInstance(t, thread, targetRegistrar, "m")
-		require.Len(t, macroInstance.Definition.PublicAttrValues, 2)
+		require.Len(t, macroInstance.GetDefinition().GetPublicAttrValues(), 2)
 		testutil.RequireEqualProto(t, &model_starlark_pb.RuleTarget_PublicAttrValue{
 			ValueParts: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_None{},
+				Kind: &model_starlark_pb.Value_None{None: &xpb.Empty{}},
 			})},
-		}, macroInstance.Definition.PublicAttrValues[1])
+		}, macroInstance.GetDefinition().GetPublicAttrValues()[1])
 	})
 
 	t.Run("NameNotATargetName", func(t *testing.T) {
@@ -306,7 +307,7 @@ func TestMacro(t *testing.T) {
 		// don't need to be valid target names.
 		thread, targetRegistrar := newTopLevel(t)
 		require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", eval.String("m/")), kwarg("count", eval.MakeInt(1))))
-		require.Equal(t, "m/", getMacroInstance(t, thread, targetRegistrar, "m/").NameSuffix)
+		require.Equal(t, "m/", getMacroInstance(t, thread, targetRegistrar, "m/").GetNameSuffix())
 	})
 
 	t.Run("InvalidCalls", func(t *testing.T) {
@@ -433,15 +434,15 @@ func TestMacro(t *testing.T) {
 			referenced, forbidden, nested []string
 		}
 		getNames := func(t *testing.T, targetRegistrar *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree], name string) names {
-			definition := targetRegistrar.GetAndRemoveMacroExpansionContext(name).Message.Definition
+			definition := targetRegistrar.GetAndRemoveMacroExpansionContext(name).Message.GetDefinition()
 			n := names{
-				referenced: definition.ReferencedTargetNameSuffixes,
-				forbidden:  definition.ForbiddenTargetNameSuffixes,
+				referenced: definition.GetReferencedTargetNameSuffixes(),
+				forbidden:  definition.GetForbiddenTargetNameSuffixes(),
 			}
-			for _, entry := range definition.NestedMacroInstances {
+			for _, entry := range definition.GetNestedMacroInstances() {
 				nestedMacroInstance := entry.GetLeaf()
 				require.NotNil(t, nestedMacroInstance)
-				n.nested = append(n.nested, nestedMacroInstance.NameSuffix)
+				n.nested = append(n.nested, nestedMacroInstance.GetNameSuffix())
 			}
 			return n
 		}
@@ -495,7 +496,7 @@ func TestMacro(t *testing.T) {
 			require.NoError(t, callMacro(thread, "m"))
 			require.NoError(t, finalize(thread, targetRegistrar))
 			require.Equal(t, []string{"m", "m.txt", "m_out"}, targetRegistrar.GetTargetNames())
-			require.Empty(t, targetRegistrar.GetAndRemoveMacroExpansionContext("m").Message.Definition.ReferencedTargetNameSuffixes)
+			require.Empty(t, targetRegistrar.GetAndRemoveMacroExpansionContext("m").Message.GetDefinition().GetReferencedTargetNameSuffixes())
 		})
 
 		t.Run("NameClash", func(t *testing.T) {
@@ -522,7 +523,7 @@ func TestMacro(t *testing.T) {
 			require.NoError(t, callMacro(thread, "m_b"))
 			require.NoError(t, finalize(thread, targetRegistrar))
 			require.Equal(t, []string{"m", "m_a", "m_c"}, targetRegistrar.GetTargetNames())
-			require.Equal(t, []string{"_x"}, targetRegistrar.GetAndRemoveMacroExpansionContext("m_b").Message.Definition.ReferencedTargetNameSuffixes)
+			require.Equal(t, []string{"_x"}, targetRegistrar.GetAndRemoveMacroExpansionContext("m_b").Message.GetDefinition().GetReferencedTargetNameSuffixes())
 			require.NotNil(t, targetRegistrar.GetAndRemoveTarget("m_a").Message.GetAlias())
 			require.NotNil(t, targetRegistrar.GetAndRemoveTarget("m_c").Message.GetSourceFileTarget())
 		})
@@ -579,14 +580,14 @@ func TestMacro(t *testing.T) {
 					ObjectEncoder:         encoder,
 					ObjectReferenceFormat: referenceFormat,
 					ObjectCapturer:        objectManager,
-					ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+					ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 						MinimumSizeBytes: 1024,
 						HorizonSizeBytes: 8 * 1024,
-					}, referenceFormat)),
+					}.Build(), referenceFormat)),
 				},
 			))
 
-			nestedMacroInstances := targetRegistrar.GetAndRemoveMacroExpansionContext("m").Message.Definition.NestedMacroInstances
+			nestedMacroInstances := targetRegistrar.GetAndRemoveMacroExpansionContext("m").Message.GetDefinition().GetNestedMacroInstances()
 			require.Greater(t, len(nestedMacroInstances), 1)
 			for _, entry := range nestedMacroInstances {
 				require.NotNil(t, entry.GetParent())
@@ -646,9 +647,9 @@ func TestMacro(t *testing.T) {
 					require.NoError(t, finalize(thread, targetRegistrar))
 					require.Equal(t, []string{"m_f"}, targetRegistrar.GetMacroExpansionContextNames())
 					macroExpansionContext := targetRegistrar.GetAndRemoveMacroExpansionContext("m_f").Message
-					require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroExpansionContext.Definition.RootMacroInstanceDefinition.Finalizer)
-					require.Len(t, macroExpansionContext.Definition.NestedMacroInstances, 1)
-					require.Equal(t, model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER, macroExpansionContext.Definition.NestedMacroInstances[0].GetLeaf().Definition.Finalizer)
+					require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroExpansionContext.GetDefinition().GetRootMacroInstanceDefinition().GetFinalizer())
+					require.Len(t, macroExpansionContext.GetDefinition().GetNestedMacroInstances(), 1)
+					require.Equal(t, model_starlark_pb.MacroInstance_CALLED_BY_FINALIZER, macroExpansionContext.GetDefinition().GetNestedMacroInstances()[0].GetLeaf().GetDefinition().GetFinalizer())
 				}
 			})
 		})
@@ -728,8 +729,8 @@ func TestMacro(t *testing.T) {
 			require.NoError(t, call(thread, exampleFinalizer, nil, kwarg("name", eval.String("m_f"))))
 			require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", eval.String("m_x")), kwarg("count", eval.MakeInt(1))))
 			require.NoError(t, finalize(thread, targetRegistrar))
-			require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_f").Message.Definition.RootMacroInstanceDefinition.Finalizer)
-			require.Equal(t, model_starlark_pb.MacroInstance_NOT_A_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_x").Message.Definition.RootMacroInstanceDefinition.Finalizer)
+			require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_f").Message.GetDefinition().GetRootMacroInstanceDefinition().GetFinalizer())
+			require.Equal(t, model_starlark_pb.MacroInstance_NOT_A_FINALIZER, targetRegistrar.GetAndRemoveMacroExpansionContext("m_x").Message.GetDefinition().GetRootMacroInstanceDefinition().GetFinalizer())
 		})
 
 		t.Run("SameNameAsMacro", func(t *testing.T) {
@@ -755,8 +756,8 @@ func TestMacro(t *testing.T) {
 					thread, targetRegistrar := newWithinMacro(t)
 					require.NoError(t, call(thread, exampleMacro, nil, kwarg("name", eval.String("m_nested")), kwarg("count", eval.MakeInt(1)), kwarg("visibility", testCase.visibility)))
 					macroInstance := getMacroInstance(t, thread, targetRegistrar, "m_nested")
-					require.Equal(t, "_nested", macroInstance.NameSuffix)
-					testutil.RequireEqualProto(t, testCase.expectedVisibility, macroInstance.Definition.InheritableAttrs.GetVisibility())
+					require.Equal(t, "_nested", macroInstance.GetNameSuffix())
+					testutil.RequireEqualProto(t, testCase.expectedVisibility, macroInstance.GetDefinition().GetInheritableAttrs().GetVisibility())
 				})
 			}
 		})
@@ -824,22 +825,18 @@ func TestMacro(t *testing.T) {
 		decodedDefinition := util.Must(model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
 			decodingThread,
 			model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Macro{
-					Macro: &model_starlark_pb.Macro{
-						Kind: &model_starlark_pb.Macro_Definition_{Definition: definition},
-					},
-				},
+				Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{
+					Kind: &model_starlark_pb.Macro_Definition_{Definition: definition},
+				}},
 			}),
 			&identifier,
 		))
 		decodedReference := util.Must(model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
 			decodingThread,
 			model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Macro{
-					Macro: &model_starlark_pb.Macro{
-						Kind: &model_starlark_pb.Macro_Reference{Reference: "@@rules+//:defs.bzl%my_macro"},
-					},
-				},
+				Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{
+					Kind: &model_starlark_pb.Macro_Reference{Reference: "@@rules+//:defs.bzl%my_macro"},
+				}},
 			}),
 			nil,
 		))
@@ -853,11 +850,9 @@ func TestMacro(t *testing.T) {
 				thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(id label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 					require.Equal(t, identifier, id)
 					return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Macro{
-							Macro: &model_starlark_pb.Macro{
-								Kind: &model_starlark_pb.Macro_Definition_{Definition: definition},
-							},
-						},
+						Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{
+							Kind: &model_starlark_pb.Macro_Definition_{Definition: definition},
+						}},
 					}), nil
 				}))
 				require.ErrorContains(t, call(thread, decodedMacro, nil, kwarg("name", eval.String("m")), kwarg("value", model_starlark.NewSelect[object.LocalReference, model_core.CreatedObjectTree](
@@ -866,9 +861,9 @@ func TestMacro(t *testing.T) {
 				))), "attribute is not configurable")
 				require.NoError(t, call(thread, decodedMacro, nil, kwarg("name", eval.String("m")), kwarg("value", eval.String("hello"))))
 				macroInstance := getMacroInstance(t, thread, targetRegistrar, "m")
-				require.Equal(t, "@@rules+//:defs.bzl%my_macro", macroInstance.Definition.MacroIdentifier)
-				require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroInstance.Definition.Finalizer)
-				require.Len(t, macroInstance.Definition.PublicAttrValues, 1)
+				require.Equal(t, "@@rules+//:defs.bzl%my_macro", macroInstance.GetDefinition().GetMacroIdentifier())
+				require.Equal(t, model_starlark_pb.MacroInstance_FINALIZER, macroInstance.GetDefinition().GetFinalizer())
+				require.Len(t, macroInstance.GetDefinition().GetPublicAttrValues(), 1)
 			})
 		}
 	})
@@ -885,11 +880,9 @@ func TestMacro(t *testing.T) {
 		)
 		require.NoError(t, err)
 		testutil.RequireEqualProto(t, &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Macro{
-				Macro: &model_starlark_pb.Macro{
-					Kind: &model_starlark_pb.Macro_Reference{Reference: "@@rules+//:defs.bzl%my_macro"},
-				},
-			},
+			Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{
+				Kind: &model_starlark_pb.Macro_Reference{Reference: "@@rules+//:defs.bzl%my_macro"},
+			}},
 		}, encoded.Message)
 	})
 }
@@ -917,10 +910,10 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 		ObjectEncoder:         model_encoding.NewChainedDeterministicBinaryEncoder(nil),
 		ObjectReferenceFormat: util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		ObjectCapturer:        objectManager,
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 1024,
 			HorizonSizeBytes: 8 * 1024,
-		}, util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
+		}.Build(), util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)))),
 	})
 	defer treeBuilder.Discard()
 	var nameSuffixes []string
@@ -928,9 +921,7 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 		nameSuffix := fmt.Sprintf("m%03d", i)
 		nameSuffixes = append(nameSuffixes, nameSuffix)
 		require.NoError(t, treeBuilder.PushChild(model_core.NewSimplePatchedMessage[model_core.CreatedObjectTree](&model_starlark_pb.MacroExpansionContext_Entry{
-			Level: &model_starlark_pb.MacroExpansionContext_Entry_Leaf{
-				Leaf: &model_starlark_pb.MacroExpansionContext{NameSuffix: nameSuffix},
-			},
+			Level: &model_starlark_pb.MacroExpansionContext_Entry_Leaf{Leaf: &model_starlark_pb.MacroExpansionContext{NameSuffix: nameSuffix}},
 		})))
 	}
 	entries, err := treeBuilder.FinalizeList()
@@ -942,8 +933,8 @@ func TestMacroExpansionContextListBuilder(t *testing.T) {
 	for _, entry := range entries.Message {
 		parent := entry.GetParent()
 		require.NotNil(t, parent)
-		require.Contains(t, nameSuffixes, parent.FirstNameSuffix)
-		firstNameSuffixes = append(firstNameSuffixes, parent.FirstNameSuffix)
+		require.Contains(t, nameSuffixes, parent.GetFirstNameSuffix())
+		firstNameSuffixes = append(firstNameSuffixes, parent.GetFirstNameSuffix())
 	}
 	require.Equal(t, "m000", firstNameSuffixes[0])
 	require.True(t, slices.IsSorted(firstNameSuffixes))
@@ -958,10 +949,10 @@ func TestMacroInheritAttrs(t *testing.T) {
 		ObjectEncoder:         encoder,
 		ObjectReferenceFormat: referenceFormat,
 		ObjectCapturer:        createdObjectTreeCapturer{},
-		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(&model_chunking_pb.Parameters{
+		ObjectChunkingParameters: util.Must(chunking.NewParametersFromProto(model_chunking_pb.Parameters_builder{
 			MinimumSizeBytes: 32 * 1024,
 			HorizonSizeBytes: 8 * 32 * 1024,
-		}, referenceFormat)),
+		}.Build(), referenceFormat)),
 	}
 	canonicalLabel := util.Must(label.NewCanonicalLabel("@@rules+//:defs.bzl"))
 
@@ -1037,14 +1028,14 @@ func TestMacroInheritAttrs(t *testing.T) {
 			attrs := map[string]string{}
 			for _, namedAttr := range encodedMacro.Message.GetMacro().GetDefinition().GetAttrs() {
 				defaultValue := "mandatory"
-				if d := namedAttr.Attr.Default; d != nil {
-					defaultValue = "default=" + strings.TrimPrefix(fmt.Sprintf("%T", d.Kind), "*starlark.Value_")
+				if d := namedAttr.GetAttr().GetDefault(); d != nil {
+					defaultValue = "default=" + strings.TrimPrefix(fmt.Sprintf("%T", d.GetKind()), "*starlark.Value_")
 				}
-				attrs[namedAttr.Name] = fmt.Sprintf(
+				attrs[namedAttr.GetName()] = fmt.Sprintf(
 					"%s %s configurable=%t",
-					strings.TrimPrefix(fmt.Sprintf("%T", namedAttr.Attr.Type), "*starlark.Attr_"),
+					strings.TrimPrefix(fmt.Sprintf("%T", namedAttr.GetAttr().GetType()), "*starlark.Attr_"),
 					defaultValue,
-					namedAttr.Attr.Configurable,
+					namedAttr.GetAttr().GetConfigurable(),
 				)
 			}
 			macros[name] = attrs
@@ -1187,22 +1178,18 @@ outer = macro(implementation = _impl, inherit_attrs = inner)
 		thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(id label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 			require.Equal(t, identifier, id)
 			return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Rule{
-					Rule: &model_starlark_pb.Rule{
-						Kind: &model_starlark_pb.Rule_Definition_{
-							Definition: &model_starlark_pb.Rule_Definition{
-								Attrs: []*model_starlark_pb.NamedAttr{{
-									Name: "srcs",
-									Attr: &model_starlark_pb.Attr{
-										Default:      &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
-										Type:         &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{}},
-										Configurable: true,
-									},
-								}},
+				Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{
+					Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
+						Attrs: []*model_starlark_pb.NamedAttr{{
+							Name: "srcs",
+							Attr: &model_starlark_pb.Attr{
+								Default:      &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
+								Type:         &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{}},
+								Configurable: true,
 							},
-						},
-					},
-				},
+						}},
+					}},
+				}},
 			}), nil
 		}))
 		macros, err := exec(t, thread, `m = macro(implementation = _impl, inherit_attrs = other_rule)`, map[string]eval.Value{
