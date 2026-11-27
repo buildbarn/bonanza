@@ -18,7 +18,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -30,18 +29,18 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                           protoimpl.MessageState            `protogen:"open.v1"`
-	Global                          *global.Configuration             `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient               *grpc.ClientConfiguration         `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	SchedulerGrpcClient             *grpc.ClientConfiguration         `protobuf:"bytes,3,opt,name=scheduler_grpc_client,json=schedulerGrpcClient,proto3" json:"scheduler_grpc_client,omitempty"`
-	BuildDirectories                []*BuildDirectoryConfiguration    `protobuf:"bytes,4,rep,name=build_directories,json=buildDirectories,proto3" json:"build_directories,omitempty"`
-	FilePool                        *filesystem.FilePoolConfiguration `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	LocalObjectStore                *local.StoreConfiguration         `protobuf:"bytes,7,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool                *parser.ParsedObjectPool          `protobuf:"bytes,6,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	ObjectStoreConcurrency          int64                             `protobuf:"varint,8,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
-	PermitUnencryptedBinaryEncoders bool                              `protobuf:"varint,9,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders,proto3" json:"permit_unencrypted_binary_encoders,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	state                                      protoimpl.MessageState            `protogen:"opaque.v1"`
+	xxx_hidden_Global                          *global.Configuration             `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_StorageGrpcClient               *grpc.ClientConfiguration         `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient"`
+	xxx_hidden_SchedulerGrpcClient             *grpc.ClientConfiguration         `protobuf:"bytes,3,opt,name=scheduler_grpc_client,json=schedulerGrpcClient"`
+	xxx_hidden_BuildDirectories                *[]*BuildDirectoryConfiguration   `protobuf:"bytes,4,rep,name=build_directories,json=buildDirectories"`
+	xxx_hidden_FilePool                        *filesystem.FilePoolConfiguration `protobuf:"bytes,5,opt,name=file_pool,json=filePool"`
+	xxx_hidden_LocalObjectStore                *local.StoreConfiguration         `protobuf:"bytes,7,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_ParsedObjectPool                *parser.ParsedObjectPool          `protobuf:"bytes,6,opt,name=parsed_object_pool,json=parsedObjectPool"`
+	xxx_hidden_ObjectStoreConcurrency          int64                             `protobuf:"varint,8,opt,name=object_store_concurrency,json=objectStoreConcurrency"`
+	xxx_hidden_PermitUnencryptedBinaryEncoders bool                              `protobuf:"varint,9,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders"`
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -69,80 +68,209 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.StorageGrpcClient
+		return x.xxx_hidden_StorageGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetSchedulerGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.SchedulerGrpcClient
+		return x.xxx_hidden_SchedulerGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetBuildDirectories() []*BuildDirectoryConfiguration {
 	if x != nil {
-		return x.BuildDirectories
+		if x.xxx_hidden_BuildDirectories != nil {
+			return *x.xxx_hidden_BuildDirectories
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetFilePool() *filesystem.FilePoolConfiguration {
 	if x != nil {
-		return x.FilePool
+		return x.xxx_hidden_FilePool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
-		return x.ParsedObjectPool
+		return x.xxx_hidden_ParsedObjectPool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
 	if x != nil {
-		return x.ObjectStoreConcurrency
+		return x.xxx_hidden_ObjectStoreConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetPermitUnencryptedBinaryEncoders() bool {
 	if x != nil {
-		return x.PermitUnencryptedBinaryEncoders
+		return x.xxx_hidden_PermitUnencryptedBinaryEncoders
 	}
 	return false
 }
 
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetStorageGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_StorageGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetSchedulerGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_SchedulerGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetBuildDirectories(v []*BuildDirectoryConfiguration) {
+	x.xxx_hidden_BuildDirectories = &v
+}
+
+func (x *ApplicationConfiguration) SetFilePool(v *filesystem.FilePoolConfiguration) {
+	x.xxx_hidden_FilePool = v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetParsedObjectPool(v *parser.ParsedObjectPool) {
+	x.xxx_hidden_ParsedObjectPool = v
+}
+
+func (x *ApplicationConfiguration) SetObjectStoreConcurrency(v int64) {
+	x.xxx_hidden_ObjectStoreConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetPermitUnencryptedBinaryEncoders(v bool) {
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasStorageGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StorageGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasSchedulerGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SchedulerGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasFilePool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FilePool != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasParsedObjectPool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ParsedObjectPool != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearStorageGrpcClient() {
+	x.xxx_hidden_StorageGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearSchedulerGrpcClient() {
+	x.xxx_hidden_SchedulerGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearFilePool() {
+	x.xxx_hidden_FilePool = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearParsedObjectPool() {
+	x.xxx_hidden_ParsedObjectPool = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                          *global.Configuration
+	StorageGrpcClient               *grpc.ClientConfiguration
+	SchedulerGrpcClient             *grpc.ClientConfiguration
+	BuildDirectories                []*BuildDirectoryConfiguration
+	FilePool                        *filesystem.FilePoolConfiguration
+	LocalObjectStore                *local.StoreConfiguration
+	ParsedObjectPool                *parser.ParsedObjectPool
+	ObjectStoreConcurrency          int64
+	PermitUnencryptedBinaryEncoders bool
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_StorageGrpcClient = b.StorageGrpcClient
+	x.xxx_hidden_SchedulerGrpcClient = b.SchedulerGrpcClient
+	x.xxx_hidden_BuildDirectories = &b.BuildDirectories
+	x.xxx_hidden_FilePool = b.FilePool
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_ParsedObjectPool = b.ParsedObjectPool
+	x.xxx_hidden_ObjectStoreConcurrency = b.ObjectStoreConcurrency
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = b.PermitUnencryptedBinaryEncoders
+	return m0
+}
+
 type BuildDirectoryConfiguration struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Runners       []*RunnerConfiguration      `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
-	Mount         *virtual.MountConfiguration `protobuf:"bytes,2,opt,name=mount,proto3" json:"mount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_Runners *[]*RunnerConfiguration     `protobuf:"bytes,1,rep,name=runners"`
+	xxx_hidden_Mount   *virtual.MountConfiguration `protobuf:"bytes,2,opt,name=mount"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *BuildDirectoryConfiguration) Reset() {
@@ -170,45 +298,77 @@ func (x *BuildDirectoryConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildDirectoryConfiguration.ProtoReflect.Descriptor instead.
-func (*BuildDirectoryConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *BuildDirectoryConfiguration) GetRunners() []*RunnerConfiguration {
 	if x != nil {
-		return x.Runners
+		if x.xxx_hidden_Runners != nil {
+			return *x.xxx_hidden_Runners
+		}
 	}
 	return nil
 }
 
 func (x *BuildDirectoryConfiguration) GetMount() *virtual.MountConfiguration {
 	if x != nil {
-		return x.Mount
+		return x.xxx_hidden_Mount
 	}
 	return nil
 }
 
+func (x *BuildDirectoryConfiguration) SetRunners(v []*RunnerConfiguration) {
+	x.xxx_hidden_Runners = &v
+}
+
+func (x *BuildDirectoryConfiguration) SetMount(v *virtual.MountConfiguration) {
+	x.xxx_hidden_Mount = v
+}
+
+func (x *BuildDirectoryConfiguration) HasMount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Mount != nil
+}
+
+func (x *BuildDirectoryConfiguration) ClearMount() {
+	x.xxx_hidden_Mount = nil
+}
+
+type BuildDirectoryConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Runners []*RunnerConfiguration
+	Mount   *virtual.MountConfiguration
+}
+
+func (b0 BuildDirectoryConfiguration_builder) Build() *BuildDirectoryConfiguration {
+	m0 := &BuildDirectoryConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Runners = &b.Runners
+	x.xxx_hidden_Mount = b.Mount
+	return m0
+}
+
 type RunnerConfiguration struct {
-	state                               protoimpl.MessageState                       `protogen:"open.v1"`
-	Endpoint                            *grpc.ClientConfiguration                    `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Concurrency                         uint64                                       `protobuf:"varint,2,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
-	PlatformPrivateKeys                 []string                                     `protobuf:"bytes,3,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
-	ClientCertificateVerifier           *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,4,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
-	SizeClass                           uint32                                       `protobuf:"varint,5,opt,name=size_class,json=sizeClass,proto3" json:"size_class,omitempty"`
-	IsLargestSizeClass                  bool                                         `protobuf:"varint,6,opt,name=is_largest_size_class,json=isLargestSizeClass,proto3" json:"is_largest_size_class,omitempty"`
-	ShuffleDirectoryListings            bool                                         `protobuf:"varint,7,opt,name=shuffle_directory_listings,json=shuffleDirectoryListings,proto3" json:"shuffle_directory_listings,omitempty"`
-	HiddenFilesPattern                  string                                       `protobuf:"bytes,8,opt,name=hidden_files_pattern,json=hiddenFilesPattern,proto3" json:"hidden_files_pattern,omitempty"`
-	MaximumExecutionTimeoutCompensation *durationpb.Duration                         `protobuf:"bytes,9,opt,name=maximum_execution_timeout_compensation,json=maximumExecutionTimeoutCompensation,proto3" json:"maximum_execution_timeout_compensation,omitempty"`
-	MaximumWritableFileUploadDelay      *durationpb.Duration                         `protobuf:"bytes,10,opt,name=maximum_writable_file_upload_delay,json=maximumWritableFileUploadDelay,proto3" json:"maximum_writable_file_upload_delay,omitempty"`
-	MaximumFilePoolFileCount            uint64                                       `protobuf:"varint,11,opt,name=maximum_file_pool_file_count,json=maximumFilePoolFileCount,proto3" json:"maximum_file_pool_file_count,omitempty"`
-	MaximumFilePoolSizeBytes            uint64                                       `protobuf:"varint,12,opt,name=maximum_file_pool_size_bytes,json=maximumFilePoolSizeBytes,proto3" json:"maximum_file_pool_size_bytes,omitempty"`
-	WorkerId                            map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	EnvironmentVariables                map[string]string                            `protobuf:"bytes,14,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	BuildDirectoryOwnerUserId           uint32                                       `protobuf:"varint,15,opt,name=build_directory_owner_user_id,json=buildDirectoryOwnerUserId,proto3" json:"build_directory_owner_user_id,omitempty"`
-	BuildDirectoryOwnerGroupId          uint32                                       `protobuf:"varint,16,opt,name=build_directory_owner_group_id,json=buildDirectoryOwnerGroupId,proto3" json:"build_directory_owner_group_id,omitempty"`
-	unknownFields                       protoimpl.UnknownFields
-	sizeCache                           protoimpl.SizeCache
+	state                                          protoimpl.MessageState                       `protogen:"opaque.v1"`
+	xxx_hidden_Endpoint                            *grpc.ClientConfiguration                    `protobuf:"bytes,1,opt,name=endpoint"`
+	xxx_hidden_Concurrency                         uint64                                       `protobuf:"varint,2,opt,name=concurrency"`
+	xxx_hidden_PlatformPrivateKeys                 []string                                     `protobuf:"bytes,3,rep,name=platform_private_keys,json=platformPrivateKeys"`
+	xxx_hidden_ClientCertificateVerifier           *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,4,opt,name=client_certificate_verifier,json=clientCertificateVerifier"`
+	xxx_hidden_SizeClass                           uint32                                       `protobuf:"varint,5,opt,name=size_class,json=sizeClass"`
+	xxx_hidden_IsLargestSizeClass                  bool                                         `protobuf:"varint,6,opt,name=is_largest_size_class,json=isLargestSizeClass"`
+	xxx_hidden_ShuffleDirectoryListings            bool                                         `protobuf:"varint,7,opt,name=shuffle_directory_listings,json=shuffleDirectoryListings"`
+	xxx_hidden_HiddenFilesPattern                  string                                       `protobuf:"bytes,8,opt,name=hidden_files_pattern,json=hiddenFilesPattern"`
+	xxx_hidden_MaximumExecutionTimeoutCompensation *durationpb.Duration                         `protobuf:"bytes,9,opt,name=maximum_execution_timeout_compensation,json=maximumExecutionTimeoutCompensation"`
+	xxx_hidden_MaximumWritableFileUploadDelay      *durationpb.Duration                         `protobuf:"bytes,10,opt,name=maximum_writable_file_upload_delay,json=maximumWritableFileUploadDelay"`
+	xxx_hidden_MaximumFilePoolFileCount            uint64                                       `protobuf:"varint,11,opt,name=maximum_file_pool_file_count,json=maximumFilePoolFileCount"`
+	xxx_hidden_MaximumFilePoolSizeBytes            uint64                                       `protobuf:"varint,12,opt,name=maximum_file_pool_size_bytes,json=maximumFilePoolSizeBytes"`
+	xxx_hidden_WorkerId                            map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_EnvironmentVariables                map[string]string                            `protobuf:"bytes,14,rep,name=environment_variables,json=environmentVariables" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_BuildDirectoryOwnerUserId           uint32                                       `protobuf:"varint,15,opt,name=build_directory_owner_user_id,json=buildDirectoryOwnerUserId"`
+	xxx_hidden_BuildDirectoryOwnerGroupId          uint32                                       `protobuf:"varint,16,opt,name=build_directory_owner_group_id,json=buildDirectoryOwnerGroupId"`
+	unknownFields                                  protoimpl.UnknownFields
+	sizeCache                                      protoimpl.SizeCache
 }
 
 func (x *RunnerConfiguration) Reset() {
@@ -236,121 +396,268 @@ func (x *RunnerConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RunnerConfiguration.ProtoReflect.Descriptor instead.
-func (*RunnerConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *RunnerConfiguration) GetEndpoint() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.Endpoint
+		return x.xxx_hidden_Endpoint
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetConcurrency() uint64 {
 	if x != nil {
-		return x.Concurrency
+		return x.xxx_hidden_Concurrency
 	}
 	return 0
 }
 
 func (x *RunnerConfiguration) GetPlatformPrivateKeys() []string {
 	if x != nil {
-		return x.PlatformPrivateKeys
+		return x.xxx_hidden_PlatformPrivateKeys
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetClientCertificateVerifier() *x509.ClientCertificateVerifierConfiguration {
 	if x != nil {
-		return x.ClientCertificateVerifier
+		return x.xxx_hidden_ClientCertificateVerifier
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetSizeClass() uint32 {
 	if x != nil {
-		return x.SizeClass
+		return x.xxx_hidden_SizeClass
 	}
 	return 0
 }
 
 func (x *RunnerConfiguration) GetIsLargestSizeClass() bool {
 	if x != nil {
-		return x.IsLargestSizeClass
+		return x.xxx_hidden_IsLargestSizeClass
 	}
 	return false
 }
 
 func (x *RunnerConfiguration) GetShuffleDirectoryListings() bool {
 	if x != nil {
-		return x.ShuffleDirectoryListings
+		return x.xxx_hidden_ShuffleDirectoryListings
 	}
 	return false
 }
 
 func (x *RunnerConfiguration) GetHiddenFilesPattern() string {
 	if x != nil {
-		return x.HiddenFilesPattern
+		return x.xxx_hidden_HiddenFilesPattern
 	}
 	return ""
 }
 
 func (x *RunnerConfiguration) GetMaximumExecutionTimeoutCompensation() *durationpb.Duration {
 	if x != nil {
-		return x.MaximumExecutionTimeoutCompensation
+		return x.xxx_hidden_MaximumExecutionTimeoutCompensation
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetMaximumWritableFileUploadDelay() *durationpb.Duration {
 	if x != nil {
-		return x.MaximumWritableFileUploadDelay
+		return x.xxx_hidden_MaximumWritableFileUploadDelay
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetMaximumFilePoolFileCount() uint64 {
 	if x != nil {
-		return x.MaximumFilePoolFileCount
+		return x.xxx_hidden_MaximumFilePoolFileCount
 	}
 	return 0
 }
 
 func (x *RunnerConfiguration) GetMaximumFilePoolSizeBytes() uint64 {
 	if x != nil {
-		return x.MaximumFilePoolSizeBytes
+		return x.xxx_hidden_MaximumFilePoolSizeBytes
 	}
 	return 0
 }
 
 func (x *RunnerConfiguration) GetWorkerId() map[string]string {
 	if x != nil {
-		return x.WorkerId
+		return x.xxx_hidden_WorkerId
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetEnvironmentVariables() map[string]string {
 	if x != nil {
-		return x.EnvironmentVariables
+		return x.xxx_hidden_EnvironmentVariables
 	}
 	return nil
 }
 
 func (x *RunnerConfiguration) GetBuildDirectoryOwnerUserId() uint32 {
 	if x != nil {
-		return x.BuildDirectoryOwnerUserId
+		return x.xxx_hidden_BuildDirectoryOwnerUserId
 	}
 	return 0
 }
 
 func (x *RunnerConfiguration) GetBuildDirectoryOwnerGroupId() uint32 {
 	if x != nil {
-		return x.BuildDirectoryOwnerGroupId
+		return x.xxx_hidden_BuildDirectoryOwnerGroupId
 	}
 	return 0
+}
+
+func (x *RunnerConfiguration) SetEndpoint(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_Endpoint = v
+}
+
+func (x *RunnerConfiguration) SetConcurrency(v uint64) {
+	x.xxx_hidden_Concurrency = v
+}
+
+func (x *RunnerConfiguration) SetPlatformPrivateKeys(v []string) {
+	x.xxx_hidden_PlatformPrivateKeys = v
+}
+
+func (x *RunnerConfiguration) SetClientCertificateVerifier(v *x509.ClientCertificateVerifierConfiguration) {
+	x.xxx_hidden_ClientCertificateVerifier = v
+}
+
+func (x *RunnerConfiguration) SetSizeClass(v uint32) {
+	x.xxx_hidden_SizeClass = v
+}
+
+func (x *RunnerConfiguration) SetIsLargestSizeClass(v bool) {
+	x.xxx_hidden_IsLargestSizeClass = v
+}
+
+func (x *RunnerConfiguration) SetShuffleDirectoryListings(v bool) {
+	x.xxx_hidden_ShuffleDirectoryListings = v
+}
+
+func (x *RunnerConfiguration) SetHiddenFilesPattern(v string) {
+	x.xxx_hidden_HiddenFilesPattern = v
+}
+
+func (x *RunnerConfiguration) SetMaximumExecutionTimeoutCompensation(v *durationpb.Duration) {
+	x.xxx_hidden_MaximumExecutionTimeoutCompensation = v
+}
+
+func (x *RunnerConfiguration) SetMaximumWritableFileUploadDelay(v *durationpb.Duration) {
+	x.xxx_hidden_MaximumWritableFileUploadDelay = v
+}
+
+func (x *RunnerConfiguration) SetMaximumFilePoolFileCount(v uint64) {
+	x.xxx_hidden_MaximumFilePoolFileCount = v
+}
+
+func (x *RunnerConfiguration) SetMaximumFilePoolSizeBytes(v uint64) {
+	x.xxx_hidden_MaximumFilePoolSizeBytes = v
+}
+
+func (x *RunnerConfiguration) SetWorkerId(v map[string]string) {
+	x.xxx_hidden_WorkerId = v
+}
+
+func (x *RunnerConfiguration) SetEnvironmentVariables(v map[string]string) {
+	x.xxx_hidden_EnvironmentVariables = v
+}
+
+func (x *RunnerConfiguration) SetBuildDirectoryOwnerUserId(v uint32) {
+	x.xxx_hidden_BuildDirectoryOwnerUserId = v
+}
+
+func (x *RunnerConfiguration) SetBuildDirectoryOwnerGroupId(v uint32) {
+	x.xxx_hidden_BuildDirectoryOwnerGroupId = v
+}
+
+func (x *RunnerConfiguration) HasEndpoint() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Endpoint != nil
+}
+
+func (x *RunnerConfiguration) HasClientCertificateVerifier() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ClientCertificateVerifier != nil
+}
+
+func (x *RunnerConfiguration) HasMaximumExecutionTimeoutCompensation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumExecutionTimeoutCompensation != nil
+}
+
+func (x *RunnerConfiguration) HasMaximumWritableFileUploadDelay() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumWritableFileUploadDelay != nil
+}
+
+func (x *RunnerConfiguration) ClearEndpoint() {
+	x.xxx_hidden_Endpoint = nil
+}
+
+func (x *RunnerConfiguration) ClearClientCertificateVerifier() {
+	x.xxx_hidden_ClientCertificateVerifier = nil
+}
+
+func (x *RunnerConfiguration) ClearMaximumExecutionTimeoutCompensation() {
+	x.xxx_hidden_MaximumExecutionTimeoutCompensation = nil
+}
+
+func (x *RunnerConfiguration) ClearMaximumWritableFileUploadDelay() {
+	x.xxx_hidden_MaximumWritableFileUploadDelay = nil
+}
+
+type RunnerConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Endpoint                            *grpc.ClientConfiguration
+	Concurrency                         uint64
+	PlatformPrivateKeys                 []string
+	ClientCertificateVerifier           *x509.ClientCertificateVerifierConfiguration
+	SizeClass                           uint32
+	IsLargestSizeClass                  bool
+	ShuffleDirectoryListings            bool
+	HiddenFilesPattern                  string
+	MaximumExecutionTimeoutCompensation *durationpb.Duration
+	MaximumWritableFileUploadDelay      *durationpb.Duration
+	MaximumFilePoolFileCount            uint64
+	MaximumFilePoolSizeBytes            uint64
+	WorkerId                            map[string]string
+	EnvironmentVariables                map[string]string
+	BuildDirectoryOwnerUserId           uint32
+	BuildDirectoryOwnerGroupId          uint32
+}
+
+func (b0 RunnerConfiguration_builder) Build() *RunnerConfiguration {
+	m0 := &RunnerConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Endpoint = b.Endpoint
+	x.xxx_hidden_Concurrency = b.Concurrency
+	x.xxx_hidden_PlatformPrivateKeys = b.PlatformPrivateKeys
+	x.xxx_hidden_ClientCertificateVerifier = b.ClientCertificateVerifier
+	x.xxx_hidden_SizeClass = b.SizeClass
+	x.xxx_hidden_IsLargestSizeClass = b.IsLargestSizeClass
+	x.xxx_hidden_ShuffleDirectoryListings = b.ShuffleDirectoryListings
+	x.xxx_hidden_HiddenFilesPattern = b.HiddenFilesPattern
+	x.xxx_hidden_MaximumExecutionTimeoutCompensation = b.MaximumExecutionTimeoutCompensation
+	x.xxx_hidden_MaximumWritableFileUploadDelay = b.MaximumWritableFileUploadDelay
+	x.xxx_hidden_MaximumFilePoolFileCount = b.MaximumFilePoolFileCount
+	x.xxx_hidden_MaximumFilePoolSizeBytes = b.MaximumFilePoolSizeBytes
+	x.xxx_hidden_WorkerId = b.WorkerId
+	x.xxx_hidden_EnvironmentVariables = b.EnvironmentVariables
+	x.xxx_hidden_BuildDirectoryOwnerUserId = b.BuildDirectoryOwnerUserId
+	x.xxx_hidden_BuildDirectoryOwnerGroupId = b.BuildDirectoryOwnerGroupId
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto protoreflect.FileDescriptor
@@ -396,19 +703,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_p
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aG\n" +
 	"\x19EnvironmentVariablesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B6Z4bonanza.build/pkg/proto/configuration/bonanza_workerb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_rawDescData
-}
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B;Z4bonanza.build/pkg/proto/configuration/bonanza_worker\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_bonanza_build_pkg_proto_configuration_bonanza_worker_bonanza_worker_proto_goTypes = []any{

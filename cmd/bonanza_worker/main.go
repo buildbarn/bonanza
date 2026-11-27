@@ -57,13 +57,13 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
 		// Storage access for reading commands and input files.
-		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.StorageGrpcClient, dependenciesGroup)
+		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetStorageGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
@@ -72,10 +72,10 @@ func main() {
 				object_pb.NewDownloaderClient(storageGRPCClient),
 			),
 		)
-		if configuration.LocalObjectStore != nil {
+		if localObjectStoreConfiguration := configuration.GetLocalObjectStore(); localObjectStoreConfiguration != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
-				configuration.LocalObjectStore,
+				localObjectStoreConfiguration,
 				/* leaseTracking = */ nil,
 			)
 			if err != nil {
@@ -87,7 +87,7 @@ func main() {
 			)
 		}
 
-		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
+		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.GetParsedObjectPool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
@@ -100,7 +100,7 @@ func main() {
 		)
 
 		// Create connection with scheduler.
-		schedulerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.SchedulerGrpcClient, dependenciesGroup)
+		schedulerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetSchedulerGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create scheduler RPC client")
 		}
@@ -109,15 +109,15 @@ func main() {
 		// Location for storing temporary file objects. This is
 		// currently only used by the virtual file system to store
 		// output files of build actions.
-		filePool, err := pool.NewFilePoolFromConfiguration(configuration.FilePool)
+		filePool, err := pool.NewFilePoolFromConfiguration(configuration.GetFilePool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create file pool")
 		}
 
-		objectStoreSemaphore := semaphore.NewWeighted(configuration.ObjectStoreConcurrency)
-		for _, buildDirectoryConfiguration := range configuration.BuildDirectories {
+		objectStoreSemaphore := semaphore.NewWeighted(configuration.GetObjectStoreConcurrency())
+		for _, buildDirectoryConfiguration := range configuration.GetBuildDirectories() {
 			mount, handleAllocator, err := virtual_configuration.NewMountFromConfiguration(
-				buildDirectoryConfiguration.Mount,
+				buildDirectoryConfiguration.GetMount(),
 				"bonanza_worker",
 				/* rootDirectory = */ virtual_configuration.NoAttributeCaching,
 				/* childDirectories = */ virtual_configuration.LongAttributeCaching,
@@ -134,35 +134,36 @@ func main() {
 				return util.StatusWrap(err, "Failed to expose build directory mount")
 			}
 
-			if len(buildDirectoryConfiguration.Runners) == 0 {
+			runners := buildDirectoryConfiguration.GetRunners()
+			if len(runners) == 0 {
 				return util.StatusWrap(err, "Cannot start worker without any runners")
 			}
-			for _, runnerConfiguration := range buildDirectoryConfiguration.Runners {
-				if runnerConfiguration.Concurrency < 1 {
+			for _, runnerConfiguration := range runners {
+				if runnerConfiguration.GetConcurrency() < 1 {
 					return status.Error(codes.InvalidArgument, "Runner concurrency must be positive")
 				}
-				concurrencyLength := len(strconv.FormatUint(runnerConfiguration.Concurrency-1, 10))
+				concurrencyLength := len(strconv.FormatUint(runnerConfiguration.GetConcurrency()-1, 10))
 
-				if err := runnerConfiguration.MaximumExecutionTimeoutCompensation.CheckValid(); err != nil {
+				if err := runnerConfiguration.GetMaximumExecutionTimeoutCompensation().CheckValid(); err != nil {
 					return util.StatusWrap(err, "Invalid maximum execution timeout compensation")
 				}
-				maximumExecutionTimeoutCompensation := runnerConfiguration.MaximumExecutionTimeoutCompensation.AsDuration()
-				if err := runnerConfiguration.MaximumWritableFileUploadDelay.CheckValid(); err != nil {
+				maximumExecutionTimeoutCompensation := runnerConfiguration.GetMaximumExecutionTimeoutCompensation().AsDuration()
+				if err := runnerConfiguration.GetMaximumWritableFileUploadDelay().CheckValid(); err != nil {
 					return util.StatusWrap(err, "Invalid maximum writable file upload delay")
 				}
-				maximumWritableFileUploadDelay := runnerConfiguration.MaximumWritableFileUploadDelay.AsDuration()
+				maximumWritableFileUploadDelay := runnerConfiguration.GetMaximumWritableFileUploadDelay().AsDuration()
 
-				platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(runnerConfiguration.PlatformPrivateKeys)
+				platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(runnerConfiguration.GetPlatformPrivateKeys())
 				if err != nil {
 					return err
 				}
-				clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(runnerConfiguration.ClientCertificateVerifier, dependenciesGroup)
+				clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(runnerConfiguration.GetClientCertificateVerifier(), dependenciesGroup)
 				if err != nil {
 					return err
 				}
 
 				hiddenFilesPattern := func(s string) bool { return false }
-				if pattern := runnerConfiguration.HiddenFilesPattern; pattern != "" {
+				if pattern := runnerConfiguration.GetHiddenFilesPattern(); pattern != "" {
 					hiddenFilesRegexp, err := regexp.Compile(pattern)
 					if err != nil {
 						return util.StatusWrap(err, "Failed to parse hidden files pattern")
@@ -171,13 +172,13 @@ func main() {
 				}
 
 				initialContentsSorter := sort.Sort
-				if runnerConfiguration.ShuffleDirectoryListings {
+				if runnerConfiguration.GetShuffleDirectoryListings() {
 					initialContentsSorter = virtual.Shuffle
 				}
 
 				defaultAttributesSetter := func(requested virtual.AttributesMask, attributes *virtual.Attributes) {
-					attributes.SetOwnerUserID(runnerConfiguration.BuildDirectoryOwnerUserId)
-					attributes.SetOwnerGroupID(runnerConfiguration.BuildDirectoryOwnerGroupId)
+					attributes.SetOwnerUserID(runnerConfiguration.GetBuildDirectoryOwnerUserId())
+					attributes.SetOwnerGroupID(runnerConfiguration.GetBuildDirectoryOwnerGroupId())
 				}
 				symlinkFactory := virtual.NewHandleAllocatingSymlinkFactory(
 					virtual.NewBaseSymlinkFactory(defaultAttributesSetter),
@@ -191,13 +192,13 @@ func main() {
 				// used in combination with a runner process. Having a separate
 				// runner process also makes it possible to apply privilege
 				// separation.
-				runnerConnection, err := grpcClientFactory.NewClientFromConfiguration(runnerConfiguration.Endpoint, dependenciesGroup)
+				runnerConnection, err := grpcClientFactory.NewClientFromConfiguration(runnerConfiguration.GetEndpoint(), dependenciesGroup)
 				if err != nil {
 					return util.StatusWrap(err, "Failed to create runner RPC client")
 				}
 				runnerClient := runner_pb.NewRunnerClient(runnerConnection)
 
-				for threadID := uint64(0); threadID < runnerConfiguration.Concurrency; threadID++ {
+				for threadID := uint64(0); threadID < runnerConfiguration.GetConcurrency(); threadID++ {
 					suspendableClock := re_clock.NewSuspendableClock(
 						clock.SystemClock,
 						maximumExecutionTimeoutCompensation,
@@ -205,10 +206,10 @@ func main() {
 					)
 
 					workerID := map[string]string{}
-					if runnerConfiguration.Concurrency > 1 {
+					if runnerConfiguration.GetConcurrency() > 1 {
 						workerID["thread"] = fmt.Sprintf("%0*d", concurrencyLength, threadID)
 					}
-					maps.Copy(workerID, runnerConfiguration.WorkerId)
+					maps.Copy(workerID, runnerConfiguration.GetWorkerId())
 					workerName, err := json.Marshal(workerID)
 					if err != nil {
 						return util.StatusWrap(err, "Failed to marshal worker ID")
@@ -224,8 +225,8 @@ func main() {
 						handleAllocator,
 						pool.NewQuotaEnforcingFilePool(
 							filePool,
-							runnerConfiguration.MaximumFilePoolFileCount,
-							runnerConfiguration.MaximumFilePoolSizeBytes,
+							runnerConfiguration.GetMaximumFilePoolFileCount(),
+							runnerConfiguration.GetMaximumFilePoolSizeBytes(),
 						),
 						symlinkFactory,
 						initialContentsSorter,
@@ -234,11 +235,11 @@ func main() {
 						suspendableClock,
 						uuid.NewRandom,
 						maximumWritableFileUploadDelay,
-						runnerConfiguration.EnvironmentVariables,
+						runnerConfiguration.GetEnvironmentVariables(),
 						defaultAttributesSetter,
 						maximumExecutionTimeoutCompensation,
 						workerID,
-						model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders),
+						model_encoding.NewBinaryEncoderFactory(configuration.GetPermitUnencryptedBinaryEncoders()),
 					)
 
 					client, err := remoteworker.NewClient(
@@ -251,8 +252,8 @@ func main() {
 						platformPrivateKeys,
 						clientCertificateVerifier,
 						workerID,
-						runnerConfiguration.SizeClass,
-						runnerConfiguration.IsLargestSizeClass,
+						runnerConfiguration.GetSizeClass(),
+						runnerConfiguration.GetIsLargestSizeClass(),
 					)
 					if err != nil {
 						return util.StatusWrap(err, "Failed to create remote worker client")
