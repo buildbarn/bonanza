@@ -16,18 +16,14 @@ import (
 )
 
 func TestBinaryEncoderFactory(t *testing.T) {
-	zstdCompressing := &model_encoding_pb.BinaryEncoder{
-		Encoder: &model_encoding_pb.BinaryEncoder_ZstdCompressing{
-			ZstdCompressing: &emptypb.Empty{},
-		},
-	}
-	encrypting := &model_encoding_pb.BinaryEncoder{
-		Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
-			Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
-				EncryptionKey: bytes.Repeat([]byte{0x42}, 32),
-			},
-		},
-	}
+	zstdCompressing := model_encoding_pb.BinaryEncoder_builder{
+		ZstdCompressing: &emptypb.Empty{},
+	}.Build()
+	encrypting := model_encoding_pb.BinaryEncoder_builder{
+		Encrypting: model_encoding_pb.EncryptingBinaryEncoder_builder{
+			EncryptionKey: bytes.Repeat([]byte{0x42}, 32),
+		}.Build(),
+	}.Build()
 	errUnencrypted := status.Error(codes.InvalidArgument, "Binary encoders do not perform encryption, which is required by this server")
 
 	for _, tc := range []struct {

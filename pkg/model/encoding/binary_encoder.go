@@ -69,13 +69,13 @@ func newBinaryEncoderFromProto[T any](
 	encoders := make([]T, 0, len(configurations))
 	isEncrypting := false
 	for i, configuration := range configurations {
-		switch encoderConfiguration := configuration.Encoder.(type) {
-		case *model_encoding_pb.BinaryEncoder_ZstdCompressing:
+		switch configuration.WhichEncoder() {
+		case model_encoding_pb.BinaryEncoder_ZstdCompressing_case:
 			encoders = append(
 				encoders,
 				newZstdCompressingBinaryEncoder(maximumDecodedSizeBytes),
 			)
-		case *model_encoding_pb.BinaryEncoder_Encrypting:
+		case model_encoding_pb.BinaryEncoder_Encrypting_case:
 			// Compute a hash of the configuration of the
 			// encoders that are used in addition to
 			// encryption. This has the advantage that
@@ -84,10 +84,10 @@ func newBinaryEncoderFromProto[T any](
 			// bonanza_browser to automatically display
 			// objects using the correct encoder.
 			additionalDataInput, err := proto.MarshalOptions{Deterministic: true}.Marshal(
-				&model_encoding_pb.EncryptingBinaryEncoderAdditionalDataInput{
+				model_encoding_pb.EncryptingBinaryEncoderAdditionalDataInput_builder{
 					EncodingMode:       encodingMode,
 					AdditionalEncoders: configurations[:i],
-				},
+				}.Build(),
 			)
 			if err != nil {
 				var badBinaryEncoder T
@@ -95,7 +95,7 @@ func newBinaryEncoderFromProto[T any](
 			}
 			additionalData := sha256.Sum256(additionalDataInput)
 
-			encoder, err := newEncryptingBinaryEncoder(encoderConfiguration.Encrypting.EncryptionKey, additionalData[:])
+			encoder, err := newEncryptingBinaryEncoder(configuration.GetEncrypting().GetEncryptionKey(), additionalData[:])
 			if err != nil {
 				var badBinaryEncoder T
 				return badBinaryEncoder, err

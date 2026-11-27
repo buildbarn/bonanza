@@ -14,13 +14,11 @@ import (
 )
 
 func newEncryptingConfiguration(key byte) []*model_encoding_pb.BinaryEncoder {
-	return []*model_encoding_pb.BinaryEncoder{{
-		Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
-			Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
-				EncryptionKey: bytes.Repeat([]byte{key}, 32),
-			},
-		},
-	}}
+	return []*model_encoding_pb.BinaryEncoder{model_encoding_pb.BinaryEncoder_builder{
+		Encrypting: model_encoding_pb.EncryptingBinaryEncoder_builder{
+			EncryptionKey: bytes.Repeat([]byte{key}, 32),
+		}.Build(),
+	}.Build()}
 }
 
 func newRecentlyObservedEncoders(configurations ...[]*model_encoding_pb.BinaryEncoder) []*browser_pb.RecentlyObservedEncoder {
@@ -79,13 +77,11 @@ func TestDecodeObject(t *testing.T) {
 		// Encoders that cannot be constructed (e.g., because
 		// the encryption key has an unsupported size) should
 		// not prevent other encoders from being tried.
-		invalidConfiguration := []*model_encoding_pb.BinaryEncoder{{
-			Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
-				Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
-					EncryptionKey: []byte("short"),
-				},
-			},
-		}}
+		invalidConfiguration := []*model_encoding_pb.BinaryEncoder{model_encoding_pb.BinaryEncoder_builder{
+			Encrypting: model_encoding_pb.EncryptingBinaryEncoder_builder{
+				EncryptionKey: []byte("short"),
+			}.Build(),
+		}.Build()}
 		require.Error(t, validateEncoderConfiguration(invalidConfiguration))
 
 		decodedPayload, usedEncoderIndex, err := decodeObject(encryptedObject, newRecentlyObservedEncoders(

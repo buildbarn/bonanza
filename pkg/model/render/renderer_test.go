@@ -823,13 +823,11 @@ func TestRendererSecret(t *testing.T) {
 	r := render.Renderer{}
 	blocks := render.Layout(
 		r.Message(model_core.NewSimpleMessage[object.LocalReference](
-			(&model_encoding_pb.BinaryEncoder{
-				Encoder: &model_encoding_pb.BinaryEncoder_Encrypting{
-					Encrypting: &model_encoding_pb.EncryptingBinaryEncoder{
-						EncryptionKey: []byte("key"),
-					},
-				},
-			}).ProtoReflect(),
+			(model_encoding_pb.BinaryEncoder_builder{
+				Encrypting: model_encoding_pb.EncryptingBinaryEncoder_builder{
+					EncryptionKey: []byte("key"),
+				}.Build(),
+			}.Build()).ProtoReflect(),
 		)),
 		render.LayoutOptions{SingleLine: true},
 	)

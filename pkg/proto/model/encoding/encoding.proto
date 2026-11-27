@@ -1,9 +1,10 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.encoding;
 
 import "google/protobuf/empty.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/encoding";
 
 enum EncodingMode {
