@@ -16,7 +16,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -28,17 +27,17 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                             protoimpl.MessageState                    `protogen:"open.v1"`
-	Global                            *global.Configuration                     `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	ClientGrpcServers                 []*grpc.ServerConfiguration               `protobuf:"bytes,3,rep,name=client_grpc_servers,json=clientGrpcServers,proto3" json:"client_grpc_servers,omitempty"`
-	WorkerGrpcServers                 []*grpc.ServerConfiguration               `protobuf:"bytes,4,rep,name=worker_grpc_servers,json=workerGrpcServers,proto3" json:"worker_grpc_servers,omitempty"`
-	BuildQueueStateGrpcServers        []*grpc.ServerConfiguration               `protobuf:"bytes,5,rep,name=build_queue_state_grpc_servers,json=buildQueueStateGrpcServers,proto3" json:"build_queue_state_grpc_servers,omitempty"`
-	PredeclaredPlatformQueues         []*PredeclaredPlatformQueueConfiguration  `protobuf:"bytes,6,rep,name=predeclared_platform_queues,json=predeclaredPlatformQueues,proto3" json:"predeclared_platform_queues,omitempty"`
-	ActionRouter                      *scheduler.ActionRouterConfiguration      `protobuf:"bytes,7,opt,name=action_router,json=actionRouter,proto3" json:"action_router,omitempty"`
-	PreviousExecutionStatsStore       *PreviousExecutionStatsStoreConfiguration `protobuf:"bytes,8,opt,name=previous_execution_stats_store,json=previousExecutionStatsStore,proto3" json:"previous_execution_stats_store,omitempty"`
-	PlatformQueueWithNoWorkersTimeout *durationpb.Duration                      `protobuf:"bytes,9,opt,name=platform_queue_with_no_workers_timeout,json=platformQueueWithNoWorkersTimeout,proto3" json:"platform_queue_with_no_workers_timeout,omitempty"`
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
+	state                                        protoimpl.MessageState                    `protogen:"opaque.v1"`
+	xxx_hidden_Global                            *global.Configuration                     `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_ClientGrpcServers                 *[]*grpc.ServerConfiguration              `protobuf:"bytes,3,rep,name=client_grpc_servers,json=clientGrpcServers"`
+	xxx_hidden_WorkerGrpcServers                 *[]*grpc.ServerConfiguration              `protobuf:"bytes,4,rep,name=worker_grpc_servers,json=workerGrpcServers"`
+	xxx_hidden_BuildQueueStateGrpcServers        *[]*grpc.ServerConfiguration              `protobuf:"bytes,5,rep,name=build_queue_state_grpc_servers,json=buildQueueStateGrpcServers"`
+	xxx_hidden_PredeclaredPlatformQueues         *[]*PredeclaredPlatformQueueConfiguration `protobuf:"bytes,6,rep,name=predeclared_platform_queues,json=predeclaredPlatformQueues"`
+	xxx_hidden_ActionRouter                      *scheduler.ActionRouterConfiguration      `protobuf:"bytes,7,opt,name=action_router,json=actionRouter"`
+	xxx_hidden_PreviousExecutionStatsStore       *PreviousExecutionStatsStoreConfiguration `protobuf:"bytes,8,opt,name=previous_execution_stats_store,json=previousExecutionStatsStore"`
+	xxx_hidden_PlatformQueueWithNoWorkersTimeout *durationpb.Duration                      `protobuf:"bytes,9,opt,name=platform_queue_with_no_workers_timeout,json=platformQueueWithNoWorkersTimeout"`
+	unknownFields                                protoimpl.UnknownFields
+	sizeCache                                    protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -66,76 +65,183 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetClientGrpcServers() []*grpc.ServerConfiguration {
 	if x != nil {
-		return x.ClientGrpcServers
+		if x.xxx_hidden_ClientGrpcServers != nil {
+			return *x.xxx_hidden_ClientGrpcServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetWorkerGrpcServers() []*grpc.ServerConfiguration {
 	if x != nil {
-		return x.WorkerGrpcServers
+		if x.xxx_hidden_WorkerGrpcServers != nil {
+			return *x.xxx_hidden_WorkerGrpcServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetBuildQueueStateGrpcServers() []*grpc.ServerConfiguration {
 	if x != nil {
-		return x.BuildQueueStateGrpcServers
+		if x.xxx_hidden_BuildQueueStateGrpcServers != nil {
+			return *x.xxx_hidden_BuildQueueStateGrpcServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPredeclaredPlatformQueues() []*PredeclaredPlatformQueueConfiguration {
 	if x != nil {
-		return x.PredeclaredPlatformQueues
+		if x.xxx_hidden_PredeclaredPlatformQueues != nil {
+			return *x.xxx_hidden_PredeclaredPlatformQueues
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetActionRouter() *scheduler.ActionRouterConfiguration {
 	if x != nil {
-		return x.ActionRouter
+		return x.xxx_hidden_ActionRouter
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPreviousExecutionStatsStore() *PreviousExecutionStatsStoreConfiguration {
 	if x != nil {
-		return x.PreviousExecutionStatsStore
+		return x.xxx_hidden_PreviousExecutionStatsStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPlatformQueueWithNoWorkersTimeout() *durationpb.Duration {
 	if x != nil {
-		return x.PlatformQueueWithNoWorkersTimeout
+		return x.xxx_hidden_PlatformQueueWithNoWorkersTimeout
 	}
 	return nil
 }
 
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetClientGrpcServers(v []*grpc.ServerConfiguration) {
+	x.xxx_hidden_ClientGrpcServers = &v
+}
+
+func (x *ApplicationConfiguration) SetWorkerGrpcServers(v []*grpc.ServerConfiguration) {
+	x.xxx_hidden_WorkerGrpcServers = &v
+}
+
+func (x *ApplicationConfiguration) SetBuildQueueStateGrpcServers(v []*grpc.ServerConfiguration) {
+	x.xxx_hidden_BuildQueueStateGrpcServers = &v
+}
+
+func (x *ApplicationConfiguration) SetPredeclaredPlatformQueues(v []*PredeclaredPlatformQueueConfiguration) {
+	x.xxx_hidden_PredeclaredPlatformQueues = &v
+}
+
+func (x *ApplicationConfiguration) SetActionRouter(v *scheduler.ActionRouterConfiguration) {
+	x.xxx_hidden_ActionRouter = v
+}
+
+func (x *ApplicationConfiguration) SetPreviousExecutionStatsStore(v *PreviousExecutionStatsStoreConfiguration) {
+	x.xxx_hidden_PreviousExecutionStatsStore = v
+}
+
+func (x *ApplicationConfiguration) SetPlatformQueueWithNoWorkersTimeout(v *durationpb.Duration) {
+	x.xxx_hidden_PlatformQueueWithNoWorkersTimeout = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasActionRouter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ActionRouter != nil
+}
+
+func (x *ApplicationConfiguration) HasPreviousExecutionStatsStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PreviousExecutionStatsStore != nil
+}
+
+func (x *ApplicationConfiguration) HasPlatformQueueWithNoWorkersTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PlatformQueueWithNoWorkersTimeout != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearActionRouter() {
+	x.xxx_hidden_ActionRouter = nil
+}
+
+func (x *ApplicationConfiguration) ClearPreviousExecutionStatsStore() {
+	x.xxx_hidden_PreviousExecutionStatsStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearPlatformQueueWithNoWorkersTimeout() {
+	x.xxx_hidden_PlatformQueueWithNoWorkersTimeout = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                            *global.Configuration
+	ClientGrpcServers                 []*grpc.ServerConfiguration
+	WorkerGrpcServers                 []*grpc.ServerConfiguration
+	BuildQueueStateGrpcServers        []*grpc.ServerConfiguration
+	PredeclaredPlatformQueues         []*PredeclaredPlatformQueueConfiguration
+	ActionRouter                      *scheduler.ActionRouterConfiguration
+	PreviousExecutionStatsStore       *PreviousExecutionStatsStoreConfiguration
+	PlatformQueueWithNoWorkersTimeout *durationpb.Duration
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_ClientGrpcServers = &b.ClientGrpcServers
+	x.xxx_hidden_WorkerGrpcServers = &b.WorkerGrpcServers
+	x.xxx_hidden_BuildQueueStateGrpcServers = &b.BuildQueueStateGrpcServers
+	x.xxx_hidden_PredeclaredPlatformQueues = &b.PredeclaredPlatformQueues
+	x.xxx_hidden_ActionRouter = b.ActionRouter
+	x.xxx_hidden_PreviousExecutionStatsStore = b.PreviousExecutionStatsStore
+	x.xxx_hidden_PlatformQueueWithNoWorkersTimeout = b.PlatformQueueWithNoWorkersTimeout
+	return m0
+}
+
 type PredeclaredPlatformQueueConfiguration struct {
-	state                                     protoimpl.MessageState `protogen:"open.v1"`
-	PkixPublicKeys                            [][]byte               `protobuf:"bytes,1,rep,name=pkix_public_keys,json=pkixPublicKeys,proto3" json:"pkix_public_keys,omitempty"`
-	SizeClasses                               []uint32               `protobuf:"varint,2,rep,packed,name=size_classes,json=sizeClasses,proto3" json:"size_classes,omitempty"`
-	WorkerInvocationStickinessLimits          []*durationpb.Duration `protobuf:"bytes,3,rep,name=worker_invocation_stickiness_limits,json=workerInvocationStickinessLimits,proto3" json:"worker_invocation_stickiness_limits,omitempty"`
-	MaximumQueuedBackgroundLearningOperations int32                  `protobuf:"varint,4,opt,name=maximum_queued_background_learning_operations,json=maximumQueuedBackgroundLearningOperations,proto3" json:"maximum_queued_background_learning_operations,omitempty"`
-	BackgroundLearningOperationPriority       int32                  `protobuf:"varint,5,opt,name=background_learning_operation_priority,json=backgroundLearningOperationPriority,proto3" json:"background_learning_operation_priority,omitempty"`
-	unknownFields                             protoimpl.UnknownFields
-	sizeCache                                 protoimpl.SizeCache
+	state                                                protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_PkixPublicKeys                            [][]byte                `protobuf:"bytes,1,rep,name=pkix_public_keys,json=pkixPublicKeys"`
+	xxx_hidden_SizeClasses                               []uint32                `protobuf:"varint,2,rep,packed,name=size_classes,json=sizeClasses"`
+	xxx_hidden_WorkerInvocationStickinessLimits          *[]*durationpb.Duration `protobuf:"bytes,3,rep,name=worker_invocation_stickiness_limits,json=workerInvocationStickinessLimits"`
+	xxx_hidden_MaximumQueuedBackgroundLearningOperations int32                   `protobuf:"varint,4,opt,name=maximum_queued_background_learning_operations,json=maximumQueuedBackgroundLearningOperations"`
+	xxx_hidden_BackgroundLearningOperationPriority       int32                   `protobuf:"varint,5,opt,name=background_learning_operation_priority,json=backgroundLearningOperationPriority"`
+	unknownFields                                        protoimpl.UnknownFields
+	sizeCache                                            protoimpl.SizeCache
 }
 
 func (x *PredeclaredPlatformQueueConfiguration) Reset() {
@@ -163,54 +269,93 @@ func (x *PredeclaredPlatformQueueConfiguration) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PredeclaredPlatformQueueConfiguration.ProtoReflect.Descriptor instead.
-func (*PredeclaredPlatformQueueConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *PredeclaredPlatformQueueConfiguration) GetPkixPublicKeys() [][]byte {
 	if x != nil {
-		return x.PkixPublicKeys
+		return x.xxx_hidden_PkixPublicKeys
 	}
 	return nil
 }
 
 func (x *PredeclaredPlatformQueueConfiguration) GetSizeClasses() []uint32 {
 	if x != nil {
-		return x.SizeClasses
+		return x.xxx_hidden_SizeClasses
 	}
 	return nil
 }
 
 func (x *PredeclaredPlatformQueueConfiguration) GetWorkerInvocationStickinessLimits() []*durationpb.Duration {
 	if x != nil {
-		return x.WorkerInvocationStickinessLimits
+		if x.xxx_hidden_WorkerInvocationStickinessLimits != nil {
+			return *x.xxx_hidden_WorkerInvocationStickinessLimits
+		}
 	}
 	return nil
 }
 
 func (x *PredeclaredPlatformQueueConfiguration) GetMaximumQueuedBackgroundLearningOperations() int32 {
 	if x != nil {
-		return x.MaximumQueuedBackgroundLearningOperations
+		return x.xxx_hidden_MaximumQueuedBackgroundLearningOperations
 	}
 	return 0
 }
 
 func (x *PredeclaredPlatformQueueConfiguration) GetBackgroundLearningOperationPriority() int32 {
 	if x != nil {
-		return x.BackgroundLearningOperationPriority
+		return x.xxx_hidden_BackgroundLearningOperationPriority
 	}
 	return 0
 }
 
+func (x *PredeclaredPlatformQueueConfiguration) SetPkixPublicKeys(v [][]byte) {
+	x.xxx_hidden_PkixPublicKeys = v
+}
+
+func (x *PredeclaredPlatformQueueConfiguration) SetSizeClasses(v []uint32) {
+	x.xxx_hidden_SizeClasses = v
+}
+
+func (x *PredeclaredPlatformQueueConfiguration) SetWorkerInvocationStickinessLimits(v []*durationpb.Duration) {
+	x.xxx_hidden_WorkerInvocationStickinessLimits = &v
+}
+
+func (x *PredeclaredPlatformQueueConfiguration) SetMaximumQueuedBackgroundLearningOperations(v int32) {
+	x.xxx_hidden_MaximumQueuedBackgroundLearningOperations = v
+}
+
+func (x *PredeclaredPlatformQueueConfiguration) SetBackgroundLearningOperationPriority(v int32) {
+	x.xxx_hidden_BackgroundLearningOperationPriority = v
+}
+
+type PredeclaredPlatformQueueConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PkixPublicKeys                            [][]byte
+	SizeClasses                               []uint32
+	WorkerInvocationStickinessLimits          []*durationpb.Duration
+	MaximumQueuedBackgroundLearningOperations int32
+	BackgroundLearningOperationPriority       int32
+}
+
+func (b0 PredeclaredPlatformQueueConfiguration_builder) Build() *PredeclaredPlatformQueueConfiguration {
+	m0 := &PredeclaredPlatformQueueConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PkixPublicKeys = b.PkixPublicKeys
+	x.xxx_hidden_SizeClasses = b.SizeClasses
+	x.xxx_hidden_WorkerInvocationStickinessLimits = &b.WorkerInvocationStickinessLimits
+	x.xxx_hidden_MaximumQueuedBackgroundLearningOperations = b.MaximumQueuedBackgroundLearningOperations
+	x.xxx_hidden_BackgroundLearningOperationPriority = b.BackgroundLearningOperationPriority
+	return m0
+}
+
 type PreviousExecutionStatsStoreConfiguration struct {
-	state                  protoimpl.MessageState    `protogen:"open.v1"`
-	GrpcClient             *grpc.ClientConfiguration `protobuf:"bytes,1,opt,name=grpc_client,json=grpcClient,proto3" json:"grpc_client,omitempty"`
-	Namespace              *object.Namespace         `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	TagSignaturePrivateKey string                    `protobuf:"bytes,3,opt,name=tag_signature_private_key,json=tagSignaturePrivateKey,proto3" json:"tag_signature_private_key,omitempty"`
-	ObjectEncoders         []*encoding.BinaryEncoder `protobuf:"bytes,4,rep,name=object_encoders,json=objectEncoders,proto3" json:"object_encoders,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_GrpcClient             *grpc.ClientConfiguration  `protobuf:"bytes,1,opt,name=grpc_client,json=grpcClient"`
+	xxx_hidden_Namespace              *object.Namespace          `protobuf:"bytes,2,opt,name=namespace"`
+	xxx_hidden_TagSignaturePrivateKey string                     `protobuf:"bytes,3,opt,name=tag_signature_private_key,json=tagSignaturePrivateKey"`
+	xxx_hidden_ObjectEncoders         *[]*encoding.BinaryEncoder `protobuf:"bytes,4,rep,name=object_encoders,json=objectEncoders"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *PreviousExecutionStatsStoreConfiguration) Reset() {
@@ -238,37 +383,92 @@ func (x *PreviousExecutionStatsStoreConfiguration) ProtoReflect() protoreflect.M
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PreviousExecutionStatsStoreConfiguration.ProtoReflect.Descriptor instead.
-func (*PreviousExecutionStatsStoreConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *PreviousExecutionStatsStoreConfiguration) GetGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.GrpcClient
+		return x.xxx_hidden_GrpcClient
 	}
 	return nil
 }
 
 func (x *PreviousExecutionStatsStoreConfiguration) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *PreviousExecutionStatsStoreConfiguration) GetTagSignaturePrivateKey() string {
 	if x != nil {
-		return x.TagSignaturePrivateKey
+		return x.xxx_hidden_TagSignaturePrivateKey
 	}
 	return ""
 }
 
 func (x *PreviousExecutionStatsStoreConfiguration) GetObjectEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.ObjectEncoders
+		if x.xxx_hidden_ObjectEncoders != nil {
+			return *x.xxx_hidden_ObjectEncoders
+		}
 	}
 	return nil
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) SetGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_GrpcClient = v
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) SetTagSignaturePrivateKey(v string) {
+	x.xxx_hidden_TagSignaturePrivateKey = v
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) SetObjectEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_ObjectEncoders = &v
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) HasGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_GrpcClient != nil
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) ClearGrpcClient() {
+	x.xxx_hidden_GrpcClient = nil
+}
+
+func (x *PreviousExecutionStatsStoreConfiguration) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+type PreviousExecutionStatsStoreConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GrpcClient             *grpc.ClientConfiguration
+	Namespace              *object.Namespace
+	TagSignaturePrivateKey string
+	ObjectEncoders         []*encoding.BinaryEncoder
+}
+
+func (b0 PreviousExecutionStatsStoreConfiguration_builder) Build() *PreviousExecutionStatsStoreConfiguration {
+	m0 := &PreviousExecutionStatsStoreConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_GrpcClient = b.GrpcClient
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_TagSignaturePrivateKey = b.TagSignaturePrivateKey
+	x.xxx_hidden_ObjectEncoders = &b.ObjectEncoders
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto protoreflect.FileDescriptor
@@ -296,19 +496,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_sched
 	"grpcClient\x12?\n" +
 	"\tnamespace\x18\x02 \x01(\v2!.bonanza.storage.object.NamespaceR\tnamespace\x12>\n" +
 	"\x19tag_signature_private_key\x18\x03 \x01(\tB\x03\x80\x01\x01R\x16tagSignaturePrivateKey\x12N\n" +
-	"\x0fobject_encoders\x18\x04 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB9Z7bonanza.build/pkg/proto/configuration/bonanza_schedulerb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_rawDescData
-}
+	"\x0fobject_encoders\x18\x04 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB>Z7bonanza.build/pkg/proto/configuration/bonanza_scheduler\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_configuration_bonanza_scheduler_bonanza_scheduler_proto_goTypes = []any{

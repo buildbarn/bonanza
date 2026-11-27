@@ -55,7 +55,7 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
@@ -63,17 +63,17 @@ func main() {
 		var previousExecutionStatsStore initialsizeclass.PreviousExecutionStatsStore
 		var previousExecutionStatsCommonKeyDataReference object.LocalReference
 		var previousExecutionStatsDecodingParametersSizeBytes int
-		if storeConfiguration := configuration.PreviousExecutionStatsStore; storeConfiguration != nil {
-			grpcClient, err := grpcClientFactory.NewClientFromConfiguration(storeConfiguration.GrpcClient, dependenciesGroup)
+		if storeConfiguration := configuration.GetPreviousExecutionStatsStore(); storeConfiguration != nil {
+			grpcClient, err := grpcClientFactory.NewClientFromConfiguration(storeConfiguration.GetGrpcClient(), dependenciesGroup)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create gRPC client for PreviousExecutionStats store")
 			}
-			namespace, err := object.NewNamespace(storeConfiguration.Namespace)
+			namespace, err := object.NewNamespace(storeConfiguration.GetNamespace())
 			if err != nil {
 				return util.StatusWrap(err, "Invalid namespace for PreviousExecutionStats store")
 			}
 
-			tagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(storeConfiguration.TagSignaturePrivateKey))
+			tagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(storeConfiguration.GetTagSignaturePrivateKey()))
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create tag signature private key")
 			}
@@ -82,7 +82,7 @@ func main() {
 			// Encoders are provided by the operator, meaning
 			// there is no need to enforce the use of encryption.
 			objectEncoder, err := model_encoding.NewBinaryEncoderFactory(true).NewKeyedBinaryEncoderFromProto(
-				storeConfiguration.ObjectEncoders,
+				storeConfiguration.GetObjectEncoders(),
 				uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 			)
 			if err != nil {
@@ -93,13 +93,11 @@ func main() {
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create tag signature public key")
 			}
-			previousExecutionStatsCommonKeyData, _ := model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](
-				&model_tag_pb.CommonKeyData{
-					SignaturePublicKey: tagSignaturePublicKey,
-					ReferenceFormat:    referenceFormat.ToProto(),
-					ObjectEncoders:     storeConfiguration.ObjectEncoders,
-				},
-			).SortAndSetReferences()
+			previousExecutionStatsCommonKeyData, _ := model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](&model_tag_pb.CommonKeyData{
+				SignaturePublicKey: tagSignaturePublicKey,
+				ReferenceFormat:    referenceFormat.ToProto(),
+				ObjectEncoders:     storeConfiguration.GetObjectEncoders(),
+			}).SortAndSetReferences()
 			previousExecutionStatsCommonKeyDataReference, err = model_core.ComputeTopLevelMessageReference(previousExecutionStatsCommonKeyData, referenceFormat)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create common key data for PreviousExecutionStats")
@@ -143,7 +141,7 @@ func main() {
 		// incoming execution requests and determining how they are
 		// scheduled.
 		actionRouter, err := routing.NewActionRouterFromConfiguration(
-			configuration.ActionRouter,
+			configuration.GetActionRouter(),
 			previousExecutionStatsStore,
 			previousExecutionStatsCommonKeyDataReference,
 			previousExecutionStatsDecodingParametersSizeBytes,
@@ -152,7 +150,7 @@ func main() {
 			return util.StatusWrap(err, "Failed to create action router")
 		}
 
-		platformQueueWithNoWorkersTimeout := configuration.PlatformQueueWithNoWorkersTimeout
+		platformQueueWithNoWorkersTimeout := configuration.GetPlatformQueueWithNoWorkersTimeout()
 		if err := platformQueueWithNoWorkersTimeout.CheckValid(); err != nil {
 			return util.StatusWrap(err, "Invalid platform queue with no workers timeout")
 		}
@@ -182,9 +180,10 @@ func main() {
 		)
 
 		// Create predeclared platform queues.
-		for platformQueueIndex, platformQueue := range configuration.PredeclaredPlatformQueues {
-			workerInvocationStickinessLimits := make([]time.Duration, 0, len(platformQueue.WorkerInvocationStickinessLimits))
-			for i, d := range platformQueue.WorkerInvocationStickinessLimits {
+		for platformQueueIndex, platformQueue := range configuration.GetPredeclaredPlatformQueues() {
+			stickinessLimits := platformQueue.GetWorkerInvocationStickinessLimits()
+			workerInvocationStickinessLimits := make([]time.Duration, 0, len(stickinessLimits))
+			for i, d := range stickinessLimits {
 				if err := d.CheckValid(); err != nil {
 					return util.StatusWrapf(err, "Invalid worker invocation stickiness limit at index %d of predeclared platform queue at index %d", i, platformQueueIndex)
 				}
@@ -192,11 +191,11 @@ func main() {
 			}
 
 			if err := buildQueue.RegisterPredeclaredPlatformQueue(
-				platformQueue.PkixPublicKeys,
+				platformQueue.GetPkixPublicKeys(),
 				workerInvocationStickinessLimits,
-				int(platformQueue.MaximumQueuedBackgroundLearningOperations),
-				platformQueue.BackgroundLearningOperationPriority,
-				platformQueue.SizeClasses,
+				int(platformQueue.GetMaximumQueuedBackgroundLearningOperations()),
+				platformQueue.GetBackgroundLearningOperationPriority(),
+				platformQueue.GetSizeClasses(),
 			); err != nil {
 				return util.StatusWrapf(err, "Failed to register predeclared platform queue at index %d", platformQueueIndex)
 			}
@@ -204,7 +203,7 @@ func main() {
 
 		// Spawn gRPC servers for client and worker traffic.
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
-			configuration.ClientGrpcServers,
+			configuration.GetClientGrpcServers(),
 			func(s grpc.ServiceRegistrar) {
 				remoteexecution_pb.RegisterExecutionServer(s, buildQueue)
 			},
@@ -214,7 +213,7 @@ func main() {
 			return util.StatusWrap(err, "Client gRPC server failure")
 		}
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
-			configuration.WorkerGrpcServers,
+			configuration.GetWorkerGrpcServers(),
 			func(s grpc.ServiceRegistrar) {
 				remoteworker_pb.RegisterOperationQueueServer(s, buildQueue)
 			},
@@ -224,7 +223,7 @@ func main() {
 			return util.StatusWrap(err, "Worker gRPC server failure")
 		}
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
-			configuration.BuildQueueStateGrpcServers,
+			configuration.GetBuildQueueStateGrpcServers(),
 			func(s grpc.ServiceRegistrar) {
 				buildqueuestate_pb.RegisterBuildQueueStateServer(s, buildQueue)
 			},
