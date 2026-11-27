@@ -1,8 +1,11 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.configuration.model.parser;
 
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/eviction/eviction.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "bonanza.build/pkg/proto/configuration/model/parser";
 
 message ParsedObjectPool {
   // The cache replacement for evicting parsed objects from the pool.

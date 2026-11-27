@@ -11,7 +11,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -23,12 +22,12 @@ const (
 )
 
 type ParsedObjectPool struct {
-	state                  protoimpl.MessageState          `protogen:"open.v1"`
-	CacheReplacementPolicy eviction.CacheReplacementPolicy `protobuf:"varint,1,opt,name=cache_replacement_policy,json=cacheReplacementPolicy,proto3,enum=buildbarn.configuration.eviction.CacheReplacementPolicy" json:"cache_replacement_policy,omitempty"`
-	Count                  int64                           `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
-	SizeBytes              int64                           `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState          `protogen:"opaque.v1"`
+	xxx_hidden_CacheReplacementPolicy eviction.CacheReplacementPolicy `protobuf:"varint,1,opt,name=cache_replacement_policy,json=cacheReplacementPolicy,enum=buildbarn.configuration.eviction.CacheReplacementPolicy"`
+	xxx_hidden_Count                  int64                           `protobuf:"varint,2,opt,name=count"`
+	xxx_hidden_SizeBytes              int64                           `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *ParsedObjectPool) Reset() {
@@ -56,30 +55,55 @@ func (x *ParsedObjectPool) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ParsedObjectPool.ProtoReflect.Descriptor instead.
-func (*ParsedObjectPool) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ParsedObjectPool) GetCacheReplacementPolicy() eviction.CacheReplacementPolicy {
 	if x != nil {
-		return x.CacheReplacementPolicy
+		return x.xxx_hidden_CacheReplacementPolicy
 	}
 	return eviction.CacheReplacementPolicy(0)
 }
 
 func (x *ParsedObjectPool) GetCount() int64 {
 	if x != nil {
-		return x.Count
+		return x.xxx_hidden_Count
 	}
 	return 0
 }
 
 func (x *ParsedObjectPool) GetSizeBytes() int64 {
 	if x != nil {
-		return x.SizeBytes
+		return x.xxx_hidden_SizeBytes
 	}
 	return 0
+}
+
+func (x *ParsedObjectPool) SetCacheReplacementPolicy(v eviction.CacheReplacementPolicy) {
+	x.xxx_hidden_CacheReplacementPolicy = v
+}
+
+func (x *ParsedObjectPool) SetCount(v int64) {
+	x.xxx_hidden_Count = v
+}
+
+func (x *ParsedObjectPool) SetSizeBytes(v int64) {
+	x.xxx_hidden_SizeBytes = v
+}
+
+type ParsedObjectPool_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	CacheReplacementPolicy eviction.CacheReplacementPolicy
+	Count                  int64
+	SizeBytes              int64
+}
+
+func (b0 ParsedObjectPool_builder) Build() *ParsedObjectPool {
+	m0 := &ParsedObjectPool{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_CacheReplacementPolicy = b.CacheReplacementPolicy
+	x.xxx_hidden_Count = b.Count
+	x.xxx_hidden_SizeBytes = b.SizeBytes
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_model_parser_parser_proto protoreflect.FileDescriptor
@@ -91,19 +115,7 @@ const file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDe
 	"\x18cache_replacement_policy\x18\x01 \x01(\x0e28.buildbarn.configuration.eviction.CacheReplacementPolicyR\x16cacheReplacementPolicy\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x03R\x05count\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x03 \x01(\x03R\tsizeBytesb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_rawDescData
-}
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytesB9Z2bonanza.build/pkg/proto/configuration/model/parser\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_configuration_model_parser_parser_proto_goTypes = []any{

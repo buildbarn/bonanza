@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 
 proto_library(
-    name = "bonanza_configuration_model_parser_proto",
+    name = "parser_proto",
     srcs = ["parser.proto"],
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
@@ -11,16 +11,16 @@ proto_library(
 )
 
 go_proto_library(
-    name = "bonanza_configuration_model_parser_go_proto",
+    name = "parser_go_proto",
     importpath = "bonanza.build/pkg/proto/configuration/model/parser",
-    proto = ":bonanza_configuration_model_parser_proto",
+    proto = ":parser_proto",
     visibility = ["//visibility:public"],
     deps = ["@com_github_buildbarn_bb_storage//pkg/proto/configuration/eviction"],
 )
 
 go_library(
     name = "parser",
-    embed = [":bonanza_configuration_model_parser_go_proto"],
+    embed = [":parser_go_proto"],
     importpath = "bonanza.build/pkg/proto/configuration/model/parser",
     visibility = ["//visibility:public"],
 )

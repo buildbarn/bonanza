@@ -8,7 +8,7 @@ proto_library(
     import_prefix = "bonanza.build",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/proto/configuration/model/parser:bonanza_configuration_model_parser_proto",
+        "//pkg/proto/configuration/model/parser:parser_proto",
         "//pkg/proto/configuration/storage/object/local:local_proto",
         "//pkg/proto/storage/object:object_proto",
         "@com_github_buildbarn_bb_remote_execution//pkg/proto/configuration/filesystem:filesystem_proto",

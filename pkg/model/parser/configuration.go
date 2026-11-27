@@ -15,9 +15,9 @@ func NewParsedObjectPoolFromConfiguration(configuration *model_parser_cfg_pb.Par
 		// Don't perform any caching of objects.
 		return nil, nil
 	}
-	evictionSet, err := eviction.NewSetFromConfiguration[ParsedObjectEvictionKey](configuration.CacheReplacementPolicy)
+	evictionSet, err := eviction.NewSetFromConfiguration[ParsedObjectEvictionKey](configuration.GetCacheReplacementPolicy())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Failed to create eviction set")
 	}
-	return NewParsedObjectPool(evictionSet, int(configuration.Count), int(configuration.SizeBytes)), nil
+	return NewParsedObjectPool(evictionSet, int(configuration.GetCount()), int(configuration.GetSizeBytes())), nil
 }
