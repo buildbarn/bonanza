@@ -43,26 +43,27 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		if configuration.MaximumUnfinalizedParentsLimit == nil {
+		maximumUnfinalizedParentsLimitConfiguration := configuration.GetMaximumUnfinalizedParentsLimit()
+		if maximumUnfinalizedParentsLimitConfiguration == nil {
 			return status.Error(codes.InvalidArgument, "No maximum unfinalized parents limit provided")
 		}
-		maximumUnfinalizedParentsLimit := object.NewLimit(configuration.MaximumUnfinalizedParentsLimit)
+		maximumUnfinalizedParentsLimit := object.NewLimit(maximumUnfinalizedParentsLimitConfiguration)
 
 		// Construct object and tag stores for mirrored replicas.
-		watermarkPollInterval := configuration.WatermarkPollInterval
+		watermarkPollInterval := configuration.GetWatermarkPollInterval()
 		if err := watermarkPollInterval.CheckValid(); err != nil {
 			return util.StatusWrap(err, "Invalid watermark poll interval")
 		}
-		objectStoreA, tagStoreA, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaA, watermarkPollInterval.AsDuration(), dependenciesGroup)
+		objectStoreA, tagStoreA, err := createShardsForReplica(grpcClientFactory, configuration.GetShardsReplicaA(), watermarkPollInterval.AsDuration(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage shards for replica A")
 		}
-		objectStoreB, tagStoreB, err := createShardsForReplica(grpcClientFactory, configuration.ShardsReplicaB, watermarkPollInterval.AsDuration(), dependenciesGroup)
+		objectStoreB, tagStoreB, err := createShardsForReplica(grpcClientFactory, configuration.GetShardsReplicaB(), watermarkPollInterval.AsDuration(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage shards for replica B")
 		}
@@ -70,12 +71,12 @@ func main() {
 		// Combine mirrored replicas together.
 		objectDownloader := object_mirrored.NewDownloader(objectStoreA, objectStoreB)
 		objectUploader := object_mirrored.NewUploader(objectStoreA, objectStoreB)
-		objectStoreSemaphore := semaphore.NewWeighted(configuration.ObjectStoreConcurrency)
+		objectStoreSemaphore := semaphore.NewWeighted(configuration.GetObjectStoreConcurrency())
 
-		if configuration.LocalObjectStore != nil {
+		if localObjectStoreConfiguration := configuration.GetLocalObjectStore(); localObjectStoreConfiguration != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
-				configuration.LocalObjectStore,
+				localObjectStoreConfiguration,
 				/* leaseTracking = */ nil,
 			)
 			if err != nil {
@@ -104,7 +105,7 @@ func main() {
 		})
 
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
-			configuration.GrpcServers,
+			configuration.GetGrpcServers(),
 			func(s grpc.ServiceRegistrar) {
 				// Services for downloading DAGs.
 				object_pb.RegisterDownloaderServer(
@@ -123,7 +124,7 @@ func main() {
 						objectUploader,
 						objectStoreSemaphore,
 						tagUpdater,
-						configuration.MaximumUnfinalizedDagsCount,
+						configuration.GetMaximumUnfinalizedDagsCount(),
 						maximumUnfinalizedParentsLimit,
 					),
 				)
@@ -147,7 +148,7 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 	uploaderClients := make([]object_pb.UploaderClient, 0, len(shards))
 	pollerShards := make([]object_grpc.WatermarkPollerShard, 0, len(shards))
 	for key, shard := range shards {
-		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(shard.Client, dependenciesGroup)
+		grpcClient, err := grpcClientFactory.NewClientFromConfiguration(shard.GetClient(), dependenciesGroup)
 		if err != nil {
 			return nil, nil, util.StatusWrapf(err, "Failed to create gRPC client for shard with key %#v", key)
 		}
@@ -155,14 +156,14 @@ func createShardsForReplica(grpcClientFactory bb_grpc.ClientFactory, shards map[
 		shardNames = append(shardNames, key)
 		weightedShards = append(weightedShards, object_sharded.WeightedShard{
 			Key:    []byte(key),
-			Weight: shard.Weight,
+			Weight: shard.GetWeight(),
 		})
 		grpcClients = append(grpcClients, grpcClient)
 		uploaderClient := object_pb.NewUploaderClient(grpcClient)
 		uploaderClients = append(uploaderClients, uploaderClient)
 		pollerShards = append(pollerShards, object_grpc.WatermarkPollerShard{
 			Name:   key,
-			Weight: shard.Weight,
+			Weight: shard.GetWeight(),
 			Client: uploaderClient,
 		})
 	}

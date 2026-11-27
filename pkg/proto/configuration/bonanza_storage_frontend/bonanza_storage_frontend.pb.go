@@ -15,7 +15,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -27,18 +26,18 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                          protoimpl.MessageState                     `protogen:"open.v1"`
-	Global                         *global.Configuration                      `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	GrpcServers                    []*grpc.ServerConfiguration                `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers,proto3" json:"grpc_servers,omitempty"`
-	ObjectStoreConcurrency         int64                                      `protobuf:"varint,3,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
-	MaximumUnfinalizedDagsCount    uint32                                     `protobuf:"varint,4,opt,name=maximum_unfinalized_dags_count,json=maximumUnfinalizedDagsCount,proto3" json:"maximum_unfinalized_dags_count,omitempty"`
-	MaximumUnfinalizedParentsLimit *object.Limit                              `protobuf:"bytes,5,opt,name=maximum_unfinalized_parents_limit,json=maximumUnfinalizedParentsLimit,proto3" json:"maximum_unfinalized_parents_limit,omitempty"`
-	ShardsReplicaA                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,6,rep,name=shards_replica_a,json=shardsReplicaA,proto3" json:"shards_replica_a,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ShardsReplicaB                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,7,rep,name=shards_replica_b,json=shardsReplicaB,proto3" json:"shards_replica_b,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	LocalObjectStore               *local.StoreConfiguration                  `protobuf:"bytes,8,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	WatermarkPollInterval          *durationpb.Duration                       `protobuf:"bytes,9,opt,name=watermark_poll_interval,json=watermarkPollInterval,proto3" json:"watermark_poll_interval,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState                     `protogen:"opaque.v1"`
+	xxx_hidden_Global                         *global.Configuration                      `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_GrpcServers                    *[]*grpc.ServerConfiguration               `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers"`
+	xxx_hidden_ObjectStoreConcurrency         int64                                      `protobuf:"varint,3,opt,name=object_store_concurrency,json=objectStoreConcurrency"`
+	xxx_hidden_MaximumUnfinalizedDagsCount    uint32                                     `protobuf:"varint,4,opt,name=maximum_unfinalized_dags_count,json=maximumUnfinalizedDagsCount"`
+	xxx_hidden_MaximumUnfinalizedParentsLimit *object.Limit                              `protobuf:"bytes,5,opt,name=maximum_unfinalized_parents_limit,json=maximumUnfinalizedParentsLimit"`
+	xxx_hidden_ShardsReplicaA                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,6,rep,name=shards_replica_a,json=shardsReplicaA" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_ShardsReplicaB                 map[string]*ApplicationConfiguration_Shard `protobuf:"bytes,7,rep,name=shards_replica_b,json=shardsReplicaB" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_LocalObjectStore               *local.StoreConfiguration                  `protobuf:"bytes,8,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_WatermarkPollInterval          *durationpb.Duration                       `protobuf:"bytes,9,opt,name=watermark_poll_interval,json=watermarkPollInterval"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -66,80 +65,187 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetGrpcServers() []*grpc.ServerConfiguration {
 	if x != nil {
-		return x.GrpcServers
+		if x.xxx_hidden_GrpcServers != nil {
+			return *x.xxx_hidden_GrpcServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
 	if x != nil {
-		return x.ObjectStoreConcurrency
+		return x.xxx_hidden_ObjectStoreConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetMaximumUnfinalizedDagsCount() uint32 {
 	if x != nil {
-		return x.MaximumUnfinalizedDagsCount
+		return x.xxx_hidden_MaximumUnfinalizedDagsCount
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetMaximumUnfinalizedParentsLimit() *object.Limit {
 	if x != nil {
-		return x.MaximumUnfinalizedParentsLimit
+		return x.xxx_hidden_MaximumUnfinalizedParentsLimit
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetShardsReplicaA() map[string]*ApplicationConfiguration_Shard {
 	if x != nil {
-		return x.ShardsReplicaA
+		return x.xxx_hidden_ShardsReplicaA
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetShardsReplicaB() map[string]*ApplicationConfiguration_Shard {
 	if x != nil {
-		return x.ShardsReplicaB
+		return x.xxx_hidden_ShardsReplicaB
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetWatermarkPollInterval() *durationpb.Duration {
 	if x != nil {
-		return x.WatermarkPollInterval
+		return x.xxx_hidden_WatermarkPollInterval
 	}
 	return nil
 }
 
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetGrpcServers(v []*grpc.ServerConfiguration) {
+	x.xxx_hidden_GrpcServers = &v
+}
+
+func (x *ApplicationConfiguration) SetObjectStoreConcurrency(v int64) {
+	x.xxx_hidden_ObjectStoreConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetMaximumUnfinalizedDagsCount(v uint32) {
+	x.xxx_hidden_MaximumUnfinalizedDagsCount = v
+}
+
+func (x *ApplicationConfiguration) SetMaximumUnfinalizedParentsLimit(v *object.Limit) {
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = v
+}
+
+func (x *ApplicationConfiguration) SetShardsReplicaA(v map[string]*ApplicationConfiguration_Shard) {
+	x.xxx_hidden_ShardsReplicaA = v
+}
+
+func (x *ApplicationConfiguration) SetShardsReplicaB(v map[string]*ApplicationConfiguration_Shard) {
+	x.xxx_hidden_ShardsReplicaB = v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetWatermarkPollInterval(v *durationpb.Duration) {
+	x.xxx_hidden_WatermarkPollInterval = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasMaximumUnfinalizedParentsLimit() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumUnfinalizedParentsLimit != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasWatermarkPollInterval() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_WatermarkPollInterval != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearMaximumUnfinalizedParentsLimit() {
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearWatermarkPollInterval() {
+	x.xxx_hidden_WatermarkPollInterval = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                         *global.Configuration
+	GrpcServers                    []*grpc.ServerConfiguration
+	ObjectStoreConcurrency         int64
+	MaximumUnfinalizedDagsCount    uint32
+	MaximumUnfinalizedParentsLimit *object.Limit
+	ShardsReplicaA                 map[string]*ApplicationConfiguration_Shard
+	ShardsReplicaB                 map[string]*ApplicationConfiguration_Shard
+	LocalObjectStore               *local.StoreConfiguration
+	WatermarkPollInterval          *durationpb.Duration
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_GrpcServers = &b.GrpcServers
+	x.xxx_hidden_ObjectStoreConcurrency = b.ObjectStoreConcurrency
+	x.xxx_hidden_MaximumUnfinalizedDagsCount = b.MaximumUnfinalizedDagsCount
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = b.MaximumUnfinalizedParentsLimit
+	x.xxx_hidden_ShardsReplicaA = b.ShardsReplicaA
+	x.xxx_hidden_ShardsReplicaB = b.ShardsReplicaB
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_WatermarkPollInterval = b.WatermarkPollInterval
+	return m0
+}
+
 type ApplicationConfiguration_Shard struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Client        *grpc.ClientConfiguration `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Weight        uint32                    `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Client *grpc.ClientConfiguration `protobuf:"bytes,1,opt,name=client"`
+	xxx_hidden_Weight uint32                    `protobuf:"varint,2,opt,name=weight"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration_Shard) Reset() {
@@ -167,23 +273,53 @@ func (x *ApplicationConfiguration_Shard) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration_Shard.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration_Shard) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP(), []int{0, 0}
-}
-
 func (x *ApplicationConfiguration_Shard) GetClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.Client
+		return x.xxx_hidden_Client
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration_Shard) GetWeight() uint32 {
 	if x != nil {
-		return x.Weight
+		return x.xxx_hidden_Weight
 	}
 	return 0
+}
+
+func (x *ApplicationConfiguration_Shard) SetClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_Client = v
+}
+
+func (x *ApplicationConfiguration_Shard) SetWeight(v uint32) {
+	x.xxx_hidden_Weight = v
+}
+
+func (x *ApplicationConfiguration_Shard) HasClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Client != nil
+}
+
+func (x *ApplicationConfiguration_Shard) ClearClient() {
+	x.xxx_hidden_Client = nil
+}
+
+type ApplicationConfiguration_Shard_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Client *grpc.ClientConfiguration
+	Weight uint32
+}
+
+func (b0 ApplicationConfiguration_Shard_builder) Build() *ApplicationConfiguration_Shard {
+	m0 := &ApplicationConfiguration_Shard{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Client = b.Client
+	x.xxx_hidden_Weight = b.Weight
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto protoreflect.FileDescriptor
@@ -210,19 +346,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanz
 	"\x05value\x18\x02 \x01(\v2N.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardR\x05value:\x028\x01\x1a\x91\x01\n" +
 	"\x13ShardsReplicaBEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12d\n" +
-	"\x05value\x18\x02 \x01(\v2N.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardR\x05value:\x028\x01B@Z>bonanza.build/pkg/proto/configuration/bonanza_storage_frontendb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_rawDescData
-}
+	"\x05value\x18\x02 \x01(\v2N.bonanza.configuration.bonanza_storage_frontend.ApplicationConfiguration.ShardR\x05value:\x028\x01BEZ>bonanza.build/pkg/proto/configuration/bonanza_storage_frontend\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_frontend_bonanza_storage_frontend_proto_goTypes = []any{
