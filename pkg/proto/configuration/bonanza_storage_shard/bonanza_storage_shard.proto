@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.configuration.bonanza_storage_shard;
 
@@ -8,6 +8,7 @@ import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto"
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/lossymap/lossymap.proto";
 import "google/protobuf/duration.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_storage_shard";
 
 message ApplicationConfiguration {

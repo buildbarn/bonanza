@@ -39,7 +39,7 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
@@ -47,7 +47,7 @@ func main() {
 		// Leases of objects are checked against the watermark
 		// of the cluster. Leases close to the watermark are
 		// renewed proactively.
-		leaseRenewalFraction := configuration.LeaseRenewalFraction
+		leaseRenewalFraction := configuration.GetLeaseRenewalFraction()
 		if leaseRenewalFraction < 0 || leaseRenewalFraction >= 1 {
 			return status.Error(codes.InvalidArgument, "Lease renewal fraction must be at least 0 and less than 1")
 		}
@@ -62,7 +62,7 @@ func main() {
 		// Watermarks provided by storage frontends that are
 		// older than that are rejected, as other shards may
 		// have lost data in the meantime.
-		watermarkLookahead := configuration.WatermarkLookahead
+		watermarkLookahead := configuration.GetWatermarkLookahead()
 		if err := watermarkLookahead.CheckValid(); err != nil {
 			return util.StatusWrap(err, "Invalid watermark lookahead")
 		}
@@ -80,7 +80,7 @@ func main() {
 		// UploadDag() can reliably enforce that clients upload
 		// complete DAGs.
 		leasesMap, syncLeasesMap, err := lossymap.NewHashMapFromConfiguration(
-			configuration.LeasesMap,
+			configuration.GetLeasesMap(),
 			"LeasesMap",
 			object_flatbacked.LeaseRecordArrayFactory,
 			/* recordKeyHasher = */ func(k *lossymap.RecordKey[object.LocalReference]) uint64 {
@@ -102,7 +102,7 @@ func main() {
 		// Create storage for tags. Tags can be used to assign
 		// arbitrary identifiers to objects.
 		tagsMap, syncTagsMap, err := lossymap.NewHashMapFromConfiguration(
-			configuration.TagsMap,
+			configuration.GetTagsMap(),
 			"TagsMap",
 			tag_local.TagRecordArrayFactory,
 			/* recordKeyHasher = */ func(k *lossymap.RecordKey[tag.Key]) uint64 {
@@ -129,7 +129,7 @@ func main() {
 		// that they get a new lease.
 		localObjectStore, err = object_local.NewStoreFromConfiguration(
 			dependenciesGroup,
-			configuration.LocalObjectStore,
+			configuration.GetLocalObjectStore(),
 			&object_local.LeaseTrackingConfiguration{
 				Clock:              clock.SystemClock,
 				WatermarkLookahead: watermarkLookahead.AsDuration(),
@@ -197,7 +197,7 @@ func main() {
 		// Expose all storage backends via gRPC.
 		leaseMarshaler := object_flatbacked.LeaseMarshaler
 		if err := bb_grpc.NewServersFromConfigurationAndServe(
-			configuration.GrpcServers,
+			configuration.GetGrpcServers(),
 			func(s grpc.ServiceRegistrar) {
 				object_pb.RegisterDownloaderServer(
 					s,

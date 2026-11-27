@@ -15,7 +15,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -27,16 +26,16 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                protoimpl.MessageState         `protogen:"open.v1"`
-	Global               *global.Configuration          `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	GrpcServers          []*grpc.ServerConfiguration    `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers,proto3" json:"grpc_servers,omitempty"`
-	LocalObjectStore     *local.StoreConfiguration      `protobuf:"bytes,3,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	TagsMap              *lossymap.HashMapConfiguration `protobuf:"bytes,4,opt,name=tags_map,json=tagsMap,proto3" json:"tags_map,omitempty"`
-	LeasesMap            *lossymap.HashMapConfiguration `protobuf:"bytes,5,opt,name=leases_map,json=leasesMap,proto3" json:"leases_map,omitempty"`
-	LeaseRenewalFraction float64                        `protobuf:"fixed64,7,opt,name=lease_renewal_fraction,json=leaseRenewalFraction,proto3" json:"lease_renewal_fraction,omitempty"`
-	WatermarkLookahead   *durationpb.Duration           `protobuf:"bytes,8,opt,name=watermark_lookahead,json=watermarkLookahead,proto3" json:"watermark_lookahead,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Global               *global.Configuration          `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_GrpcServers          *[]*grpc.ServerConfiguration   `protobuf:"bytes,2,rep,name=grpc_servers,json=grpcServers"`
+	xxx_hidden_LocalObjectStore     *local.StoreConfiguration      `protobuf:"bytes,3,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_TagsMap              *lossymap.HashMapConfiguration `protobuf:"bytes,4,opt,name=tags_map,json=tagsMap"`
+	xxx_hidden_LeasesMap            *lossymap.HashMapConfiguration `protobuf:"bytes,5,opt,name=leases_map,json=leasesMap"`
+	xxx_hidden_LeaseRenewalFraction float64                        `protobuf:"fixed64,7,opt,name=lease_renewal_fraction,json=leaseRenewalFraction"`
+	xxx_hidden_WatermarkLookahead   *durationpb.Duration           `protobuf:"bytes,8,opt,name=watermark_lookahead,json=watermarkLookahead"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -64,58 +63,164 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetGrpcServers() []*grpc.ServerConfiguration {
 	if x != nil {
-		return x.GrpcServers
+		if x.xxx_hidden_GrpcServers != nil {
+			return *x.xxx_hidden_GrpcServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetTagsMap() *lossymap.HashMapConfiguration {
 	if x != nil {
-		return x.TagsMap
+		return x.xxx_hidden_TagsMap
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLeasesMap() *lossymap.HashMapConfiguration {
 	if x != nil {
-		return x.LeasesMap
+		return x.xxx_hidden_LeasesMap
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLeaseRenewalFraction() float64 {
 	if x != nil {
-		return x.LeaseRenewalFraction
+		return x.xxx_hidden_LeaseRenewalFraction
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetWatermarkLookahead() *durationpb.Duration {
 	if x != nil {
-		return x.WatermarkLookahead
+		return x.xxx_hidden_WatermarkLookahead
 	}
 	return nil
+}
+
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetGrpcServers(v []*grpc.ServerConfiguration) {
+	x.xxx_hidden_GrpcServers = &v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetTagsMap(v *lossymap.HashMapConfiguration) {
+	x.xxx_hidden_TagsMap = v
+}
+
+func (x *ApplicationConfiguration) SetLeasesMap(v *lossymap.HashMapConfiguration) {
+	x.xxx_hidden_LeasesMap = v
+}
+
+func (x *ApplicationConfiguration) SetLeaseRenewalFraction(v float64) {
+	x.xxx_hidden_LeaseRenewalFraction = v
+}
+
+func (x *ApplicationConfiguration) SetWatermarkLookahead(v *durationpb.Duration) {
+	x.xxx_hidden_WatermarkLookahead = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasTagsMap() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_TagsMap != nil
+}
+
+func (x *ApplicationConfiguration) HasLeasesMap() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LeasesMap != nil
+}
+
+func (x *ApplicationConfiguration) HasWatermarkLookahead() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_WatermarkLookahead != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearTagsMap() {
+	x.xxx_hidden_TagsMap = nil
+}
+
+func (x *ApplicationConfiguration) ClearLeasesMap() {
+	x.xxx_hidden_LeasesMap = nil
+}
+
+func (x *ApplicationConfiguration) ClearWatermarkLookahead() {
+	x.xxx_hidden_WatermarkLookahead = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global               *global.Configuration
+	GrpcServers          []*grpc.ServerConfiguration
+	LocalObjectStore     *local.StoreConfiguration
+	TagsMap              *lossymap.HashMapConfiguration
+	LeasesMap            *lossymap.HashMapConfiguration
+	LeaseRenewalFraction float64
+	WatermarkLookahead   *durationpb.Duration
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_GrpcServers = &b.GrpcServers
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_TagsMap = b.TagsMap
+	x.xxx_hidden_LeasesMap = b.LeasesMap
+	x.xxx_hidden_LeaseRenewalFraction = b.LeaseRenewalFraction
+	x.xxx_hidden_WatermarkLookahead = b.WatermarkLookahead
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto protoreflect.FileDescriptor
@@ -131,19 +236,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_s
 	"\n" +
 	"leases_map\x18\x05 \x01(\v26.buildbarn.configuration.lossymap.HashMapConfigurationR\tleasesMap\x124\n" +
 	"\x16lease_renewal_fraction\x18\a \x01(\x01R\x14leaseRenewalFraction\x12J\n" +
-	"\x13watermark_lookahead\x18\b \x01(\v2\x19.google.protobuf.DurationR\x12watermarkLookaheadB=Z;bonanza.build/pkg/proto/configuration/bonanza_storage_shardb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_rawDescData
-}
+	"\x13watermark_lookahead\x18\b \x01(\v2\x19.google.protobuf.DurationR\x12watermarkLookaheadBBZ;bonanza.build/pkg/proto/configuration/bonanza_storage_shard\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_configuration_bonanza_storage_shard_bonanza_storage_shard_proto_goTypes = []any{
