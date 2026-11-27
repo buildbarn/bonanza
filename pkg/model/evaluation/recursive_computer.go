@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -63,7 +62,7 @@ func NewRecursiveComputerEvaluationQueue[TReference object.BasicReference, TMeta
 // RecursiveComputerEvaluationQueuePicker is used by RecursiveComputer to pick a
 // RecursiveComputerEvaluationQueue to which a given key should be assigned.
 type RecursiveComputerEvaluationQueuePicker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
-	PickQueue(typeURL string) *RecursiveComputerEvaluationQueue[TReference, TMetadata]
+	PickQueue(typeName string) *RecursiveComputerEvaluationQueue[TReference, TMetadata]
 }
 
 // RecursiveComputer can be used to compute values, taking dependencies
@@ -436,14 +435,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forceUnblockKeyState(ks *Key
 	rc.blockedKeys.remove(ks)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], keyTypeURL string, evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
+func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], keyTypeName string, evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
 	ks, ok := rc.keys[keyReference]
 	if !ok {
 		// Brand new key.
 		ks = &KeyState[TReference, TMetadata]{
 			keyReference:      keyReference,
 			keyMessageFetcher: keyMessageFetcher,
-			isLookup:          rc.base.IsLookup(keyTypeURL),
+			isLookup:          rc.base.IsLookup(keyTypeName),
 			valueState:        initialValueState[TReference, TMetadata]{},
 			evaluationQueue:   evaluationQueue,
 		}
@@ -470,7 +469,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) newEnvironment(ctx context.C
 
 // GetOrCreateKeyState looks up the key state for a given key. If the
 // key state does not yet exist, it is created.
-func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key model_core.TopLevelMessage[*anypb.Any, TReference]) (*KeyState[TReference, TMetadata], error) {
+func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]) (*KeyState[TReference, TMetadata], error) {
 	keyReference, err := model_core.ComputeTopLevelMessageReference(key, rc.referenceFormat)
 	if err != nil {
 		return nil, err
@@ -478,10 +477,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 	keyMessageFetcher := &staticMessageFetcher[TReference, TMetadata]{
 		message: key,
 	}
-	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.TypeUrl)
+	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat().GetProtoTypeName())
 
 	rc.lock.Lock()
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.TypeUrl, evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat().GetProtoTypeName(), evaluationQueue)
 	rc.lock.Unlock()
 	return ks, nil
 }
@@ -490,7 +489,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 // associated with the provided KeyState. This can, for example, be used
 // to generate proper stack traces using the KeyState instances
 // referenced by NestedError.
-func (rc *RecursiveComputer[TReference, TMetadata]) GetKeyStateKeyMessage(ctx context.Context, ks *KeyState[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (rc *RecursiveComputer[TReference, TMetadata]) GetKeyStateKeyMessage(ctx context.Context, ks *KeyState[TReference, TMetadata]) (model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference], error) {
 	return ks.keyMessageFetcher.getAny(ctx, rc)
 }
 
@@ -863,7 +862,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) readLookupResult(ctx context
 func (rc *RecursiveComputer[TReference, TMetadata]) forEachCachedKey(
 	ctx context.Context,
 	keys model_core.Message[[]*model_evaluation_pb.Keys, TReference],
-	yield func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]),
+	yield func(keyReference object.LocalReference, key model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]),
 ) (bool, error) {
 	var previousKeyReference []byte
 	var errIter error
@@ -910,10 +909,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) resolveCachedKeys(ctx contex
 	// that malformed lists don't cause keys to be evaluated.
 	type cachedKey struct {
 		reference object.LocalReference
-		message   model_core.TopLevelMessage[*anypb.Any, TReference]
+		message   model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]
 	}
 	var cachedKeys []cachedKey
-	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]) {
+	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]) {
 		cachedKeys = append(cachedKeys, cachedKey{
 			reference: keyReference,
 			message:   key,
@@ -939,10 +938,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) resolveCachedKeys(ctx contex
 		if !exists {
 			// Key has not been requested before. Only
 			// consult the base computer in this case.
-			typeURL := key.Message.TypeUrl
-			evaluationQueue := rc.evaluationQueuePicker.PickQueue(typeURL)
+			typeName := key.Message.GetFormat().GetProtoTypeName()
+			evaluationQueue := rc.evaluationQueuePicker.PickQueue(typeName)
 			rc.lock.Lock()
-			ks = rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, typeURL, evaluationQueue)
+			ks = rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, typeName, evaluationQueue)
 			rc.lock.Unlock()
 		}
 		keyStates = append(keyStates, ks)
@@ -955,7 +954,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) resolveCachedKeys(ctx contex
 // resolveCachedKeys(), it does not create any KeyStates.
 func (rc *RecursiveComputer[TReference, TMetadata]) getCachedKeyReferences(ctx context.Context, keys model_core.Message[[]*model_evaluation_pb.Keys, TReference]) (map[object.LocalReference]struct{}, bool, error) {
 	keyReferences := map[object.LocalReference]struct{}{}
-	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*anypb.Any, TReference]) {
+	ok, err := rc.forEachCachedKey(ctx, keys, func(keyReference object.LocalReference, key model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]) {
 		keyReferences[keyReference] = struct{}{}
 	})
 	if !ok || err != nil {
@@ -1095,12 +1094,12 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 		message: key,
 	}
 
-	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.TypeUrl)
+	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat().GetProtoTypeName())
 
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.TypeUrl, evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat().GetProtoTypeName(), evaluationQueue)
 	if !ks.valueState.isEvaluated() {
 		e.missingDependencies[ks] = struct{}{}
 		return nil, nil, ""
@@ -1120,7 +1119,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 	if ks.valueState.isVariableDependency() {
 		e.directVariableDependencies[ks] = struct{}{}
 	}
-	return ks, ks.valueState, key.Message.TypeUrl
+	return ks, ks.valueState, key.Message.GetFormat().GetProtoTypeName()
 }
 
 // setDependencyError reports that a value derived from the value of a
@@ -1158,7 +1157,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patche
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool) {
-	ks, vs, keyTypeURL := e.getValueState(patchedKey)
+	ks, vs, keyTypeName := e.getValueState(patchedKey)
 	if vs == nil {
 		return nil, false
 	}
@@ -1171,7 +1170,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patch
 		e.setError(err)
 		return nil, false
 	}
-	object, err := e.computer.base.ComputeObject(keyTypeURL, value)
+	object, err := e.computer.base.ComputeObject(keyTypeName, value)
 	if err != nil {
 		e.setDependencyError(ks, err)
 		return nil, false
@@ -1337,15 +1336,15 @@ func (ksl *keyStateList[TReference, TMetadata]) remove(ks *KeyState[TReference, 
 // generated, the full keys need to be known. In those cases
 // messageFetcher is invoked.
 type messageFetcher[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
-	getAny(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error)
+	getAny(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference], error)
 	getNative(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[proto.Message, TReference], error)
 }
 
 type staticMessageFetcher[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
-	message model_core.TopLevelMessage[*anypb.Any, TReference]
+	message model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference]
 }
 
-func (kf *staticMessageFetcher[TReference, TMetadata]) getAny(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*anypb.Any, TReference], error) {
+func (kf *staticMessageFetcher[TReference, TMetadata]) getAny(ctx context.Context, rc *RecursiveComputer[TReference, TMetadata]) (model_core.TopLevelMessage[*model_core_pb.TopLevelAny, TReference], error) {
 	return kf.message, nil
 }
 

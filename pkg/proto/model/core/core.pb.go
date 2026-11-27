@@ -12,7 +12,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	_ "google.golang.org/protobuf/types/gofeaturespb"
-	anypb "google.golang.org/protobuf/types/known/anypb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -300,28 +299,28 @@ func (b0 ReferenceSet_builder) Build() *ReferenceSet {
 	return m0
 }
 
-type Any struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Value      *anypb.Any             `protobuf:"bytes,1,opt,name=value"`
-	xxx_hidden_References *ReferenceSet          `protobuf:"bytes,2,opt,name=references"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+type TopLevelAny struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Format *format.Format         `protobuf:"bytes,1,opt,name=format"`
+	xxx_hidden_Value  []byte                 `protobuf:"bytes,2,opt,name=value"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
-func (x *Any) Reset() {
-	*x = Any{}
+func (x *TopLevelAny) Reset() {
+	*x = TopLevelAny{}
 	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Any) String() string {
+func (x *TopLevelAny) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Any) ProtoMessage() {}
+func (*TopLevelAny) ProtoMessage() {}
 
-func (x *Any) ProtoReflect() protoreflect.Message {
+func (x *TopLevelAny) ProtoReflect() protoreflect.Message {
 	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -333,7 +332,92 @@ func (x *Any) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *Any) GetValue() *anypb.Any {
+func (x *TopLevelAny) GetFormat() *format.Format {
+	if x != nil {
+		return x.xxx_hidden_Format
+	}
+	return nil
+}
+
+func (x *TopLevelAny) GetValue() []byte {
+	if x != nil {
+		return x.xxx_hidden_Value
+	}
+	return nil
+}
+
+func (x *TopLevelAny) SetFormat(v *format.Format) {
+	x.xxx_hidden_Format = v
+}
+
+func (x *TopLevelAny) SetValue(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Value = v
+}
+
+func (x *TopLevelAny) HasFormat() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Format != nil
+}
+
+func (x *TopLevelAny) ClearFormat() {
+	x.xxx_hidden_Format = nil
+}
+
+type TopLevelAny_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Format *format.Format
+	Value  []byte
+}
+
+func (b0 TopLevelAny_builder) Build() *TopLevelAny {
+	m0 := &TopLevelAny{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Format = b.Format
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
+type Any struct {
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value      *TopLevelAny           `protobuf:"bytes,1,opt,name=value"`
+	xxx_hidden_References *ReferenceSet          `protobuf:"bytes,2,opt,name=references"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *Any) Reset() {
+	*x = Any{}
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Any) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Any) ProtoMessage() {}
+
+func (x *Any) ProtoReflect() protoreflect.Message {
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Any) GetValue() *TopLevelAny {
 	if x != nil {
 		return x.xxx_hidden_Value
 	}
@@ -347,7 +431,7 @@ func (x *Any) GetReferences() *ReferenceSet {
 	return nil
 }
 
-func (x *Any) SetValue(v *anypb.Any) {
+func (x *Any) SetValue(v *TopLevelAny) {
 	x.xxx_hidden_Value = v
 }
 
@@ -380,7 +464,7 @@ func (x *Any) ClearReferences() {
 type Any_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Value      *anypb.Any
+	Value      *TopLevelAny
 	References *ReferenceSet
 }
 
@@ -403,7 +487,7 @@ type Opaque struct {
 
 func (x *Opaque) Reset() {
 	*x = Opaque{}
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +499,7 @@ func (x *Opaque) String() string {
 func (*Opaque) ProtoMessage() {}
 
 func (x *Opaque) ProtoReflect() protoreflect.Message {
-	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[5]
+	mi := &file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -499,7 +583,7 @@ var File_bonanza_build_pkg_proto_model_core_core_proto protoreflect.FileDescript
 
 const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\n" +
-	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\x1a!google/protobuf/go_features.proto\"*\n" +
+	"-bonanza.build/pkg/proto/model/core/core.proto\x12\x12bonanza.model.core\x1a1bonanza.build/pkg/proto/model/format/format.proto\x1a google/protobuf/descriptor.proto\x1a!google/protobuf/go_features.proto\"*\n" +
 	"\tReference\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\aR\x05index:\ab\x05\xd2>\x02\x10\x02\"\x82\x01\n" +
 	"\x12DecodableReference\x12;\n" +
@@ -509,9 +593,12 @@ const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"\treference\x18\x01 \x01(\fR\treference\x12/\n" +
 	"\x13decoding_parameters\x18\x02 \x01(\fR\x12decodingParameters\"1\n" +
 	"\fReferenceSet\x12\x18\n" +
-	"\aindices\x18\x01 \x03(\aR\aindices:\ab\x05\xd2>\x02\x10\x02\"s\n" +
-	"\x03Any\x12*\n" +
-	"\x05value\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x05value\x12@\n" +
+	"\aindices\x18\x01 \x03(\aR\aindices:\ab\x05\xd2>\x02\x10\x02\"Y\n" +
+	"\vTopLevelAny\x124\n" +
+	"\x06format\x18\x01 \x01(\v2\x1c.bonanza.model.format.FormatR\x06format\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"~\n" +
+	"\x03Any\x125\n" +
+	"\x05value\x18\x01 \x01(\v2\x1f.bonanza.model.core.TopLevelAnyR\x05value\x12@\n" +
 	"\n" +
 	"references\x18\x02 \x01(\v2 .bonanza.model.core.ReferenceSetR\n" +
 	"references\"`\n" +
@@ -522,30 +609,31 @@ const file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc = "" +
 	"references:b\n" +
 	"\robject_format\x12\x1d.google.protobuf.FieldOptions\x18\xfd\x8a\x04 \x01(\v2\x1c.bonanza.model.format.FormatR\fobjectFormatB)Z\"bonanza.build/pkg/proto/model/core\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
-var file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_bonanza_build_pkg_proto_model_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_model_core_core_proto_goTypes = []any{
 	(*Reference)(nil),                 // 0: bonanza.model.core.Reference
 	(*DecodableReference)(nil),        // 1: bonanza.model.core.DecodableReference
 	(*WeakDecodableReference)(nil),    // 2: bonanza.model.core.WeakDecodableReference
 	(*ReferenceSet)(nil),              // 3: bonanza.model.core.ReferenceSet
-	(*Any)(nil),                       // 4: bonanza.model.core.Any
-	(*Opaque)(nil),                    // 5: bonanza.model.core.Opaque
-	(*anypb.Any)(nil),                 // 6: google.protobuf.Any
-	(*descriptorpb.FieldOptions)(nil), // 7: google.protobuf.FieldOptions
-	(*format.Format)(nil),             // 8: bonanza.model.format.Format
+	(*TopLevelAny)(nil),               // 4: bonanza.model.core.TopLevelAny
+	(*Any)(nil),                       // 5: bonanza.model.core.Any
+	(*Opaque)(nil),                    // 6: bonanza.model.core.Opaque
+	(*format.Format)(nil),             // 7: bonanza.model.format.Format
+	(*descriptorpb.FieldOptions)(nil), // 8: google.protobuf.FieldOptions
 }
 var file_bonanza_build_pkg_proto_model_core_core_proto_depIdxs = []int32{
 	0, // 0: bonanza.model.core.DecodableReference.reference:type_name -> bonanza.model.core.Reference
-	6, // 1: bonanza.model.core.Any.value:type_name -> google.protobuf.Any
-	3, // 2: bonanza.model.core.Any.references:type_name -> bonanza.model.core.ReferenceSet
-	3, // 3: bonanza.model.core.Opaque.references:type_name -> bonanza.model.core.ReferenceSet
-	7, // 4: bonanza.model.core.object_format:extendee -> google.protobuf.FieldOptions
-	8, // 5: bonanza.model.core.object_format:type_name -> bonanza.model.format.Format
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	5, // [5:6] is the sub-list for extension type_name
-	4, // [4:5] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 1: bonanza.model.core.TopLevelAny.format:type_name -> bonanza.model.format.Format
+	4, // 2: bonanza.model.core.Any.value:type_name -> bonanza.model.core.TopLevelAny
+	3, // 3: bonanza.model.core.Any.references:type_name -> bonanza.model.core.ReferenceSet
+	3, // 4: bonanza.model.core.Opaque.references:type_name -> bonanza.model.core.ReferenceSet
+	8, // 5: bonanza.model.core.object_format:extendee -> google.protobuf.FieldOptions
+	7, // 6: bonanza.model.core.object_format:type_name -> bonanza.model.format.Format
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	6, // [6:7] is the sub-list for extension type_name
+	5, // [5:6] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_core_core_proto_init() }
@@ -559,7 +647,7 @@ func file_bonanza_build_pkg_proto_model_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 1,
 			NumServices:   0,
 		},

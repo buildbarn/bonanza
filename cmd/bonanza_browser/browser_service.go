@@ -789,7 +789,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	if err != nil {
 		return nil, err
 	}
-	keyAny, err := model_core.UnmarshalTopLevelMessage[anypb.Any](referenceFormat, keyBytes)
+	keyAny, err := model_core.UnmarshalTopLevelMessage[model_core_pb.TopLevelAny](referenceFormat, keyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -1060,7 +1060,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			// Attempt to derive the type from the key. If
 			// that fails, display the raw message.
 			renderedValue := model_core.Nested(evaluation, v.ProtoReflect())
-			if valueMessageType, err := model_evaluation.GetValueMessageType(keyAny.Message.MessageName()); err == nil {
+			if valueMessageType, err := model_evaluation.GetValueMessageType(protoreflect.FullName(keyAny.Message.GetFormat().GetProtoTypeName())); err == nil {
 				if value, err := model_core.UnmarshalOpaque(model_core.Nested(evaluation, v), model_format.NewDynamicProto(valueMessageType)); err == nil {
 					renderedValue = model_core.NewMessage(value.Message.ProtoReflect(), value.OutgoingReferences)
 				}

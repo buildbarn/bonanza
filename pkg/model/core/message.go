@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Message is a piece of data, typically a Protobuf message, that has
@@ -154,19 +153,30 @@ func (or *remappingOutgoingReferences[TReference]) DetachOutgoingReferences() ob
 	return list
 }
 
-// FlattenAny extracts the anypb.Any message that's embedded in a
-// model_core_pb.Any message. The resulting message only has access to
-// the outgoing references of the inner message.
-func FlattenAny[TReference any](m Message[*model_core_pb.Any, TReference]) (TopLevelMessage[*anypb.Any, TReference], error) {
+// FlattenAny extracts the model_core_pb.TopLevelAny message that's
+// embedded in a model_core_pb.Any message. The resulting message only
+// has access to the outgoing references of the inner message.
+//
+// An error is returned if any of the fields of the model_core_pb.Any
+// are not set, as that would permit the same message to have multiple
+// encodings.
+func FlattenAny[TReference any](m Message[*model_core_pb.Any, TReference]) (TopLevelMessage[*model_core_pb.TopLevelAny, TReference], error) {
+	if !m.Message.HasValue() {
+		return TopLevelMessage[*model_core_pb.TopLevelAny, TReference]{}, status.Error(codes.InvalidArgument, "Any does not have a value")
+	}
+	if !m.Message.HasReferences() {
+		return TopLevelMessage[*model_core_pb.TopLevelAny, TReference]{}, status.Error(codes.InvalidArgument, "Any does not have references")
+	}
 	outgoingReferences, err := FlattenReferenceSet(Nested(m, m.Message.GetReferences()))
 	if err != nil {
-		return TopLevelMessage[*anypb.Any, TReference]{}, err
+		return TopLevelMessage[*model_core_pb.TopLevelAny, TReference]{}, err
 	}
 	return NewTopLevelMessage(m.Message.GetValue(), outgoingReferences), nil
 }
 
-// UnmarshalAnyNew extracts the message contained in a model_core.Any,
-// and ensures that any references contained within are accessible.
+// UnmarshalAnyNew extracts the message contained in a
+// model_core_pb.Any, and ensures that any references contained within
+// are accessible.
 func UnmarshalAnyNew[TReference any](m Message[*model_core_pb.Any, TReference]) (TopLevelMessage[proto.Message, TReference], error) {
 	flattened, err := FlattenAny(m)
 	if err != nil {

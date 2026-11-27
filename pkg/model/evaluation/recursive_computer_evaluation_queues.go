@@ -59,7 +59,7 @@ type simpleRecursiveComputerEvaluationQueues[TReference object.BasicReference, T
 	concurrency uint32
 }
 
-func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(typeURL string) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(typeName string) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
 	return q.queue
 }
 

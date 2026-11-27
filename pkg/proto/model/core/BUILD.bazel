@@ -9,7 +9,6 @@ proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/proto/model/format:format_proto",
-        "@protobuf//:any_proto",
         "@protobuf//:descriptor_proto",
         "@protobuf//:go_features_proto",
     ],

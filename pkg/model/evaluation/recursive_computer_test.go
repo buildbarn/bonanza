@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -98,7 +97,7 @@ func TestRecursiveComputer(t *testing.T) {
 				), nil
 			}).
 			AnyTimes()
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -181,11 +180,11 @@ func TestRecursiveComputer(t *testing.T) {
 			Leaf: model_evaluation_pb.Evaluations_Leaf_builder{
 				// &wrapperspb.UInt32Value{Value: 93}
 				KeyReference: []byte{
-					0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
-					0x16, 0xc0, 0x88, 0xf3, 0xfb, 0x93, 0xd4, 0x68,
-					0xbe, 0x6a, 0xfd, 0xe0, 0x35, 0xc4, 0x8e, 0xf4,
-					0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
-					0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x78, 0x3b, 0xa1, 0x3b, 0x7f, 0xd7, 0x44, 0x82,
+					0xad, 0x7e, 0xc2, 0x48, 0xb3, 0xd0, 0x3f, 0xe7,
+					0x86, 0x6f, 0xb8, 0x2a, 0x71, 0xf5, 0xd2, 0x89,
+					0x93, 0xc0, 0x09, 0x88, 0x31, 0xb3, 0xe4, 0x6f,
+					0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				},
 				Graphlet: model_evaluation_pb.Graphlet_builder{
 					EvaluationInline: model_evaluation_pb.Evaluation_builder{
@@ -223,7 +222,7 @@ func TestRecursiveComputer(t *testing.T) {
 						<-finishEvaluation
 						return protoValue(&wrapperspb.UInt64Value{Value: 42}), nil
 					})
-				computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+				computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 				objectManager := NewMockObjectManagerForTesting(ctrl)
 				tagStore := NewMockBoundStoreForTesting(ctrl)
 				tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -310,7 +309,7 @@ func TestRecursiveComputer(t *testing.T) {
 				require.False(t, v.IsSet())
 				return model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			})
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -382,7 +381,7 @@ func TestRecursiveComputer(t *testing.T) {
 				return model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			}).
 			AnyTimes()
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -456,7 +455,7 @@ func TestRecursiveComputer(t *testing.T) {
 				return model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata]{}, model_evaluation.ErrMissingDependency
 			}).
 			AnyTimes()
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -527,7 +526,7 @@ func TestRecursiveComputer(t *testing.T) {
 				), nil
 			}).
 			Times(6)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
@@ -653,7 +652,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// set of expected dependencies. If this returns
 		// NOT_FOUND, evaluation should be performed.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		evaluationReader := NewMockProtoEvaluationReaderForTesting(ctrl)
@@ -698,10 +697,10 @@ func TestRecursiveComputer(t *testing.T) {
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
-				0xbf, 0xba, 0xc9, 0x92, 0x7b, 0xff, 0x1f, 0xfe,
-				0xd1, 0x95, 0x69, 0xab, 0x3a, 0x78, 0x6c, 0xf7,
-				0x56, 0x95, 0x13, 0x19, 0x5f, 0xbe, 0x80, 0xc5,
-				0x74, 0x76, 0x7c, 0x78, 0xea, 0x47, 0x94, 0xc6,
+				0xaf, 0x0b, 0x67, 0x4e, 0x0b, 0xce, 0x80, 0x1e,
+				0x07, 0x1e, 0x11, 0xc9, 0x7b, 0xf1, 0xea, 0x25,
+				0x48, 0x1c, 0x66, 0x31, 0x0d, 0x1b, 0x1a, 0xdd,
+				0x14, 0x86, 0x8a, 0x07, 0x70, 0xa5, 0x86, 0x3b,
 			},
 		).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist"))
 		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -731,7 +730,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// cause subsequent reads to return NOT_FOUND. In such
 		// cases we simply assume there's a cache miss.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		evaluationReader := NewMockProtoEvaluationReaderForTesting(ctrl)
@@ -776,10 +775,10 @@ func TestRecursiveComputer(t *testing.T) {
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
-				0x96, 0x82, 0x42, 0x1e, 0x5e, 0x3e, 0x71, 0x8b,
-				0x56, 0x4f, 0x6a, 0xbe, 0x93, 0x0f, 0x90, 0x60,
-				0x70, 0xf9, 0xef, 0xe8, 0x25, 0x70, 0x88, 0x90,
-				0xc4, 0x9e, 0xed, 0x80, 0x6e, 0x92, 0xd1, 0x17,
+				0x25, 0xab, 0xbe, 0x97, 0xf2, 0x3c, 0x8a, 0x2c,
+				0xde, 0xc8, 0x2a, 0x81, 0x32, 0xf4, 0x6f, 0xba,
+				0xab, 0x7e, 0x48, 0xfd, 0x9d, 0x83, 0x0c, 0x15,
+				0xf4, 0x38, 0x44, 0x79, 0x43, 0x99, 0xf5, 0xbb,
 			},
 		).Return(object.MustNewSHA256V1LocalReference("12271f9d66852891725166bd460656b9a2b9a5c6697a51311963ac7d5acd2d0c", 48374, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(
@@ -788,8 +787,8 @@ func TestRecursiveComputer(t *testing.T) {
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("12271f9d66852891725166bd460656b9a2b9a5c6697a51311963ac7d5acd2d0c", 48374, 0, 0, 0),
 					[]byte{
-						0x63, 0xa0, 0x43, 0x40, 0xfc, 0x0b, 0x58, 0x14,
-						0x7f, 0x9d, 0x56, 0x84, 0x39, 0xff, 0x39, 0x12,
+						0x33, 0x38, 0x20, 0x18, 0x32, 0xc9, 0xc1, 0x6b,
+						0x4e, 0xa1, 0xb8, 0x99, 0x07, 0x9f, 0x5e, 0x30,
 					},
 				),
 			),
@@ -822,7 +821,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// message is malformed and contains another type of
 		// message, we should just ignore it.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		evaluationReader := NewMockProtoEvaluationReaderForTesting(ctrl)
@@ -867,10 +866,10 @@ func TestRecursiveComputer(t *testing.T) {
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
-				0x57, 0x12, 0x01, 0xf0, 0x80, 0xf7, 0xe1, 0x9f,
-				0x41, 0x44, 0x87, 0x88, 0x9b, 0xf3, 0xc9, 0x4f,
-				0x61, 0x68, 0x71, 0xd5, 0x07, 0x06, 0x3e, 0x92,
-				0xdc, 0x40, 0x42, 0xbf, 0x2a, 0x3c, 0x01, 0xec,
+				0x51, 0xd6, 0x5e, 0x83, 0x4d, 0x12, 0x5e, 0xd3,
+				0x82, 0x8d, 0x30, 0xfa, 0x00, 0x3b, 0x3c, 0x0e,
+				0x9f, 0x2d, 0xc3, 0xe1, 0x37, 0x2d, 0xd6, 0x97,
+				0xa2, 0xf7, 0xc4, 0xc3, 0x65, 0x13, 0xce, 0x3f,
 			},
 		).Return(object.MustNewSHA256V1LocalReference("829d56c5c910ff51bb09192f5655cd51c02e54c3e16b00d2fde8a6b7e3d814fc", 95938, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(
@@ -879,8 +878,8 @@ func TestRecursiveComputer(t *testing.T) {
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("829d56c5c910ff51bb09192f5655cd51c02e54c3e16b00d2fde8a6b7e3d814fc", 95938, 0, 0, 0),
 					[]byte{
-						0x9c, 0x80, 0x78, 0x1a, 0xa4, 0x29, 0x20, 0x6d,
-						0x76, 0xa4, 0x4e, 0x8f, 0x4c, 0x2e, 0xce, 0xd5,
+						0x62, 0x7a, 0x0f, 0x03, 0xbb, 0x0c, 0xc4, 0x6d,
+						0xf6, 0xb4, 0xfe, 0x72, 0x3a, 0xff, 0x14, 0x57,
 					},
 				),
 			),
@@ -916,7 +915,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// directly. There should be no need to call into the
 		// computer, as the cached value can be used.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		evaluationReader := NewMockProtoEvaluationReaderForTesting(ctrl)
@@ -961,10 +960,10 @@ func TestRecursiveComputer(t *testing.T) {
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
-				0x1e, 0x0f, 0x30, 0xc1, 0x1c, 0x0a, 0x4d, 0x1c,
-				0xd6, 0x18, 0x13, 0x8d, 0xa3, 0x58, 0x40, 0xfa,
-				0x31, 0x22, 0x07, 0x66, 0x38, 0x45, 0x22, 0x9b,
-				0x70, 0x31, 0xbb, 0xac, 0xe8, 0x70, 0x35, 0x07,
+				0x87, 0xc9, 0x59, 0xeb, 0xcd, 0x56, 0x9f, 0x18,
+				0x57, 0x38, 0x7b, 0x9b, 0x59, 0xf4, 0xb2, 0x54,
+				0xb7, 0x5e, 0x5b, 0xd6, 0x5f, 0x5f, 0x32, 0x71,
+				0xad, 0xe2, 0x97, 0xf9, 0x33, 0x41, 0x5a, 0xe7,
 			},
 		).Return(object.MustNewSHA256V1LocalReference("e1749fb7b82448ae6941d4f7e515818efbf781e6fe2738465bd9ce876b8d9866", 2345, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(
@@ -973,8 +972,8 @@ func TestRecursiveComputer(t *testing.T) {
 				model_core.NewDecodable(
 					object.MustNewSHA256V1LocalReference("e1749fb7b82448ae6941d4f7e515818efbf781e6fe2738465bd9ce876b8d9866", 2345, 0, 0, 0),
 					[]byte{
-						0xe5, 0x83, 0xfe, 0x6a, 0x73, 0xa3, 0x7f, 0xe9,
-						0x5c, 0xb8, 0x4f, 0x3a, 0x54, 0xdf, 0xd3, 0x87,
+						0xd2, 0xff, 0x07, 0xc0, 0xe0, 0x18, 0xd2, 0x72,
+						0x8d, 0xd8, 0xa1, 0x9d, 0xdc, 0xd4, 0xef, 0xcd,
 					},
 				),
 			),
@@ -1010,7 +1009,7 @@ func TestRecursiveComputer(t *testing.T) {
 		// evaluated, without creating KeyStates for any of the
 		// keys contained in the list.
 		computer := NewMockComputerForTesting(ctrl)
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		objectManager := NewMockObjectManagerForTesting(ctrl)
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		evaluationReader := NewMockProtoEvaluationReaderForTesting(ctrl)
@@ -1046,10 +1045,9 @@ func TestRecursiveComputer(t *testing.T) {
 		// returning lists of keys in descending order.
 		newKeysLeaf := func(n uint32) *model_evaluation_pb.Keys {
 			return model_evaluation_pb.Keys_builder{
-				Leaf: model_core_pb.Any_builder{
-					Value:      util.Must(anypb.New(&wrapperspb.UInt32Value{Value: n})),
-					References: &model_core_pb.ReferenceSet{},
-				}.Build(),
+				Leaf: model_core.WrapTopLevelAny(util.Must(model_core.MarshalTopLevelAny(
+					model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](&wrapperspb.UInt32Value{Value: n}),
+				))).Message,
 			}.Build()
 		}
 		low, high := uint32(16), uint32(17)
@@ -1059,10 +1057,10 @@ func TestRecursiveComputer(t *testing.T) {
 		tagStore.EXPECT().ResolveTag(
 			gomock.Any(),
 			[...]byte{
-				0xba, 0x4e, 0xe4, 0x47, 0x51, 0x09, 0x77, 0x2d,
-				0x0f, 0x8f, 0x90, 0x9d, 0xce, 0xc6, 0xe2, 0x14,
-				0x6a, 0xee, 0xed, 0x9c, 0x1d, 0x44, 0x9d, 0x3f,
-				0xd7, 0x49, 0x74, 0xf1, 0x93, 0xad, 0xb0, 0x52,
+				0xfc, 0x65, 0x2b, 0x80, 0xbc, 0x3e, 0x9f, 0x83,
+				0xf7, 0x0a, 0x81, 0x44, 0x0e, 0xbe, 0x64, 0x93,
+				0xda, 0xe8, 0x36, 0xca, 0x77, 0xf4, 0x1c, 0x3f,
+				0x76, 0xea, 0x30, 0xf0, 0x1f, 0x84, 0xb4, 0xd5,
 			},
 		).Return(object.MustNewSHA256V1LocalReference("cd897b5bbc720746ba0740100714e8f98f36e3c3cda42b3d3e8c0c26884c0780", 43984, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(gomock.Any(), gomock.Any()).Return(model_core.NewSimpleMessage[object.LocalReference](
@@ -1102,7 +1100,7 @@ func TestRecursiveComputerObject(t *testing.T) {
 	sourceKey := func(value uint32) model_core.PatchedMessage[proto.Message, model_core.ReferenceMetadata] {
 		return model_core.NewSimplePatchedMessage[model_core.ReferenceMetadata, proto.Message](&wrapperspb.UInt32Value{Value: value})
 	}
-	marshalKey := func(value uint32) model_core.TopLevelMessage[*anypb.Any, object.LocalReference] {
+	marshalKey := func(value uint32) model_core.TopLevelMessage[*model_core_pb.TopLevelAny, object.LocalReference] {
 		return util.Must(
 			model_core.MarshalTopLevelAny(
 				model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](
@@ -1112,7 +1110,7 @@ func TestRecursiveComputerObject(t *testing.T) {
 		)
 	}
 	newRecursiveComputer := func(computer *MockComputerForTesting) (*model_evaluation.RecursiveComputer[object.LocalReference, model_core.ReferenceMetadata], model_evaluation.RecursiveComputerEvaluationQueues[object.LocalReference, model_core.ReferenceMetadata]) {
-		computer.EXPECT().IsLookup("type.googleapis.com/google.protobuf.UInt32Value").Return(false).AnyTimes()
+		computer.EXPECT().IsLookup("google.protobuf.UInt32Value").Return(false).AnyTimes()
 		tagStore := NewMockBoundStoreForTesting(ctrl)
 		tagStore.EXPECT().ResolveTag(gomock.Any(), gomock.Any()).Return(object.LocalReference{}, status.Error(codes.NotFound, "Tag does not exist")).AnyTimes()
 		lookupResultReader := NewMockLookupResultReaderForTesting(ctrl)
@@ -1173,8 +1171,8 @@ func TestRecursiveComputerObject(t *testing.T) {
 			})).
 			AnyTimes()
 		instance := new(int)
-		computer.EXPECT().ComputeObject("type.googleapis.com/google.protobuf.UInt32Value", gomock.Any()).
-			DoAndReturn(func(keyTypeURL string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
+		computer.EXPECT().ComputeObject("google.protobuf.UInt32Value", gomock.Any()).
+			DoAndReturn(func(keyTypeName string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
 				v, err := model_format.NewProto[wrapperspb.UInt32Value]().Unmarshal(value.Message)
 				require.NoError(t, err)
 				require.Equal(t, uint32(1000), v.Value)
@@ -1202,7 +1200,7 @@ func TestRecursiveComputerObject(t *testing.T) {
 				t.Error("Object should not have been provided")
 			})).
 			AnyTimes()
-		computer.EXPECT().ComputeObject("type.googleapis.com/google.protobuf.UInt32Value", gomock.Any()).Return(nil, errors.New("invalid value"))
+		computer.EXPECT().ComputeObject("google.protobuf.UInt32Value", gomock.Any()).Return(nil, errors.New("invalid value"))
 		recursiveComputer, queues := newRecursiveComputer(computer)
 
 		keyState, err := recursiveComputer.GetOrCreateKeyState(marshalKey(1))

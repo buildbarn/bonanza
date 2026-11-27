@@ -68,7 +68,7 @@ import (
 	"google.golang.org/grpc/security/advancedtls"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -1098,7 +1098,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 
 		longestType := 0
 		for _, evaluatingKey := range progress.Message.GetOldestEvaluatingKeys() {
-			if l := len(getAbbreviatedTypeURL(evaluatingKey.GetKey().GetValue().GetTypeUrl())); longestType < l {
+			if l := len(getAbbreviatedTypeName(evaluatingKey.GetKey().GetValue().GetFormat().GetProtoTypeName())); longestType < l {
 				longestType = l
 			}
 		}
@@ -1116,7 +1116,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 							/* outcomesReference = */ nil,
 							longestType,
 						),
-						evaluatingKey.GetKey().GetValue(),
+						evaluatingKey.GetKey().GetValue().GetFormat().GetProtoTypeName(),
 						evaluatingKey.GetProgress(),
 						&messageFormatter,
 						messageColumns,
@@ -1201,11 +1201,11 @@ func formatMessageDescription(description model_evaluation.MessageDescription) f
 // evaluation function of a key to the key's description. If the
 // progress contains a counter, the line is rendered as a progress bar.
 // Columns is the width of the terminal available to the line.
-func formatEvaluatingKeyProgress(line formatted.Node, key *anypb.Any, marshaledProgress []byte, messageFormatter *messageFormatter, columns int) formatted.Node {
+func formatEvaluatingKeyProgress(line formatted.Node, keyTypeName string, marshaledProgress []byte, messageFormatter *messageFormatter, columns int) formatted.Node {
 	if marshaledProgress == nil || !messageFormatter.renderer.Pretty {
 		return line
 	}
-	progressMessageType, err := model_evaluation.GetProgressMessageType(key.MessageName())
+	progressMessageType, err := model_evaluation.GetProgressMessageType(protoreflect.FullName(keyTypeName))
 	if err != nil {
 		return line
 	}
@@ -1249,7 +1249,7 @@ func plainTextWidth(n formatted.Node) int {
 // formatKey formats an evaluation key on a single line, prefixed with
 // its abbreviated type.
 func formatKey(namespace object.Namespace, keyAny model_core.Message[*model_core_pb.Any, object.LocalReference], messageFormatter *messageFormatter, browser *browserLinker, outcomesReference *model_core.Decodable[object.LocalReference], longestType int) formatted.Node {
-	abbreviatedType := getAbbreviatedTypeURL(keyAny.Message.GetValue().GetTypeUrl())
+	abbreviatedType := getAbbreviatedTypeName(keyAny.Message.GetValue().GetFormat().GetProtoTypeName())
 	abbreviatedTypeNode := formatted.Text(abbreviatedType)
 	var body formatted.Node
 	if flattenedKey, err := model_core.FlattenAny(keyAny); err != nil {
@@ -1293,7 +1293,7 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 
 		longestType := 0
 		for _, keyAny := range stackTraceKeys.Message {
-			if l := len(getAbbreviatedTypeURL(keyAny.GetValue().GetTypeUrl())); longestType < l {
+			if l := len(getAbbreviatedTypeName(keyAny.GetValue().GetFormat().GetProtoTypeName())); longestType < l {
 				longestType = l
 			}
 		}
@@ -1313,10 +1313,10 @@ func printStackTrace(namespace object.Namespace, stackTraceKeys model_core.Messa
 	}
 }
 
-func getAbbreviatedTypeURL(typeURL string) string {
-	typeURL = strings.TrimSuffix(typeURL, ".Key")
-	if dot := strings.LastIndexByte(typeURL, '.'); dot >= 0 {
-		return typeURL[dot+1:]
+func getAbbreviatedTypeName(typeName string) string {
+	typeName = strings.TrimSuffix(typeName, ".Key")
+	if dot := strings.LastIndexByte(typeName, '.'); dot >= 0 {
+		return typeName[dot+1:]
 	}
-	return typeURL
+	return typeName
 }

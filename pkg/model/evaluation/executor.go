@@ -39,7 +39,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ComputerFactory is called into by the executor to obtain an instance
@@ -420,7 +419,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		// Determine which keys are requested. For each of them
 		// create a KeyState so that its value will be computed.
 		var errIterRequestedKeys error
-		var requestedKeys []model_core.TopLevelMessage[*anypb.Any, buffered.Reference]
+		var requestedKeys []model_core.TopLevelMessage[*model_core_pb.TopLevelAny, buffered.Reference]
 		var requestedKeyReferences []object.LocalReference
 		for requestedKeyNode := range btree.AllLeaves(
 			ctx,

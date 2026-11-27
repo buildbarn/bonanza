@@ -222,18 +222,18 @@ type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMeta
 	remote model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata]
 }
 
-func (q *queues[TReference, TMetadata]) PickQueue(typeURL string) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
-	switch typeURL {
-	case "type.googleapis.com/bonanza.model.analysis.HttpFileContents.Key":
-	case "type.googleapis.com/bonanza.model.analysis.RawActionResult.Key":
+func (q *queues[TReference, TMetadata]) PickQueue(typeName string) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+	switch typeName {
+	case "bonanza.model.analysis.HttpFileContents.Key":
+	case "bonanza.model.analysis.RawActionResult.Key":
 		// Run evaluation steps that call into the remote
 		// execution client with a higher concurrency.
-		return q.remote.PickQueue(typeURL)
+		return q.remote.PickQueue(typeName)
 	}
 
 	// Run all other evaluation steps that run locally with a lower
 	// concurrency.
-	return q.local.PickQueue(typeURL)
+	return q.local.PickQueue(typeName)
 }
 
 func (q *queues[TReference, TMetadata]) ProcessAllEvaluatableKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {

@@ -195,7 +195,6 @@ func main() {
 	fmt.Printf("\tmodel_core \"bonanza.build/pkg/model/core\"\n")
 	fmt.Printf("\tmodel_format \"bonanza.build/pkg/model/format\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/proto\"\n")
-	fmt.Printf("\t\"google.golang.org/protobuf/types/known/anypb\"\n")
 	fmt.Printf("\tpb %#v\n", computerDefinition.ProtoPackage)
 	for _, shortName := range slices.Sorted(maps.Keys(imports)) {
 		fmt.Printf("\t%s %#v\n", shortName, imports[shortName])
@@ -342,7 +341,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("var isLookupKeyTypeURLs map[string]struct{}\n")
+	fmt.Printf("var isLookupKeyTypeNames map[string]struct{}\n")
 
 	fmt.Printf("func init() {\n")
 
@@ -354,10 +353,9 @@ func main() {
 		}
 	}
 	fmt.Printf("\t}\n")
-	fmt.Printf("\tisLookupKeyTypeURLs = make(map[string]struct{}, len(isLookupKeys))\n")
+	fmt.Printf("\tisLookupKeyTypeNames = make(map[string]struct{}, len(isLookupKeys))\n")
 	fmt.Printf("\tfor _, m := range isLookupKeys {\n")
-	fmt.Printf("\t\ta, _ := anypb.New(m)\n")
-	fmt.Printf("\t\t\tisLookupKeyTypeURLs[a.TypeUrl] = struct{}{}\n")
+	fmt.Printf("\t\tisLookupKeyTypeNames[string(m.ProtoReflect().Descriptor().FullName())] = struct{}{}\n")
 	fmt.Printf("\t}\n")
 
 	fmt.Printf("}\n")
@@ -383,19 +381,19 @@ func main() {
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
-	// Type URLs of keys of functions that yield objects. These are
+	// Type names of keys of functions that yield objects. These are
 	// used by ComputeObject() to determine how values need to be
 	// unmarshaled.
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		if computerDefinition.Functions[functionName].ObjectType != nil {
-			fmt.Printf("var keyTypeURL%s = \"type.googleapis.com/\" + string((*pb.%s_Key)(nil).ProtoReflect().Descriptor().FullName())\n", functionName, getMessageName(functionName))
+			fmt.Printf("var keyTypeName%s = string((*pb.%s_Key)(nil).ProtoReflect().Descriptor().FullName())\n", functionName, getMessageName(functionName))
 		}
 	}
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error) {\n")
-	fmt.Printf("\tswitch keyTypeURL {\n")
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error) {\n")
+	fmt.Printf("\tswitch keyTypeName {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		if computerDefinition.Functions[functionName].ObjectType != nil {
-			fmt.Printf("\tcase keyTypeURL%s:\n", functionName)
+			fmt.Printf("\tcase keyTypeName%s:\n", functionName)
 			fmt.Printf("\t\ttypedValue, err := valueFormat%s.Unmarshal(value.Message)\n", functionName)
 			fmt.Printf("\t\tif err != nil {\n")
 			fmt.Printf("\t\t\treturn nil, err\n")
@@ -408,8 +406,8 @@ func main() {
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(typeURL string) bool {\n")
-	fmt.Printf("\t_, ok := isLookupKeyTypeURLs[typeURL]\n")
+	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(typeName string) bool {\n")
+	fmt.Printf("\t_, ok := isLookupKeyTypeNames[typeName]\n")
 	fmt.Printf("\treturn ok\n")
 	fmt.Printf("}\n")
 }

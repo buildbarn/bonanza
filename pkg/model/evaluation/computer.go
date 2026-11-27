@@ -34,8 +34,8 @@ var ErrMissingDependency = errors.New("missing dependency")
 // anything other than the value.
 type Computer[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata], error)
-	ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error)
-	IsLookup(typeURL string) bool
+	ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error)
+	IsLookup(typeName string) bool
 }
 
 // ComputerForTesting is used to generate mocks that are used by

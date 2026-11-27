@@ -16,8 +16,6 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	"bonanza.build/pkg/storage/object"
-
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Evaluation contains the results of the successful evaluation of a
@@ -30,7 +28,7 @@ type Evaluation struct {
 	evaluationEncoder        model_encoding.DeterministicBinaryEncoder
 	analysisEncoder          model_encoding.DeterministicBinaryEncoder
 	starlarkValueEncoder     model_encoding.DeterministicBinaryEncoder
-	requestedKey             model_core.TopLevelMessage[*anypb.Any, object.LocalReference]
+	requestedKey             model_core.TopLevelMessage[*model_core_pb.TopLevelAny, object.LocalReference]
 	marshaledRequestedKey    []byte
 	outcomesReference        *model_core.Decodable[object.LocalReference]
 }

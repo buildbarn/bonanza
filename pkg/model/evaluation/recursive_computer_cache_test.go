@@ -15,6 +15,7 @@ import (
 	model_encoding "bonanza.build/pkg/model/encoding"
 	model_evaluation "bonanza.build/pkg/model/evaluation"
 	model_parser "bonanza.build/pkg/model/parser"
+	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
 	"bonanza.build/pkg/storage/object"
@@ -27,7 +28,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -165,11 +165,11 @@ func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Mes
 	), nil
 }
 
-func (*cacheTestComputer) ComputeObject(keyTypeURL string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
+func (*cacheTestComputer) ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
 	panic("values do not have objects")
 }
 
-func (*cacheTestComputer) IsLookup(typeURL string) bool {
+func (*cacheTestComputer) IsLookup(typeName string) bool {
 	return false
 }
 
@@ -230,7 +230,7 @@ func newCacheTestHarness(t *testing.T) *cacheTestHarness {
 	}
 }
 
-func cacheTestKey(n uint32) model_core.TopLevelMessage[*anypb.Any, object.LocalReference] {
+func cacheTestKey(n uint32) model_core.TopLevelMessage[*model_core_pb.TopLevelAny, object.LocalReference] {
 	return util.Must(
 		model_core.MarshalTopLevelAny(
 			model_core.NewSimpleTopLevelMessage[object.LocalReference, proto.Message](

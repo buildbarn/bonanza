@@ -3,7 +3,6 @@ edition = "2024";
 package bonanza.model.core;
 
 import "bonanza.build/pkg/proto/model/format/format.proto";
-import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/go_features.proto";
 
@@ -100,15 +99,30 @@ message ReferenceSet {
   repeated fixed32 indices = 1;
 }
 
-// Any is a wrapper around google.protobuf.Any that is capable of
-// holding messages containing outgoing references.
-message Any {
-  // The message to store.
-  google.protobuf.Any value = 1;
+// TopLevelAny is similar to google.protobuf.Any, except that the type
+// of the payload is described using a bonanza.model.format.Format.
+// It can be used to store payloads of arbitrary types in an object of
+// their own, having access to all outgoing references of the object.
+message TopLevelAny {
+  // The format of the payload. This field must be set.
+  bonanza.model.format.Format format = 1;
 
-  // Table of outgoing references contained in the inner message,
-  // mapping each index to the corresponding outgoing reference of the
-  // outer message.
+  // The marshaled payload.
+  bytes value = 2;
+}
+
+// Any is a wrapper around TopLevelAny that is capable of holding
+// payloads containing outgoing references, while being embedded in
+// another message.
+message Any {
+  // The payload to store. This field must be set.
+  TopLevelAny value = 1;
+
+  // Table of outgoing references contained in the payload, mapping
+  // each index to the corresponding outgoing reference of the outer
+  // message. This field must be set, even if the payload does not
+  // contain any references, so that each message has exactly one
+  // encoding.
   ReferenceSet references = 2;
 }
 

@@ -8,6 +8,7 @@ import (
 	"bonanza.build/pkg/encoding/varint"
 	model_format "bonanza.build/pkg/model/format"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
@@ -15,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // TopLevelMessage is identical to Message, except that it may only
@@ -153,29 +153,39 @@ func TopLevelMessagesEqual[
 	return proto.Equal(m1.Message, m2.Message)
 }
 
-// MarshalTopLevelAny wraps a message in an anypb.Any.
+// MarshalTopLevelAny wraps a message in a model_core_pb.TopLevelAny.
 //
 // This function assumes that the provided message is a top-level
-// message. Only top-level messages are permitted to be wrapped in an
-// anypb.Any, as it's impossible to create a model_core_pb.Any for
-// messages having outgoing references with sparse indices.
-func MarshalTopLevelAny[TMessage proto.Message, TReference any](m TopLevelMessage[TMessage, TReference]) (TopLevelMessage[*anypb.Any, TReference], error) {
-	var value anypb.Any
-	if err := anypb.MarshalFrom(&value, m.Message, marshalOptions); err != nil {
-		return TopLevelMessage[*anypb.Any, TReference]{}, err
+// message. Only top-level messages are permitted to be wrapped in a
+// model_core_pb.TopLevelAny, as it's impossible to create a
+// model_core_pb.Any for messages having outgoing references with
+// sparse indices.
+func MarshalTopLevelAny[TMessage proto.Message, TReference any](m TopLevelMessage[TMessage, TReference]) (TopLevelMessage[*model_core_pb.TopLevelAny, TReference], error) {
+	value, err := marshalOptions.Marshal(m.Message)
+	if err != nil {
+		return TopLevelMessage[*model_core_pb.TopLevelAny, TReference]{}, err
 	}
-	return NewTopLevelMessage(&value, m.OutgoingReferences), nil
+	return NewTopLevelMessage(
+		model_core_pb.TopLevelAny_builder{
+			Format: model_format_pb.Format_builder{
+				ProtoTypeName: proto.String(string(m.Message.ProtoReflect().Descriptor().FullName())),
+			}.Build(),
+			Value: value,
+		}.Build(),
+		m.OutgoingReferences,
+	), nil
 }
 
-// UnmarshalTopLevelAnyNew extracts the message contained in an
-// anypb.Any, and ensures that any references contained within are
-// accessible.
-//
-// This function assumes that the anypb.Any is a top-level message,
-// meaning that the inner message has access to the same set of
-// references as the outer message.
-func UnmarshalTopLevelAnyNew[TReference any](m TopLevelMessage[*anypb.Any, TReference]) (TopLevelMessage[proto.Message, TReference], error) {
-	message, err := m.Message.UnmarshalNew()
+// UnmarshalTopLevelAnyNew extracts the message contained in a
+// model_core_pb.TopLevelAny, and ensures that any references contained
+// within are accessible. The payload must consist of a single Protobuf
+// message, whose type is registered.
+func UnmarshalTopLevelAnyNew[TReference any](m TopLevelMessage[*model_core_pb.TopLevelAny, TReference]) (TopLevelMessage[proto.Message, TReference], error) {
+	unmarshaler, err := model_format.NewDynamicProtoFromProto(m.Message.GetFormat())
+	if err != nil {
+		return TopLevelMessage[proto.Message, TReference]{}, err
+	}
+	message, err := unmarshaler.Unmarshal(m.Message.GetValue())
 	if err != nil {
 		return TopLevelMessage[proto.Message, TReference]{}, err
 	}
@@ -205,11 +215,11 @@ func getIdentityReferenceSetIndices(degree int) []uint32 {
 	return indices[:degree]
 }
 
-// WrapTopLevelAny performs te inverse of FlattenAny. Namely, it wraps
-// an anypb.Any into a model_core_pb.Any. This allows one or more
-// anypb.Any messages to be stored in a single object, together with
-// other data and references.
-func WrapTopLevelAny[TReference any](m TopLevelMessage[*anypb.Any, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
+// WrapTopLevelAny performs the inverse of FlattenAny. Namely, it wraps
+// a model_core_pb.TopLevelAny into a model_core_pb.Any. This allows
+// one or more model_core_pb.TopLevelAny messages to be stored in a
+// single object, together with other data and references.
+func WrapTopLevelAny[TReference any](m TopLevelMessage[*model_core_pb.TopLevelAny, TReference]) TopLevelMessage[*model_core_pb.Any, TReference] {
 	return NewTopLevelMessage(
 		model_core_pb.Any_builder{
 			Value: m.Message,

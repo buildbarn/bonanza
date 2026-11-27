@@ -18,7 +18,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -157,18 +156,12 @@ func (r *Renderer) renderField(fieldDescriptor protoreflect.FieldDescriptor, val
 }
 
 // TopLevelMessage renders a message that is stored in an object of
-// its own. If the message is an Any, its payload is rendered with an
-// added "@type" field, similar to how protojson renders an anypb.Any.
+// its own. If the message is a model_core_pb.TopLevelAny, its payload
+// is rendered with an added "@type" field, similar to how protojson
+// renders an anypb.Any.
 func (r *Renderer) TopLevelMessage(m model_core.TopLevelMessage[protoreflect.Message, object.LocalReference]) Doc {
-	if message, ok := m.Message.Interface().(*anypb.Any); ok {
-		anyValue, err := model_core.UnmarshalTopLevelAnyNew(model_core.NewTopLevelMessage(message, m.OutgoingReferences))
-		if err != nil {
-			return errorf("%s", err)
-		}
-		return r.renderMessageCommon(
-			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string]Doc{"@type": jsonValue(message.TypeUrl)},
-		)
+	if message, ok := m.Message.Interface().(*model_core_pb.TopLevelAny); ok {
+		return r.renderTopLevelAny(model_core.NewTopLevelMessage(message, m.OutgoingReferences))
 	}
 	return r.Message(m.Decay())
 }
@@ -180,18 +173,28 @@ func (r *Renderer) TopLevelMessage(m model_core.TopLevelMessage[protoreflect.Mes
 func (r *Renderer) Message(m model_core.Message[protoreflect.Message, object.LocalReference]) Doc {
 	switch message := m.Message.Interface().(type) {
 	case *model_core_pb.Any:
-		anyValue, err := model_core.UnmarshalAnyNew(model_core.Nested(m, message))
+		flattened, err := model_core.FlattenAny(model_core.Nested(m, message))
 		if err != nil {
 			return errorf("%s", err)
 		}
-		return r.renderMessageCommon(
-			model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
-			map[string]Doc{"@type": jsonValue(message.GetValue().GetTypeUrl())},
-		)
+		return r.renderTopLevelAny(flattened)
 	case *model_core_pb.Opaque:
 		return r.renderOpaque(model_core.Nested(m, message))
 	}
 	return r.renderMessageCommon(m, map[string]Doc{})
+}
+
+// renderTopLevelAny renders the payload of a model_core_pb.TopLevelAny
+// with an added "@type" field.
+func (r *Renderer) renderTopLevelAny(m model_core.TopLevelMessage[*model_core_pb.TopLevelAny, object.LocalReference]) Doc {
+	anyValue, err := model_core.UnmarshalTopLevelAnyNew(m)
+	if err != nil {
+		return errorf("%s", err)
+	}
+	return r.renderMessageCommon(
+		model_core.Nested(anyValue.Decay(), anyValue.Message.ProtoReflect()),
+		map[string]Doc{"@type": jsonValue(m.Message.GetFormat().GetProtoTypeName())},
+	)
 }
 
 var rawFormat = model_format.Raw{}.ToProto()
