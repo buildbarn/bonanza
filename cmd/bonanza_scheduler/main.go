@@ -93,11 +93,11 @@ func main() {
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create tag signature public key")
 			}
-			previousExecutionStatsCommonKeyData, _ := model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](&model_tag_pb.CommonKeyData{
+			previousExecutionStatsCommonKeyData, _ := model_core.NewSimplePatchedMessage[model_core.NoopReferenceMetadata](model_tag_pb.CommonKeyData_builder{
 				SignaturePublicKey: tagSignaturePublicKey,
 				ReferenceFormat:    referenceFormat.ToProto(),
 				ObjectEncoders:     storeConfiguration.GetObjectEncoders(),
-			}).SortAndSetReferences()
+			}.Build()).SortAndSetReferences()
 			previousExecutionStatsCommonKeyDataReference, err = model_core.ComputeTopLevelMessageReference(previousExecutionStatsCommonKeyData, referenceFormat)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create common key data for PreviousExecutionStats")

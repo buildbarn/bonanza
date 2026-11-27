@@ -285,11 +285,11 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
 				return &model_evaluation_cache_pb.ActionTagKeyData{
-					CommonTagKeyData: &model_tag_pb.CommonKeyData{
+					CommonTagKeyData: model_tag_pb.CommonKeyData_builder{
 						SignaturePublicKey: cacheTagSignaturePKIXPublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
 						ObjectEncoders:     action.Encoders,
-					},
+					}.Build(),
 					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHasher.Sum(nil),
 					ChunkingParameters:             actionMessage.Message.GetChunkingParameters(),
 				}

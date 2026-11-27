@@ -12,7 +12,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -24,12 +23,12 @@ const (
 )
 
 type CommonKeyData struct {
-	state              protoimpl.MessageState       `protogen:"open.v1"`
-	SignaturePublicKey []byte                       `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey,proto3" json:"signature_public_key,omitempty"`
-	ReferenceFormat    object.ReferenceFormat_Value `protobuf:"varint,2,opt,name=reference_format,json=referenceFormat,proto3,enum=bonanza.storage.object.ReferenceFormat_Value" json:"reference_format,omitempty"`
-	ObjectEncoders     []*encoding.BinaryEncoder    `protobuf:"bytes,3,rep,name=object_encoders,json=objectEncoders,proto3" json:"object_encoders,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_SignaturePublicKey []byte                       `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey"`
+	xxx_hidden_ReferenceFormat    object.ReferenceFormat_Value `protobuf:"varint,2,opt,name=reference_format,json=referenceFormat,enum=bonanza.storage.object.ReferenceFormat_Value"`
+	xxx_hidden_ObjectEncoders     *[]*encoding.BinaryEncoder   `protobuf:"bytes,3,rep,name=object_encoders,json=objectEncoders"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *CommonKeyData) Reset() {
@@ -57,30 +56,60 @@ func (x *CommonKeyData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CommonKeyData.ProtoReflect.Descriptor instead.
-func (*CommonKeyData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *CommonKeyData) GetSignaturePublicKey() []byte {
 	if x != nil {
-		return x.SignaturePublicKey
+		return x.xxx_hidden_SignaturePublicKey
 	}
 	return nil
 }
 
 func (x *CommonKeyData) GetReferenceFormat() object.ReferenceFormat_Value {
 	if x != nil {
-		return x.ReferenceFormat
+		return x.xxx_hidden_ReferenceFormat
 	}
 	return object.ReferenceFormat_Value(0)
 }
 
 func (x *CommonKeyData) GetObjectEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.ObjectEncoders
+		if x.xxx_hidden_ObjectEncoders != nil {
+			return *x.xxx_hidden_ObjectEncoders
+		}
 	}
 	return nil
+}
+
+func (x *CommonKeyData) SetSignaturePublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_SignaturePublicKey = v
+}
+
+func (x *CommonKeyData) SetReferenceFormat(v object.ReferenceFormat_Value) {
+	x.xxx_hidden_ReferenceFormat = v
+}
+
+func (x *CommonKeyData) SetObjectEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_ObjectEncoders = &v
+}
+
+type CommonKeyData_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SignaturePublicKey []byte
+	ReferenceFormat    object.ReferenceFormat_Value
+	ObjectEncoders     []*encoding.BinaryEncoder
+}
+
+func (b0 CommonKeyData_builder) Build() *CommonKeyData {
+	m0 := &CommonKeyData{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SignaturePublicKey = b.SignaturePublicKey
+	x.xxx_hidden_ReferenceFormat = b.ReferenceFormat
+	x.xxx_hidden_ObjectEncoders = &b.ObjectEncoders
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_tag_tag_proto protoreflect.FileDescriptor
@@ -91,19 +120,7 @@ const file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDesc = "" +
 	"\rCommonKeyData\x120\n" +
 	"\x14signature_public_key\x18\x01 \x01(\fR\x12signaturePublicKey\x12X\n" +
 	"\x10reference_format\x18\x02 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\x12N\n" +
-	"\x0fobject_encoders\x18\x03 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB#Z!bonanza.build/pkg/proto/model/tagb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_tag_tag_proto_rawDescData
-}
+	"\x0fobject_encoders\x18\x03 \x03(\v2%.bonanza.model.encoding.BinaryEncoderR\x0eobjectEncodersB(Z!bonanza.build/pkg/proto/model/tag\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_model_tag_tag_proto_goTypes = []any{
