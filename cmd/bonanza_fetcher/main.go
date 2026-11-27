@@ -49,12 +49,12 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.StorageGrpcClient, dependenciesGroup)
+		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetStorageGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
@@ -63,10 +63,10 @@ func main() {
 				object_pb.NewDownloaderClient(storageGRPCClient),
 			),
 		)
-		if configuration.LocalObjectStore != nil {
+		if localObjectStoreConfiguration := configuration.GetLocalObjectStore(); localObjectStoreConfiguration != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
-				configuration.LocalObjectStore,
+				localObjectStoreConfiguration,
 				/* leaseTracking = */ nil,
 			)
 			if err != nil {
@@ -78,7 +78,7 @@ func main() {
 			)
 		}
 
-		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
+		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.GetParsedObjectPool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
@@ -90,21 +90,21 @@ func main() {
 			object.Unlimited,
 		)
 
-		filePool, err := pool.NewFilePoolFromConfiguration(configuration.FilePool)
+		filePool, err := pool.NewFilePoolFromConfiguration(configuration.GetFilePool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create file pool")
 		}
 
-		remoteWorkerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.RemoteWorkerGrpcClient, dependenciesGroup)
+		remoteWorkerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetRemoteWorkerGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create remote worker RPC client")
 		}
 		remoteWorkerClient := remoteworker_pb.NewOperationQueueClient(remoteWorkerConnection)
-		platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(configuration.PlatformPrivateKeys)
+		platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(configuration.GetPlatformPrivateKeys())
 		if err != nil {
 			return err
 		}
-		clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(configuration.ClientCertificateVerifier, dependenciesGroup)
+		clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(configuration.GetClientCertificateVerifier(), dependenciesGroup)
 		if err != nil {
 			return err
 		}
@@ -112,8 +112,8 @@ func main() {
 		// Create fetchers for individual protocol schemes
 		// supported by this implementation.
 		fetchersByScheme := map[string]model_fetch.Fetcher{}
-		if configuration.HttpClient != nil {
-			roundTripper, err := http_client.NewRoundTripperFromConfiguration(configuration.HttpClient)
+		if httpClient := configuration.GetHttpClient(); httpClient != nil {
+			roundTripper, err := http_client.NewRoundTripperFromConfiguration(httpClient)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to create HTTP client")
 			}
@@ -122,13 +122,13 @@ func main() {
 			fetchersByScheme["https"] = httpFetcher
 		}
 
-		concurrencyLength := len(strconv.FormatUint(configuration.Concurrency-1, 10))
-		for threadID := uint64(0); threadID < configuration.Concurrency; threadID++ {
+		concurrencyLength := len(strconv.FormatUint(configuration.GetConcurrency()-1, 10))
+		for threadID := uint64(0); threadID < configuration.GetConcurrency(); threadID++ {
 			workerID := map[string]string{}
-			if configuration.Concurrency > 1 {
+			if configuration.GetConcurrency() > 1 {
 				workerID["thread"] = fmt.Sprintf("%0*d", concurrencyLength, threadID)
 			}
-			maps.Copy(workerID, configuration.WorkerId)
+			maps.Copy(workerID, configuration.GetWorkerId())
 			workerName, err := json.Marshal(workerID)
 			if err != nil {
 				return util.StatusWrap(err, "Failed to marshal worker ID")
@@ -144,7 +144,7 @@ func main() {
 							dagUploader,
 							model_fetch.NewSchemeDemultiplexingFetcher(fetchersByScheme),
 							filePool,
-							model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders),
+							model_encoding.NewBinaryEncoderFactory(configuration.GetPermitUnencryptedBinaryEncoders()),
 							clock.SystemClock,
 						),
 					),

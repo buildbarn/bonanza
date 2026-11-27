@@ -17,7 +17,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -29,21 +28,21 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                           protoimpl.MessageState                       `protogen:"open.v1"`
-	Global                          *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient               *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	HttpClient                      *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient,proto3" json:"http_client,omitempty"`
-	FilePool                        *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	RemoteWorkerGrpcClient          *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
-	PlatformPrivateKeys             []string                                     `protobuf:"bytes,7,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
-	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,8,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
-	WorkerId                        map[string]string                            `protobuf:"bytes,9,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Concurrency                     uint64                                       `protobuf:"varint,10,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
-	LocalObjectStore                *local.StoreConfiguration                    `protobuf:"bytes,12,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,11,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	PermitUnencryptedBinaryEncoders bool                                         `protobuf:"varint,13,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders,proto3" json:"permit_unencrypted_binary_encoders,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	state                                      protoimpl.MessageState                       `protogen:"opaque.v1"`
+	xxx_hidden_Global                          *global.Configuration                        `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_StorageGrpcClient               *grpc.ClientConfiguration                    `protobuf:"bytes,2,opt,name=storage_grpc_client,json=storageGrpcClient"`
+	xxx_hidden_HttpClient                      *client.Configuration                        `protobuf:"bytes,3,opt,name=http_client,json=httpClient"`
+	xxx_hidden_FilePool                        *filesystem.FilePoolConfiguration            `protobuf:"bytes,4,opt,name=file_pool,json=filePool"`
+	xxx_hidden_RemoteWorkerGrpcClient          *grpc.ClientConfiguration                    `protobuf:"bytes,6,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient"`
+	xxx_hidden_PlatformPrivateKeys             []string                                     `protobuf:"bytes,7,rep,name=platform_private_keys,json=platformPrivateKeys"`
+	xxx_hidden_ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,8,opt,name=client_certificate_verifier,json=clientCertificateVerifier"`
+	xxx_hidden_WorkerId                        map[string]string                            `protobuf:"bytes,9,rep,name=worker_id,json=workerId" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Concurrency                     uint64                                       `protobuf:"varint,10,opt,name=concurrency"`
+	xxx_hidden_LocalObjectStore                *local.StoreConfiguration                    `protobuf:"bytes,12,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_ParsedObjectPool                *parser.ParsedObjectPool                     `protobuf:"bytes,11,opt,name=parsed_object_pool,json=parsedObjectPool"`
+	xxx_hidden_PermitUnencryptedBinaryEncoders bool                                         `protobuf:"varint,13,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders"`
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -71,93 +70,260 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.StorageGrpcClient
+		return x.xxx_hidden_StorageGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetHttpClient() *client.Configuration {
 	if x != nil {
-		return x.HttpClient
+		return x.xxx_hidden_HttpClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetFilePool() *filesystem.FilePoolConfiguration {
 	if x != nil {
-		return x.FilePool
+		return x.xxx_hidden_FilePool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetRemoteWorkerGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.RemoteWorkerGrpcClient
+		return x.xxx_hidden_RemoteWorkerGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPlatformPrivateKeys() []string {
 	if x != nil {
-		return x.PlatformPrivateKeys
+		return x.xxx_hidden_PlatformPrivateKeys
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetClientCertificateVerifier() *x509.ClientCertificateVerifierConfiguration {
 	if x != nil {
-		return x.ClientCertificateVerifier
+		return x.xxx_hidden_ClientCertificateVerifier
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetWorkerId() map[string]string {
 	if x != nil {
-		return x.WorkerId
+		return x.xxx_hidden_WorkerId
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetConcurrency() uint64 {
 	if x != nil {
-		return x.Concurrency
+		return x.xxx_hidden_Concurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
-		return x.ParsedObjectPool
+		return x.xxx_hidden_ParsedObjectPool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPermitUnencryptedBinaryEncoders() bool {
 	if x != nil {
-		return x.PermitUnencryptedBinaryEncoders
+		return x.xxx_hidden_PermitUnencryptedBinaryEncoders
 	}
 	return false
+}
+
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetStorageGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_StorageGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetHttpClient(v *client.Configuration) {
+	x.xxx_hidden_HttpClient = v
+}
+
+func (x *ApplicationConfiguration) SetFilePool(v *filesystem.FilePoolConfiguration) {
+	x.xxx_hidden_FilePool = v
+}
+
+func (x *ApplicationConfiguration) SetRemoteWorkerGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_RemoteWorkerGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetPlatformPrivateKeys(v []string) {
+	x.xxx_hidden_PlatformPrivateKeys = v
+}
+
+func (x *ApplicationConfiguration) SetClientCertificateVerifier(v *x509.ClientCertificateVerifierConfiguration) {
+	x.xxx_hidden_ClientCertificateVerifier = v
+}
+
+func (x *ApplicationConfiguration) SetWorkerId(v map[string]string) {
+	x.xxx_hidden_WorkerId = v
+}
+
+func (x *ApplicationConfiguration) SetConcurrency(v uint64) {
+	x.xxx_hidden_Concurrency = v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetParsedObjectPool(v *parser.ParsedObjectPool) {
+	x.xxx_hidden_ParsedObjectPool = v
+}
+
+func (x *ApplicationConfiguration) SetPermitUnencryptedBinaryEncoders(v bool) {
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasStorageGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StorageGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasHttpClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_HttpClient != nil
+}
+
+func (x *ApplicationConfiguration) HasFilePool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FilePool != nil
+}
+
+func (x *ApplicationConfiguration) HasRemoteWorkerGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RemoteWorkerGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasClientCertificateVerifier() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ClientCertificateVerifier != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasParsedObjectPool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ParsedObjectPool != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearStorageGrpcClient() {
+	x.xxx_hidden_StorageGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearHttpClient() {
+	x.xxx_hidden_HttpClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearFilePool() {
+	x.xxx_hidden_FilePool = nil
+}
+
+func (x *ApplicationConfiguration) ClearRemoteWorkerGrpcClient() {
+	x.xxx_hidden_RemoteWorkerGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearClientCertificateVerifier() {
+	x.xxx_hidden_ClientCertificateVerifier = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearParsedObjectPool() {
+	x.xxx_hidden_ParsedObjectPool = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                          *global.Configuration
+	StorageGrpcClient               *grpc.ClientConfiguration
+	HttpClient                      *client.Configuration
+	FilePool                        *filesystem.FilePoolConfiguration
+	RemoteWorkerGrpcClient          *grpc.ClientConfiguration
+	PlatformPrivateKeys             []string
+	ClientCertificateVerifier       *x509.ClientCertificateVerifierConfiguration
+	WorkerId                        map[string]string
+	Concurrency                     uint64
+	LocalObjectStore                *local.StoreConfiguration
+	ParsedObjectPool                *parser.ParsedObjectPool
+	PermitUnencryptedBinaryEncoders bool
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_StorageGrpcClient = b.StorageGrpcClient
+	x.xxx_hidden_HttpClient = b.HttpClient
+	x.xxx_hidden_FilePool = b.FilePool
+	x.xxx_hidden_RemoteWorkerGrpcClient = b.RemoteWorkerGrpcClient
+	x.xxx_hidden_PlatformPrivateKeys = b.PlatformPrivateKeys
+	x.xxx_hidden_ClientCertificateVerifier = b.ClientCertificateVerifier
+	x.xxx_hidden_WorkerId = b.WorkerId
+	x.xxx_hidden_Concurrency = b.Concurrency
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_ParsedObjectPool = b.ParsedObjectPool
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = b.PermitUnencryptedBinaryEncoders
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto protoreflect.FileDescriptor
@@ -182,19 +348,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher
 	"\"permit_unencrypted_binary_encoders\x18\r \x01(\bR\x1fpermitUnencryptedBinaryEncoders\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_fetcherb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_rawDescData
-}
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B<Z5bonanza.build/pkg/proto/configuration/bonanza_fetcher\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_bonanza_build_pkg_proto_configuration_bonanza_fetcher_bonanza_fetcher_proto_goTypes = []any{
