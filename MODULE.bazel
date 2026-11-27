@@ -86,6 +86,7 @@ use_repo(
     "io_filippo_edwards25519",
     "org_golang_google_genproto_googleapis_rpc",
     "org_golang_google_grpc",
+    "org_golang_google_grpc_cmd_protoc_gen_go_grpc",
     "org_golang_google_grpc_security_advancedtls",
     "org_golang_google_protobuf",
     "org_golang_x_exp",
