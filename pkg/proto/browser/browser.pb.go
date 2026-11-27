@@ -12,7 +12,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -24,11 +23,11 @@ const (
 )
 
 type RecentlyObservedEncoder struct {
-	state           protoimpl.MessageState                   `protogen:"open.v1"`
-	Configuration   []*encoding.BinaryEncoder                `protobuf:"bytes,1,rep,name=configuration,proto3" json:"configuration,omitempty"`
-	LastObservation *RecentlyObservedEncoder_LastObservation `protobuf:"bytes,2,opt,name=last_observation,json=lastObservation,proto3" json:"last_observation,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState                   `protogen:"opaque.v1"`
+	xxx_hidden_Configuration   *[]*encoding.BinaryEncoder               `protobuf:"bytes,1,rep,name=configuration"`
+	xxx_hidden_LastObservation *RecentlyObservedEncoder_LastObservation `protobuf:"bytes,2,opt,name=last_observation,json=lastObservation"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *RecentlyObservedEncoder) Reset() {
@@ -56,31 +55,63 @@ func (x *RecentlyObservedEncoder) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RecentlyObservedEncoder.ProtoReflect.Descriptor instead.
-func (*RecentlyObservedEncoder) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *RecentlyObservedEncoder) GetConfiguration() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.Configuration
+		if x.xxx_hidden_Configuration != nil {
+			return *x.xxx_hidden_Configuration
+		}
 	}
 	return nil
 }
 
 func (x *RecentlyObservedEncoder) GetLastObservation() *RecentlyObservedEncoder_LastObservation {
 	if x != nil {
-		return x.LastObservation
+		return x.xxx_hidden_LastObservation
 	}
 	return nil
 }
 
+func (x *RecentlyObservedEncoder) SetConfiguration(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_Configuration = &v
+}
+
+func (x *RecentlyObservedEncoder) SetLastObservation(v *RecentlyObservedEncoder_LastObservation) {
+	x.xxx_hidden_LastObservation = v
+}
+
+func (x *RecentlyObservedEncoder) HasLastObservation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LastObservation != nil
+}
+
+func (x *RecentlyObservedEncoder) ClearLastObservation() {
+	x.xxx_hidden_LastObservation = nil
+}
+
+type RecentlyObservedEncoder_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Configuration   []*encoding.BinaryEncoder
+	LastObservation *RecentlyObservedEncoder_LastObservation
+}
+
+func (b0 RecentlyObservedEncoder_builder) Build() *RecentlyObservedEncoder {
+	m0 := &RecentlyObservedEncoder{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Configuration = &b.Configuration
+	x.xxx_hidden_LastObservation = b.LastObservation
+	return m0
+}
+
 type Cookie struct {
-	state                    protoimpl.MessageState     `protogen:"open.v1"`
-	RecentlyObservedEncoders []*RecentlyObservedEncoder `protobuf:"bytes,1,rep,name=recently_observed_encoders,json=recentlyObservedEncoders,proto3" json:"recently_observed_encoders,omitempty"`
-	EcdhPrivateKeys          [][]byte                   `protobuf:"bytes,2,rep,name=ecdh_private_keys,json=ecdhPrivateKeys,proto3" json:"ecdh_private_keys,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_RecentlyObservedEncoders *[]*RecentlyObservedEncoder `protobuf:"bytes,1,rep,name=recently_observed_encoders,json=recentlyObservedEncoders"`
+	xxx_hidden_EcdhPrivateKeys          [][]byte                    `protobuf:"bytes,2,rep,name=ecdh_private_keys,json=ecdhPrivateKeys"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *Cookie) Reset() {
@@ -108,30 +139,51 @@ func (x *Cookie) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Cookie.ProtoReflect.Descriptor instead.
-func (*Cookie) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Cookie) GetRecentlyObservedEncoders() []*RecentlyObservedEncoder {
 	if x != nil {
-		return x.RecentlyObservedEncoders
+		if x.xxx_hidden_RecentlyObservedEncoders != nil {
+			return *x.xxx_hidden_RecentlyObservedEncoders
+		}
 	}
 	return nil
 }
 
 func (x *Cookie) GetEcdhPrivateKeys() [][]byte {
 	if x != nil {
-		return x.EcdhPrivateKeys
+		return x.xxx_hidden_EcdhPrivateKeys
 	}
 	return nil
 }
 
+func (x *Cookie) SetRecentlyObservedEncoders(v []*RecentlyObservedEncoder) {
+	x.xxx_hidden_RecentlyObservedEncoders = &v
+}
+
+func (x *Cookie) SetEcdhPrivateKeys(v [][]byte) {
+	x.xxx_hidden_EcdhPrivateKeys = v
+}
+
+type Cookie_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RecentlyObservedEncoders []*RecentlyObservedEncoder
+	EcdhPrivateKeys          [][]byte
+}
+
+func (b0 Cookie_builder) Build() *Cookie {
+	m0 := &Cookie{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RecentlyObservedEncoders = &b.RecentlyObservedEncoders
+	x.xxx_hidden_EcdhPrivateKeys = b.EcdhPrivateKeys
+	return m0
+}
+
 type LinkedEncoders struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Encoders      []*RecentlyObservedEncoder `protobuf:"bytes,1,rep,name=encoders,proto3" json:"encoders,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_Encoders *[]*RecentlyObservedEncoder `protobuf:"bytes,1,rep,name=encoders"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *LinkedEncoders) Reset() {
@@ -159,25 +211,40 @@ func (x *LinkedEncoders) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LinkedEncoders.ProtoReflect.Descriptor instead.
-func (*LinkedEncoders) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *LinkedEncoders) GetEncoders() []*RecentlyObservedEncoder {
 	if x != nil {
-		return x.Encoders
+		if x.xxx_hidden_Encoders != nil {
+			return *x.xxx_hidden_Encoders
+		}
 	}
 	return nil
 }
 
+func (x *LinkedEncoders) SetEncoders(v []*RecentlyObservedEncoder) {
+	x.xxx_hidden_Encoders = &v
+}
+
+type LinkedEncoders_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Encoders []*RecentlyObservedEncoder
+}
+
+func (b0 LinkedEncoders_builder) Build() *LinkedEncoders {
+	m0 := &LinkedEncoders{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Encoders = &b.Encoders
+	return m0
+}
+
 type RecentlyObservedEncoder_LastObservation struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Time          *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
-	MessageType   string                 `protobuf:"bytes,2,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
-	FieldName     string                 `protobuf:"bytes,3,opt,name=field_name,json=fieldName,proto3" json:"field_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Time        *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time"`
+	xxx_hidden_MessageType string                 `protobuf:"bytes,2,opt,name=message_type,json=messageType"`
+	xxx_hidden_FieldName   string                 `protobuf:"bytes,3,opt,name=field_name,json=fieldName"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RecentlyObservedEncoder_LastObservation) Reset() {
@@ -205,30 +272,66 @@ func (x *RecentlyObservedEncoder_LastObservation) ProtoReflect() protoreflect.Me
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RecentlyObservedEncoder_LastObservation.ProtoReflect.Descriptor instead.
-func (*RecentlyObservedEncoder_LastObservation) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP(), []int{0, 0}
-}
-
 func (x *RecentlyObservedEncoder_LastObservation) GetTime() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Time
+		return x.xxx_hidden_Time
 	}
 	return nil
 }
 
 func (x *RecentlyObservedEncoder_LastObservation) GetMessageType() string {
 	if x != nil {
-		return x.MessageType
+		return x.xxx_hidden_MessageType
 	}
 	return ""
 }
 
 func (x *RecentlyObservedEncoder_LastObservation) GetFieldName() string {
 	if x != nil {
-		return x.FieldName
+		return x.xxx_hidden_FieldName
 	}
 	return ""
+}
+
+func (x *RecentlyObservedEncoder_LastObservation) SetTime(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Time = v
+}
+
+func (x *RecentlyObservedEncoder_LastObservation) SetMessageType(v string) {
+	x.xxx_hidden_MessageType = v
+}
+
+func (x *RecentlyObservedEncoder_LastObservation) SetFieldName(v string) {
+	x.xxx_hidden_FieldName = v
+}
+
+func (x *RecentlyObservedEncoder_LastObservation) HasTime() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Time != nil
+}
+
+func (x *RecentlyObservedEncoder_LastObservation) ClearTime() {
+	x.xxx_hidden_Time = nil
+}
+
+type RecentlyObservedEncoder_LastObservation_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Time        *timestamppb.Timestamp
+	MessageType string
+	FieldName   string
+}
+
+func (b0 RecentlyObservedEncoder_LastObservation_builder) Build() *RecentlyObservedEncoder_LastObservation {
+	m0 := &RecentlyObservedEncoder_LastObservation{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Time = b.Time
+	x.xxx_hidden_MessageType = b.MessageType
+	x.xxx_hidden_FieldName = b.FieldName
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_browser_browser_proto protoreflect.FileDescriptor
@@ -248,19 +351,7 @@ const file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc = "" +
 	"\x1arecently_observed_encoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\x18recentlyObservedEncoders\x12/\n" +
 	"\x11ecdh_private_keys\x18\x02 \x03(\fB\x03\x80\x01\x01R\x0fecdhPrivateKeys\"V\n" +
 	"\x0eLinkedEncoders\x12D\n" +
-	"\bencoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\bencodersB!Z\x1fbonanza.build/pkg/proto/browserb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_browser_browser_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_browser_browser_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc), len(file_bonanza_build_pkg_proto_browser_browser_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_browser_browser_proto_rawDescData
-}
+	"\bencoders\x18\x01 \x03(\v2(.bonanza.browser.RecentlyObservedEncoderR\bencodersB&Z\x1fbonanza.build/pkg/proto/browser\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_browser_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_bonanza_build_pkg_proto_browser_browser_proto_goTypes = []any{

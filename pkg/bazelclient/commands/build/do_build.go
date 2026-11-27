@@ -956,7 +956,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	// the Bonanza Browser, so that it can display any of the objects
 	// created by the build.
 	browser, err := newBrowserLinker(
-		commonFlags.BrowserUrl, &browser_pb.LinkedEncoders{
+		commonFlags.BrowserUrl, browser_pb.LinkedEncoders_builder{
 			Encoders: []*browser_pb.RecentlyObservedEncoder{
 				newLinkedEncoder("DirectoryAccessParameters", "encoders", directoryParametersMessage.GetAccess().GetEncoders()),
 				newLinkedEncoder("FileAccessParameters", "chunk_encoders", fileParametersMessage.GetAccess().GetChunkEncoders()),
@@ -966,7 +966,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 				newLinkedEncoder("BuildSpecification", "analysis_encoders", buildSpecification.GetAnalysisEncoders()),
 				newLinkedEncoder("BuildSpecification", "starlark_value_encoders", buildSpecification.GetStarlarkValueEncoders()),
 			},
-		},
+		}.Build(),
 	)
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create links to the Bonanza Browser: %s", err))

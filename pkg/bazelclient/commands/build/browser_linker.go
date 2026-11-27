@@ -52,11 +52,11 @@ func (bl *browserLinker) getURL(pathComponents ...string) (string, bool) {
 // containing the encoders used to create objects stored in a given
 // field of a message.
 func newLinkedEncoder(messageType, fieldName string, configuration []*model_encoding_pb.BinaryEncoder) *browser_pb.RecentlyObservedEncoder {
-	return &browser_pb.RecentlyObservedEncoder{
+	return browser_pb.RecentlyObservedEncoder_builder{
 		Configuration: configuration,
-		LastObservation: &browser_pb.RecentlyObservedEncoder_LastObservation{
+		LastObservation: browser_pb.RecentlyObservedEncoder_LastObservation_builder{
 			MessageType: messageType,
 			FieldName:   fieldName,
-		},
-	}
+		}.Build(),
+	}.Build()
 }

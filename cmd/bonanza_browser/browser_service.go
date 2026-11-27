@@ -42,10 +42,6 @@ import (
 	http_server "github.com/buildbarn/bb-storage/pkg/http/server"
 	"github.com/buildbarn/bb-storage/pkg/util"
 
-	g "maragu.dev/gomponents"
-	c "maragu.dev/gomponents/components"
-	h "maragu.dev/gomponents/html"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -55,6 +51,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	g "maragu.dev/gomponents"
+	c "maragu.dev/gomponents/components"
+	h "maragu.dev/gomponents/html"
 )
 
 //go:embed stylesheet.css
@@ -119,19 +119,19 @@ func importLinkedEncoders(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	now := timestamppb.Now()
-	for i, encoder := range linkedEncoders.Encoders {
-		if err := validateEncoderConfiguration(encoder.Configuration); err != nil {
+	for i, encoder := range linkedEncoders.GetEncoders() {
+		if err := validateEncoderConfiguration(encoder.GetConfiguration()); err != nil {
 			http.Error(w, fmt.Sprintf("invalid linked encoder at index %d: %s", i, err), http.StatusBadRequest)
 			return true
 		}
-		if o := encoder.LastObservation; o != nil {
-			o.Time = now
+		if o := encoder.GetLastObservation(); o != nil {
+			o.SetTime(now)
 		}
 	}
 	cookie := getCookie(r)
-	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
-		append(linkedEncoders.Encoders, cookie.RecentlyObservedEncoders...),
-	)
+	cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
+		append(linkedEncoders.GetEncoders(), cookie.GetRecentlyObservedEncoders()...),
+	))
 	setCookie(w, cookie)
 	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 	return true
@@ -166,14 +166,14 @@ func importEncoderConfiguration(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 	cookie := getCookie(r)
-	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+	cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
 		append(
-			[]*browser_pb.RecentlyObservedEncoder{{
+			[]*browser_pb.RecentlyObservedEncoder{browser_pb.RecentlyObservedEncoder_builder{
 				Configuration: configuration,
-			}},
-			cookie.RecentlyObservedEncoders...,
+			}.Build()},
+			cookie.GetRecentlyObservedEncoders()...,
 		),
-	)
+	))
 	setCookie(w, cookie)
 	http.Redirect(w, r, r.URL.RequestURI(), http.StatusSeeOther)
 	return true
@@ -327,15 +327,15 @@ func trimRecentlyObservedEncoders(in []*browser_pb.RecentlyObservedEncoder) []*b
 	seen := map[string]int{}
 	for _, encoder := range in {
 		if marshaled, err := proto.Marshal(
-			&browser_pb.RecentlyObservedEncoder{
-				Configuration: encoder.Configuration,
-			},
+			browser_pb.RecentlyObservedEncoder_builder{
+				Configuration: encoder.GetConfiguration(),
+			}.Build(),
 		); err == nil {
 			key := string(marshaled)
 			if index, ok := seen[key]; ok {
-				if existing := out[index]; encoder.LastObservation.GetTime().AsTime().
-					After(existing.LastObservation.GetTime().AsTime()) {
-					existing.LastObservation = encoder.LastObservation
+				if existing := out[index]; encoder.GetLastObservation().GetTime().AsTime().
+					After(existing.GetLastObservation().GetTime().AsTime()) {
+					existing.SetLastObservation(encoder.GetLastObservation())
 				}
 			} else {
 				seen[key] = len(out)
@@ -382,9 +382,9 @@ func setCookie(w http.ResponseWriter, cookieMessage *browser_pb.Cookie) {
 // the list, guaranteeing that it is non-empty.
 func getEncodersFromRequest(r *http.Request) *browser_pb.Cookie {
 	cookie := getCookie(r)
-	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
-		append(cookie.RecentlyObservedEncoders, &browser_pb.RecentlyObservedEncoder{}),
-	)
+	cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
+		append(cookie.GetRecentlyObservedEncoders(), &browser_pb.RecentlyObservedEncoder{}),
+	))
 	return cookie
 }
 
@@ -556,7 +556,7 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		applicable, autoDetecting := false, false
 		if binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-			recentlyObservedEncoder.Configuration,
+			recentlyObservedEncoder.GetConfiguration(),
 			uint32(pageReference.Value.GetReferenceFormat().GetMaximumObjectSizeBytes()),
 		); err == nil {
 			applicable = binaryEncoder.GetDecodingParametersSizeBytes() == len(pageReference.GetDecodingParameters())
@@ -567,13 +567,14 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 			shadowed = true
 		}
 
-		l := protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](recentlyObservedEncoder.Configuration)
+		encoders := recentlyObservedEncoder.GetConfiguration()
+		l := protoList[model_encoding_pb.BinaryEncoder, *model_encoding_pb.BinaryEncoder](encoders)
 		compact, err := json.Marshal(l)
 		if err != nil {
 			continue
 		}
-		configuration := make([]protoreflect.Message, 0, len(recentlyObservedEncoder.Configuration))
-		for _, encoder := range recentlyObservedEncoder.Configuration {
+		configuration := make([]protoreflect.Message, 0, len(encoders))
+		for _, encoder := range encoders {
 			configuration = append(configuration, encoder.ProtoReflect())
 		}
 		configurationRenderer := newMessageRenderer("", nil, false)
@@ -586,8 +587,8 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 		}
 		cardBody := []g.Node{h.Class(cardClass)}
 		titleText := "User provided"
-		if o := recentlyObservedEncoder.LastObservation; o != nil {
-			titleText = o.MessageType + "." + o.FieldName
+		if o := recentlyObservedEncoder.GetLastObservation(); o != nil {
+			titleText = o.GetMessageType() + "." + o.GetFieldName()
 		}
 		var titleAction g.Node
 		if isUsed {
@@ -603,13 +604,13 @@ func renderEncoderSelector(pageReference model_core.Decodable[object.GlobalRefer
 				titleAction,
 			),
 		)
-		if o := recentlyObservedEncoder.LastObservation; o != nil {
+		if o := recentlyObservedEncoder.GetLastObservation(); o != nil {
 			cardBody = append(
 				cardBody,
 				h.P(
 					h.Class("text-xs"),
 					g.Text("Last observed: "),
-					g.Text(o.Time.AsTime().Format(time.RFC3339)),
+					g.Text(o.GetTime().AsTime().Format(time.RFC3339)),
 				),
 			)
 		}
@@ -736,7 +737,7 @@ func renderEvaluationPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Evaluations list reference", evaluationsListReference),
 				},
-				renderEncoderSelector(evaluationsListReference, cookie.RecentlyObservedEncoders, encoderUsed)...,
+				renderEncoderSelector(evaluationsListReference, cookie.GetRecentlyObservedEncoders(), encoderUsed)...,
 			)...),
 
 			h.Div(evaluationCard...),
@@ -849,9 +850,9 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	var keysReader model_parser.DecodingObjectReader[object.LocalReference, model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]]
 	var evaluationsList model_core.Message[[]*model_evaluation_pb.Evaluations, object.LocalReference]
 	usedEncoderIndex := -1
-	for i, recentlyObservedEncoder := range cookie.RecentlyObservedEncoders {
+	for i, recentlyObservedEncoder := range cookie.GetRecentlyObservedEncoders() {
 		binaryEncoder, encoderErr := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-			recentlyObservedEncoder.Configuration,
+			recentlyObservedEncoder.GetConfiguration(),
 			uint32(referenceFormat.GetMaximumObjectSizeBytes()),
 		)
 		if encoderErr != nil {
@@ -913,13 +914,14 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 
 	// For future page views, put the encoder that was used to
 	// decode the evaluations list first.
-	cookie.RecentlyObservedEncoders = append(
+	recentlyObservedEncoders := cookie.GetRecentlyObservedEncoders()
+	cookie.SetRecentlyObservedEncoders(append(
 		append(
-			[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[usedEncoderIndex]},
-			cookie.RecentlyObservedEncoders[:usedEncoderIndex]...,
+			[]*browser_pb.RecentlyObservedEncoder{recentlyObservedEncoders[usedEncoderIndex]},
+			recentlyObservedEncoders[:usedEncoderIndex]...,
 		),
-		cookie.RecentlyObservedEncoders[usedEncoderIndex+1:]...,
-	)
+		recentlyObservedEncoders[usedEncoderIndex+1:]...,
+	))
 	encoderUsed = true
 
 	// If the key to display is contained within a graphlet, we must
@@ -930,11 +932,11 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			evaluationsReader,
 			evaluationsList,
 			func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-				switch level := entry.Message.Level.(type) {
+				switch entry.Message.GetLevel().(type) {
 				case *model_evaluation_pb.Evaluations_Leaf_:
-					return bytes.Compare(parentKeyReference.GetRawReference(), level.Leaf.KeyReference), nil
+					return bytes.Compare(parentKeyReference.GetRawReference(), entry.Message.GetLeaf().GetKeyReference()), nil
 				case *model_evaluation_pb.Evaluations_Parent_:
-					return bytes.Compare(parentKeyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
+					return bytes.Compare(parentKeyReference.GetRawReference(), entry.Message.GetParent().GetFirstKeyReference()), entry.Message.GetParent().GetReference()
 				default:
 					return 0, nil
 				}
@@ -969,8 +971,8 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				cookie,
 			), nil
 		}
-		evaluationsLeaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
-		if !ok {
+		evaluationsLeaf := evaluations.Message.GetLeaf()
+		if evaluationsLeaf == nil {
 			errNodes := renderErrorAlert(errors.New("evaluations list entry is not a valid leaf"))
 			return renderEvaluationPage(
 				w,
@@ -984,7 +986,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				cookie,
 			), nil
 		}
-		evaluationsList = model_core.Nested(evaluations, evaluationsLeaf.Leaf.Graphlet.GetDependencyEvaluations())
+		evaluationsList = model_core.Nested(evaluations, evaluationsLeaf.GetGraphlet().GetDependencyEvaluations())
 	}
 
 	evaluations, err := btree.Find(
@@ -992,11 +994,11 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		evaluationsReader,
 		evaluationsList,
 		func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
+			switch entry.Message.GetLevel().(type) {
 			case *model_evaluation_pb.Evaluations_Leaf_:
-				return bytes.Compare(keyReference.GetRawReference(), level.Leaf.KeyReference), nil
+				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetLeaf().GetKeyReference()), nil
 			case *model_evaluation_pb.Evaluations_Parent_:
-				return bytes.Compare(keyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
+				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetParent().GetFirstKeyReference()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -1020,8 +1022,8 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	valueNodes := renderWarningAlert("Evaluation failed to yield a value.")
 	dependenciesNodes := renderWarningAlert("This key has no dependencies, or evaluation failed to yield a list of dependencies.")
 	if evaluations.IsSet() {
-		evaluationsLeaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
-		if !ok {
+		evaluationsLeaf := evaluations.Message.GetLeaf()
+		if evaluationsLeaf == nil {
 			errNodes := renderErrorAlert(errors.New("evaluations list entry is not a valid leaf"))
 			return renderEvaluationPage(
 				w,
@@ -1036,7 +1038,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			), nil
 		}
 
-		graphlet := model_core.Nested(evaluations, evaluationsLeaf.Leaf.Graphlet)
+		graphlet := model_core.Nested(evaluations, evaluationsLeaf.GetGraphlet())
 		evaluation, err := model_evaluation.GraphletGetEvaluation(ctx, evaluationReader, graphlet)
 		if err != nil {
 			errNodes := renderErrorAlert(err)
@@ -1053,7 +1055,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			), nil
 		}
 
-		if v := evaluation.Message.Value; v != nil {
+		if v := evaluation.Message.GetValue(); v != nil {
 			// Values are stored without type information.
 			// Attempt to derive the type from the key. If
 			// that fails, display the raw message.
@@ -1080,17 +1082,17 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		for dependency := range btree.AllLeaves(
 			ctx,
 			keysReader,
-			model_core.Nested(evaluation, evaluation.Message.DirectVariableDependencyKeys),
+			model_core.Nested(evaluation, evaluation.Message.GetDirectVariableDependencyKeys()),
 			func(element model_core.Message[*model_evaluation_pb.Keys, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
 				return element.Message.GetParent().GetReference(), nil
 			},
 			&errIter,
 		) {
-			if dependencyLeaf, ok := dependency.Message.Level.(*model_evaluation_pb.Keys_Leaf); ok {
+			if dependencyLeaf := dependency.Message.GetLeaf(); dependencyLeaf != nil {
 				cardNodes := []g.Node{
 					h.Class("block card my-2 p-4 bg-neutral text-neutral-content font-mono h-auto! overflow-x-auto"),
 				}
-				if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf.Leaf)); err == nil {
+				if dependencyKey, err := model_core.FlattenAny(model_core.Nested(dependency, dependencyLeaf)); err == nil {
 					if marshaledDependencyKey, err := model_core.MarshalTopLevelMessage(dependencyKey); err == nil {
 						formNodes := []g.Node{
 							h.Action(base64.RawURLEncoding.EncodeToString(keyReference.GetRawReference()) + "/" + base64.RawURLEncoding.EncodeToString(marshaledDependencyKey)),
@@ -1114,7 +1116,7 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 				}
 				cardNodes = append(
 					cardNodes,
-					jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.Leaf.ProtoReflect()))...,
+					jsonRenderer.renderMessage(model_core.Nested(dependency, dependencyLeaf.ProtoReflect()))...,
 				)
 				nodes = append(nodes, h.Div(cardNodes...))
 			}
@@ -1138,15 +1140,16 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 	}
 
 	// Rendering values might reveal the existence of additional encoders.
-	cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+	recentlyObservedEncoders = cookie.GetRecentlyObservedEncoders()
+	cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
 		append(
 			append(
-				[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[0]},
+				[]*browser_pb.RecentlyObservedEncoder{recentlyObservedEncoders[0]},
 				jsonRenderer.observedEncoders...,
 			),
-			cookie.RecentlyObservedEncoders[1:]...,
+			recentlyObservedEncoders[1:]...,
 		),
-	)
+	))
 	return renderEvaluationPage(
 		w,
 		evaluationsListReference,
@@ -1192,7 +1195,7 @@ func renderObjectPage(
 					h.Class("flex flex-col w-1/3 space-y-4"),
 					renderReferenceCard("Object reference", decodableReference),
 				},
-				renderEncoderSelector(decodableReference, cookie.RecentlyObservedEncoders, encoderUsed)...,
+				renderEncoderSelector(decodableReference, cookie.GetRecentlyObservedEncoders(), encoderUsed)...,
 			)...),
 
 			h.Div(
@@ -1272,10 +1275,11 @@ func (s *BrowserService) doObject(
 			renderErrorAlert(fmt.Errorf("failed to download object: %w", err)),
 		), nil
 	}
+	recentlyObservedEncoders := cookie.GetRecentlyObservedEncoders()
 	rendered, usedEncoderIndex, encodersInObject := payloadRenderers[currentPayloadRendererIndex].render(
 		r,
 		model_core.CopyDecodable(objectReference, o),
-		cookie.RecentlyObservedEncoders,
+		recentlyObservedEncoders,
 	)
 
 	// For future page views, change the order of encoders to:
@@ -1284,18 +1288,18 @@ func (s *BrowserService) doObject(
 	//   displayed.
 	// - All existing encoders that were not used this time.
 	if usedEncoderIndex >= 0 {
-		cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+		cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
 			append(
 				append(
 					append(
-						[]*browser_pb.RecentlyObservedEncoder{cookie.RecentlyObservedEncoders[usedEncoderIndex]},
+						[]*browser_pb.RecentlyObservedEncoder{recentlyObservedEncoders[usedEncoderIndex]},
 						encodersInObject...,
 					),
-					cookie.RecentlyObservedEncoders[:usedEncoderIndex]...,
+					recentlyObservedEncoders[:usedEncoderIndex]...,
 				),
-				cookie.RecentlyObservedEncoders[usedEncoderIndex+1:]...,
+				recentlyObservedEncoders[usedEncoderIndex+1:]...,
 			),
-		)
+		))
 		encoderUsed = true
 	}
 
@@ -1639,7 +1643,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get operation: %w", err)
 	}
-	operation := response.Operation
+	operation := response.GetOperation()
 
 	invocationName := operation.GetInvocationName()
 	sizeClassQueueName := invocationName.GetSizeClassQueueName()
@@ -1670,21 +1674,22 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal private key: %w", err)
 		}
-		cookie.EcdhPrivateKeys = append([][]byte{marshaledPrivateKey}, cookie.EcdhPrivateKeys...)
-		if maximumCount := 10; len(cookie.EcdhPrivateKeys) > maximumCount {
-			cookie.EcdhPrivateKeys = cookie.EcdhPrivateKeys[:maximumCount]
+		ecdhPrivateKeys := append([][]byte{marshaledPrivateKey}, cookie.GetEcdhPrivateKeys()...)
+		if maximumCount := 10; len(ecdhPrivateKeys) > maximumCount {
+			ecdhPrivateKeys = ecdhPrivateKeys[:maximumCount]
 		}
+		cookie.SetEcdhPrivateKeys(ecdhPrivateKeys)
 	}
 
 	action := operation.GetAction()
 	if action == nil {
 		return nil, errors.New("no action provided")
 	}
-	platformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(action.PlatformPkixPublicKey)
+	platformECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(action.GetPlatformPkixPublicKey())
 	if err != nil {
 		return nil, fmt.Errorf("action contains an invalid platform PKIX public key: %w", err)
 	}
-	clientCertificateChain := action.ClientCertificateChain
+	clientCertificateChain := action.GetClientCertificateChain()
 	if len(clientCertificateChain) == 0 {
 		return nil, errors.New("action contains no client certificate chain")
 	}
@@ -1699,7 +1704,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 
 	var ecdhPrivateKey *ecdh.PrivateKey
 	var ecdhPublicKey *ecdh.PublicKey
-	for _, rawECDHPrivateKey := range cookie.EcdhPrivateKeys {
+	for _, rawECDHPrivateKey := range cookie.GetEcdhPrivateKeys() {
 		ecdhPrivateKey, err = crypto.ParsePKCS8ECDHPrivateKey(rawECDHPrivateKey)
 		if err == nil {
 			if ecdhPrivateKey.PublicKey().Equal(platformECDHPublicKey) {
@@ -1783,7 +1788,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 		jsonRenderer.now = now
 		var executeWithStorageAction model_executewithstorage_pb.Action
 		if actionMessage.UnmarshalTo(&executeWithStorageAction) == nil {
-			namespace, err := object.NewNamespace(executeWithStorageAction.Namespace)
+			namespace, err := object.NewNamespace(executeWithStorageAction.GetNamespace())
 			if err != nil {
 				return nil, fmt.Errorf("invalid namespace: %#v", err)
 			}
@@ -1792,7 +1797,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 				namespace.InstanceName.AsURLSafeComponent(),
 				namespace.ReferenceFormat.ToProto().String(),
 			)
-			jsonRenderer.renderer.FallbackObjectFormat = executeWithStorageAction.ActionFormat
+			jsonRenderer.renderer.FallbackObjectFormat = executeWithStorageAction.GetActionFormat()
 			jsonRenderer.renderer.ReferenceFormat = &namespace.ReferenceFormat
 		}
 
@@ -1806,15 +1811,15 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 				)...,
 			)...,
 		)
-		cookie.RecentlyObservedEncoders = trimRecentlyObservedEncoders(
+		cookie.SetRecentlyObservedEncoders(trimRecentlyObservedEncoders(
 			append(
 				append(
 					[]*browser_pb.RecentlyObservedEncoder(nil),
 					jsonRenderer.observedEncoders...,
 				),
-				cookie.RecentlyObservedEncoders...,
+				cookie.GetRecentlyObservedEncoders()...,
 			),
-		)
+		))
 	}
 
 	setCookie(w, cookie)
@@ -1876,7 +1881,7 @@ func (s *BrowserService) doOperation(w http.ResponseWriter, r *http.Request) (g.
 								h.Class("whitespace-nowrap"),
 								g.Text("Timeout:"),
 							),
-							h.Td(g.Text(timeoutToText(operation.Timeout, now))),
+							h.Td(g.Text(timeoutToText(operation.GetTimeout(), now))),
 						),
 						h.Tr(
 							h.Th(
@@ -2278,7 +2283,7 @@ func decodeObject(o model_core.Decodable[*object.Contents], recentlyObservedEnco
 	for i, recentlyObservedEncoder := range recentlyObservedEncoders {
 		objectReference := o.Value.GetLocalReference()
 		binaryEncoder, err := browserBinaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(
-			recentlyObservedEncoder.Configuration,
+			recentlyObservedEncoder.GetConfiguration(),
 			uint32(objectReference.GetReferenceFormat().GetMaximumObjectSizeBytes()),
 		)
 		if err != nil {

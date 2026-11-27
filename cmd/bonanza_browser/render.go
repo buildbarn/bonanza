@@ -83,14 +83,14 @@ func (mr *messageRenderer) observeEncoders(m protoreflect.Message) {
 			}
 			mr.observedEncoders = append(
 				mr.observedEncoders,
-				&browser_pb.RecentlyObservedEncoder{
+				browser_pb.RecentlyObservedEncoder_builder{
 					Configuration: configuration,
-					LastObservation: &browser_pb.RecentlyObservedEncoder_LastObservation{
+					LastObservation: browser_pb.RecentlyObservedEncoder_LastObservation_builder{
 						Time:        timestamppb.New(mr.now),
 						MessageType: string(m.Descriptor().Name()),
 						FieldName:   fieldDescriptor.TextName(),
-					},
-				},
+					}.Build(),
+				}.Build(),
 			)
 		}
 		return true

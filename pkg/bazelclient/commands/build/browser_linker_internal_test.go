@@ -25,7 +25,7 @@ func TestBrowserLinker(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		linkedEncoders := &browser_pb.LinkedEncoders{
+		linkedEncoders := browser_pb.LinkedEncoders_builder{
 			Encoders: []*browser_pb.RecentlyObservedEncoder{
 				newLinkedEncoder("DirectoryAccessParameters", "encoders", []*model_encoding_pb.BinaryEncoder{model_encoding_pb.BinaryEncoder_builder{
 					Encrypting: model_encoding_pb.EncryptingBinaryEncoder_builder{
@@ -33,7 +33,7 @@ func TestBrowserLinker(t *testing.T) {
 					}.Build(),
 				}.Build()}),
 			},
-		}
+		}.Build()
 		browser, err := newBrowserLinker("https://browser.example.com/", linkedEncoders)
 		require.NoError(t, err)
 

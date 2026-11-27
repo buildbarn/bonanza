@@ -24,9 +24,9 @@ func newEncryptingConfiguration(key byte) []*model_encoding_pb.BinaryEncoder {
 func newRecentlyObservedEncoders(configurations ...[]*model_encoding_pb.BinaryEncoder) []*browser_pb.RecentlyObservedEncoder {
 	recentlyObservedEncoders := make([]*browser_pb.RecentlyObservedEncoder, 0, len(configurations))
 	for _, configuration := range configurations {
-		recentlyObservedEncoders = append(recentlyObservedEncoders, &browser_pb.RecentlyObservedEncoder{
+		recentlyObservedEncoders = append(recentlyObservedEncoders, browser_pb.RecentlyObservedEncoder_builder{
 			Configuration: configuration,
-		})
+		}.Build())
 	}
 	return recentlyObservedEncoders
 }

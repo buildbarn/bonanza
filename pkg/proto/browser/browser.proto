@@ -1,10 +1,11 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.browser;
 
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
 import "google/protobuf/timestamp.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/browser";
 
 message RecentlyObservedEncoder {
