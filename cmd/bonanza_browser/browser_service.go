@@ -932,10 +932,10 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 			evaluationsReader,
 			evaluationsList,
 			func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-				switch entry.Message.GetLevel().(type) {
-				case *model_evaluation_pb.Evaluations_Leaf_:
+				switch entry.Message.WhichLevel() {
+				case model_evaluation_pb.Evaluations_Leaf_case:
 					return bytes.Compare(parentKeyReference.GetRawReference(), entry.Message.GetLeaf().GetKeyReference()), nil
-				case *model_evaluation_pb.Evaluations_Parent_:
+				case model_evaluation_pb.Evaluations_Parent_case:
 					return bytes.Compare(parentKeyReference.GetRawReference(), entry.Message.GetParent().GetFirstKeyReference()), entry.Message.GetParent().GetReference()
 				default:
 					return 0, nil
@@ -994,10 +994,10 @@ func (s *BrowserService) doEvaluation(w http.ResponseWriter, r *http.Request) (g
 		evaluationsReader,
 		evaluationsList,
 		func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-			switch entry.Message.GetLevel().(type) {
-			case *model_evaluation_pb.Evaluations_Leaf_:
+			switch entry.Message.WhichLevel() {
+			case model_evaluation_pb.Evaluations_Leaf_case:
 				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetLeaf().GetKeyReference()), nil
-			case *model_evaluation_pb.Evaluations_Parent_:
+			case model_evaluation_pb.Evaluations_Parent_case:
 				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetParent().GetFirstKeyReference()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil

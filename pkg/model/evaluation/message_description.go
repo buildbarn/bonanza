@@ -238,7 +238,7 @@ func getCompiledMessageDescription(messageDescriptor protoreflect.MessageDescrip
 	if options := messageDescriptor.Options(); options != nil && proto.HasExtension(options, extensionType) {
 		messageDescription := proto.GetExtension(options, extensionType).(*model_evaluation_pb.MessageDescription)
 		optionName := extensionType.TypeDescriptor().FullName()
-		if parts, err := compileMessageDescriptionTemplate(messageDescriptor, messageDescription.Template); err != nil {
+		if parts, err := compileMessageDescriptionTemplate(messageDescriptor, messageDescription.GetTemplate()); err != nil {
 			result.err = fmt.Errorf("invalid %s of message %s: %w", optionName, messageDescriptor.FullName(), err)
 		} else {
 			compiled := &compiledMessageDescription{parts: parts}
@@ -314,11 +314,11 @@ func getProgressCounter(message protoreflect.Message) *model_evaluation_pb.Progr
 		return counter
 	}
 	fields := message.Descriptor().Fields()
-	return &model_evaluation_pb.ProgressCounter{
+	return model_evaluation_pb.ProgressCounter_builder{
 		Current: message.Get(fields.ByNumber(1)).Uint(),
 		Total:   message.Get(fields.ByNumber(2)).Uint(),
 		Unit:    model_evaluation_pb.ProgressCounter_Unit(message.Get(fields.ByNumber(3)).Enum()),
-	}
+	}.Build()
 }
 
 // formatMessageDescriptionScalar converts a single scalar value

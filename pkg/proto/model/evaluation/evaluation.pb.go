@@ -15,7 +15,6 @@ import (
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -67,16 +66,11 @@ func (x ProgressCounter_Unit) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ProgressCounter_Unit.Descriptor instead.
-func (ProgressCounter_Unit) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1, 0}
-}
-
 type MessageDescription struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Template      string                 `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Template string                 `protobuf:"bytes,1,opt,name=template"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *MessageDescription) Reset() {
@@ -104,25 +98,38 @@ func (x *MessageDescription) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MessageDescription.ProtoReflect.Descriptor instead.
-func (*MessageDescription) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *MessageDescription) GetTemplate() string {
 	if x != nil {
-		return x.Template
+		return x.xxx_hidden_Template
 	}
 	return ""
 }
 
+func (x *MessageDescription) SetTemplate(v string) {
+	x.xxx_hidden_Template = v
+}
+
+type MessageDescription_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Template string
+}
+
+func (b0 MessageDescription_builder) Build() *MessageDescription {
+	m0 := &MessageDescription{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Template = b.Template
+	return m0
+}
+
 type ProgressCounter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Current       uint64                 `protobuf:"varint,1,opt,name=current,proto3" json:"current,omitempty"`
-	Total         uint64                 `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	Unit          ProgressCounter_Unit   `protobuf:"varint,3,opt,name=unit,proto3,enum=bonanza.model.evaluation.ProgressCounter_Unit" json:"unit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Current uint64                 `protobuf:"varint,1,opt,name=current"`
+	xxx_hidden_Total   uint64                 `protobuf:"varint,2,opt,name=total"`
+	xxx_hidden_Unit    ProgressCounter_Unit   `protobuf:"varint,3,opt,name=unit,enum=bonanza.model.evaluation.ProgressCounter_Unit"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ProgressCounter) Reset() {
@@ -150,41 +157,62 @@ func (x *ProgressCounter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ProgressCounter.ProtoReflect.Descriptor instead.
-func (*ProgressCounter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *ProgressCounter) GetCurrent() uint64 {
 	if x != nil {
-		return x.Current
+		return x.xxx_hidden_Current
 	}
 	return 0
 }
 
 func (x *ProgressCounter) GetTotal() uint64 {
 	if x != nil {
-		return x.Total
+		return x.xxx_hidden_Total
 	}
 	return 0
 }
 
 func (x *ProgressCounter) GetUnit() ProgressCounter_Unit {
 	if x != nil {
-		return x.Unit
+		return x.xxx_hidden_Unit
 	}
 	return ProgressCounter_ITEMS
 }
 
+func (x *ProgressCounter) SetCurrent(v uint64) {
+	x.xxx_hidden_Current = v
+}
+
+func (x *ProgressCounter) SetTotal(v uint64) {
+	x.xxx_hidden_Total = v
+}
+
+func (x *ProgressCounter) SetUnit(v ProgressCounter_Unit) {
+	x.xxx_hidden_Unit = v
+}
+
+type ProgressCounter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Current uint64
+	Total   uint64
+	Unit    ProgressCounter_Unit
+}
+
+func (b0 ProgressCounter_builder) Build() *ProgressCounter {
+	m0 := &ProgressCounter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Current = b.Current
+	x.xxx_hidden_Total = b.Total
+	x.xxx_hidden_Unit = b.Unit
+	return m0
+}
+
 type Keys struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*Keys_Leaf
-	//	*Keys_Parent_
-	Level         isKeys_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isKeys_Level           `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Keys) Reset() {
@@ -212,21 +240,9 @@ func (x *Keys) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Keys.ProtoReflect.Descriptor instead.
-func (*Keys) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *Keys) GetLevel() isKeys_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *Keys) GetLeaf() *core.Any {
 	if x != nil {
-		if x, ok := x.Level.(*Keys_Leaf); ok {
+		if x, ok := x.xxx_hidden_Level.(*keys_Leaf); ok {
 			return x.Leaf
 		}
 	}
@@ -235,35 +251,140 @@ func (x *Keys) GetLeaf() *core.Any {
 
 func (x *Keys) GetParent() *Keys_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*Keys_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*keys_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *Keys) SetLeaf(v *core.Any) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &keys_Leaf{v}
+}
+
+func (x *Keys) SetParent(v *Keys_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &keys_Parent_{v}
+}
+
+func (x *Keys) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *Keys) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*keys_Leaf)
+	return ok
+}
+
+func (x *Keys) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*keys_Parent_)
+	return ok
+}
+
+func (x *Keys) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *Keys) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*keys_Leaf); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *Keys) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*keys_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const Keys_Level_not_set_case case_Keys_Level = 0
+const Keys_Leaf_case case_Keys_Level = 1
+const Keys_Parent_case case_Keys_Level = 2
+
+func (x *Keys) WhichLevel() case_Keys_Level {
+	if x == nil {
+		return Keys_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *keys_Leaf:
+		return Keys_Leaf_case
+	case *keys_Parent_:
+		return Keys_Parent_case
+	default:
+		return Keys_Level_not_set_case
+	}
+}
+
+type Keys_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *core.Any
+	Parent *Keys_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 Keys_builder) Build() *Keys {
+	m0 := &Keys{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &keys_Leaf{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &keys_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_Keys_Level protoreflect.FieldNumber
+
+func (x case_Keys_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isKeys_Level interface {
 	isKeys_Level()
 }
 
-type Keys_Leaf struct {
-	Leaf *core.Any `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type keys_Leaf struct {
+	Leaf *core.Any `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type Keys_Parent_ struct {
-	Parent *Keys_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type keys_Parent_ struct {
+	Parent *Keys_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*Keys_Leaf) isKeys_Level() {}
+func (*keys_Leaf) isKeys_Level() {}
 
-func (*Keys_Parent_) isKeys_Level() {}
+func (*keys_Parent_) isKeys_Level() {}
 
 type Evaluation struct {
-	state                        protoimpl.MessageState `protogen:"open.v1"`
-	Value                        *core.Opaque           `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	DirectVariableDependencyKeys []*Keys                `protobuf:"bytes,2,rep,name=direct_variable_dependency_keys,json=directVariableDependencyKeys,proto3" json:"direct_variable_dependency_keys,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value                        *core.Opaque           `protobuf:"bytes,1,opt,name=value"`
+	xxx_hidden_DirectVariableDependencyKeys *[]*Keys               `protobuf:"bytes,2,rep,name=direct_variable_dependency_keys,json=directVariableDependencyKeys"`
+	unknownFields                           protoimpl.UnknownFields
+	sizeCache                               protoimpl.SizeCache
 }
 
 func (x *Evaluation) Reset() {
@@ -291,35 +412,63 @@ func (x *Evaluation) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluation.ProtoReflect.Descriptor instead.
-func (*Evaluation) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *Evaluation) GetValue() *core.Opaque {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
 func (x *Evaluation) GetDirectVariableDependencyKeys() []*Keys {
 	if x != nil {
-		return x.DirectVariableDependencyKeys
+		if x.xxx_hidden_DirectVariableDependencyKeys != nil {
+			return *x.xxx_hidden_DirectVariableDependencyKeys
+		}
 	}
 	return nil
 }
 
+func (x *Evaluation) SetValue(v *core.Opaque) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *Evaluation) SetDirectVariableDependencyKeys(v []*Keys) {
+	x.xxx_hidden_DirectVariableDependencyKeys = &v
+}
+
+func (x *Evaluation) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *Evaluation) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type Evaluation_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Value                        *core.Opaque
+	DirectVariableDependencyKeys []*Keys
+}
+
+func (b0 Evaluation_builder) Build() *Evaluation {
+	m0 := &Evaluation{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Value = b.Value
+	x.xxx_hidden_DirectVariableDependencyKeys = &b.DirectVariableDependencyKeys
+	return m0
+}
+
 type Graphlet struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Evaluation:
-	//
-	//	*Graphlet_EvaluationInline
-	//	*Graphlet_EvaluationExternal
-	Evaluation            isGraphlet_Evaluation `protobuf_oneof:"evaluation"`
-	DependencyEvaluations []*Evaluations        `protobuf:"bytes,3,rep,name=dependency_evaluations,json=dependencyEvaluations,proto3" json:"dependency_evaluations,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Evaluation            isGraphlet_Evaluation  `protobuf_oneof:"evaluation"`
+	xxx_hidden_DependencyEvaluations *[]*Evaluations        `protobuf:"bytes,3,rep,name=dependency_evaluations,json=dependencyEvaluations"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *Graphlet) Reset() {
@@ -347,21 +496,9 @@ func (x *Graphlet) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Graphlet.ProtoReflect.Descriptor instead.
-func (*Graphlet) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Graphlet) GetEvaluation() isGraphlet_Evaluation {
-	if x != nil {
-		return x.Evaluation
-	}
-	return nil
-}
-
 func (x *Graphlet) GetEvaluationInline() *Evaluation {
 	if x != nil {
-		if x, ok := x.Evaluation.(*Graphlet_EvaluationInline); ok {
+		if x, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationInline); ok {
 			return x.EvaluationInline
 		}
 	}
@@ -370,7 +507,7 @@ func (x *Graphlet) GetEvaluationInline() *Evaluation {
 
 func (x *Graphlet) GetEvaluationExternal() *core.DecodableReference {
 	if x != nil {
-		if x, ok := x.Evaluation.(*Graphlet_EvaluationExternal); ok {
+		if x, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationExternal); ok {
 			return x.EvaluationExternal
 		}
 	}
@@ -379,36 +516,145 @@ func (x *Graphlet) GetEvaluationExternal() *core.DecodableReference {
 
 func (x *Graphlet) GetDependencyEvaluations() []*Evaluations {
 	if x != nil {
-		return x.DependencyEvaluations
+		if x.xxx_hidden_DependencyEvaluations != nil {
+			return *x.xxx_hidden_DependencyEvaluations
+		}
 	}
 	return nil
+}
+
+func (x *Graphlet) SetEvaluationInline(v *Evaluation) {
+	if v == nil {
+		x.xxx_hidden_Evaluation = nil
+		return
+	}
+	x.xxx_hidden_Evaluation = &graphlet_EvaluationInline{v}
+}
+
+func (x *Graphlet) SetEvaluationExternal(v *core.DecodableReference) {
+	if v == nil {
+		x.xxx_hidden_Evaluation = nil
+		return
+	}
+	x.xxx_hidden_Evaluation = &graphlet_EvaluationExternal{v}
+}
+
+func (x *Graphlet) SetDependencyEvaluations(v []*Evaluations) {
+	x.xxx_hidden_DependencyEvaluations = &v
+}
+
+func (x *Graphlet) HasEvaluation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Evaluation != nil
+}
+
+func (x *Graphlet) HasEvaluationInline() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationInline)
+	return ok
+}
+
+func (x *Graphlet) HasEvaluationExternal() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationExternal)
+	return ok
+}
+
+func (x *Graphlet) ClearEvaluation() {
+	x.xxx_hidden_Evaluation = nil
+}
+
+func (x *Graphlet) ClearEvaluationInline() {
+	if _, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationInline); ok {
+		x.xxx_hidden_Evaluation = nil
+	}
+}
+
+func (x *Graphlet) ClearEvaluationExternal() {
+	if _, ok := x.xxx_hidden_Evaluation.(*graphlet_EvaluationExternal); ok {
+		x.xxx_hidden_Evaluation = nil
+	}
+}
+
+const Graphlet_Evaluation_not_set_case case_Graphlet_Evaluation = 0
+const Graphlet_EvaluationInline_case case_Graphlet_Evaluation = 1
+const Graphlet_EvaluationExternal_case case_Graphlet_Evaluation = 2
+
+func (x *Graphlet) WhichEvaluation() case_Graphlet_Evaluation {
+	if x == nil {
+		return Graphlet_Evaluation_not_set_case
+	}
+	switch x.xxx_hidden_Evaluation.(type) {
+	case *graphlet_EvaluationInline:
+		return Graphlet_EvaluationInline_case
+	case *graphlet_EvaluationExternal:
+		return Graphlet_EvaluationExternal_case
+	default:
+		return Graphlet_Evaluation_not_set_case
+	}
+}
+
+type Graphlet_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Evaluation:
+	EvaluationInline   *Evaluation
+	EvaluationExternal *core.DecodableReference
+	// -- end of xxx_hidden_Evaluation
+	DependencyEvaluations []*Evaluations
+}
+
+func (b0 Graphlet_builder) Build() *Graphlet {
+	m0 := &Graphlet{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.EvaluationInline != nil {
+		x.xxx_hidden_Evaluation = &graphlet_EvaluationInline{b.EvaluationInline}
+	}
+	if b.EvaluationExternal != nil {
+		x.xxx_hidden_Evaluation = &graphlet_EvaluationExternal{b.EvaluationExternal}
+	}
+	x.xxx_hidden_DependencyEvaluations = &b.DependencyEvaluations
+	return m0
+}
+
+type case_Graphlet_Evaluation protoreflect.FieldNumber
+
+func (x case_Graphlet_Evaluation) String() string {
+	md := file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
 }
 
 type isGraphlet_Evaluation interface {
 	isGraphlet_Evaluation()
 }
 
-type Graphlet_EvaluationInline struct {
-	EvaluationInline *Evaluation `protobuf:"bytes,1,opt,name=evaluation_inline,json=evaluationInline,proto3,oneof"`
+type graphlet_EvaluationInline struct {
+	EvaluationInline *Evaluation `protobuf:"bytes,1,opt,name=evaluation_inline,json=evaluationInline,oneof"`
 }
 
-type Graphlet_EvaluationExternal struct {
-	EvaluationExternal *core.DecodableReference `protobuf:"bytes,2,opt,name=evaluation_external,json=evaluationExternal,proto3,oneof"`
+type graphlet_EvaluationExternal struct {
+	EvaluationExternal *core.DecodableReference `protobuf:"bytes,2,opt,name=evaluation_external,json=evaluationExternal,oneof"`
 }
 
-func (*Graphlet_EvaluationInline) isGraphlet_Evaluation() {}
+func (*graphlet_EvaluationInline) isGraphlet_Evaluation() {}
 
-func (*Graphlet_EvaluationExternal) isGraphlet_Evaluation() {}
+func (*graphlet_EvaluationExternal) isGraphlet_Evaluation() {}
 
 type Evaluations struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*Evaluations_Leaf_
-	//	*Evaluations_Parent_
-	Level         isEvaluations_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isEvaluations_Level    `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Evaluations) Reset() {
@@ -436,21 +682,9 @@ func (x *Evaluations) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluations.ProtoReflect.Descriptor instead.
-func (*Evaluations) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Evaluations) GetLevel() isEvaluations_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *Evaluations) GetLeaf() *Evaluations_Leaf {
 	if x != nil {
-		if x, ok := x.Level.(*Evaluations_Leaf_); ok {
+		if x, ok := x.xxx_hidden_Level.(*evaluations_Leaf_); ok {
 			return x.Leaf
 		}
 	}
@@ -459,36 +693,141 @@ func (x *Evaluations) GetLeaf() *Evaluations_Leaf {
 
 func (x *Evaluations) GetParent() *Evaluations_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*Evaluations_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*evaluations_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *Evaluations) SetLeaf(v *Evaluations_Leaf) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &evaluations_Leaf_{v}
+}
+
+func (x *Evaluations) SetParent(v *Evaluations_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &evaluations_Parent_{v}
+}
+
+func (x *Evaluations) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *Evaluations) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*evaluations_Leaf_)
+	return ok
+}
+
+func (x *Evaluations) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*evaluations_Parent_)
+	return ok
+}
+
+func (x *Evaluations) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *Evaluations) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*evaluations_Leaf_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *Evaluations) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*evaluations_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const Evaluations_Level_not_set_case case_Evaluations_Level = 0
+const Evaluations_Leaf_case case_Evaluations_Level = 1
+const Evaluations_Parent_case case_Evaluations_Level = 2
+
+func (x *Evaluations) WhichLevel() case_Evaluations_Level {
+	if x == nil {
+		return Evaluations_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *evaluations_Leaf_:
+		return Evaluations_Leaf_case
+	case *evaluations_Parent_:
+		return Evaluations_Parent_case
+	default:
+		return Evaluations_Level_not_set_case
+	}
+}
+
+type Evaluations_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *Evaluations_Leaf
+	Parent *Evaluations_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 Evaluations_builder) Build() *Evaluations {
+	m0 := &Evaluations{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &evaluations_Leaf_{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &evaluations_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_Evaluations_Level protoreflect.FieldNumber
+
+func (x case_Evaluations_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isEvaluations_Level interface {
 	isEvaluations_Level()
 }
 
-type Evaluations_Leaf_ struct {
-	Leaf *Evaluations_Leaf `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type evaluations_Leaf_ struct {
+	Leaf *Evaluations_Leaf `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type Evaluations_Parent_ struct {
-	Parent *Evaluations_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type evaluations_Parent_ struct {
+	Parent *Evaluations_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*Evaluations_Leaf_) isEvaluations_Level() {}
+func (*evaluations_Leaf_) isEvaluations_Level() {}
 
-func (*Evaluations_Parent_) isEvaluations_Level() {}
+func (*evaluations_Parent_) isEvaluations_Level() {}
 
 type Action struct {
-	state              protoimpl.MessageState   `protogen:"open.v1"`
-	OverridesReference *core.DecodableReference `protobuf:"bytes,1,opt,name=overrides_reference,json=overridesReference,proto3" json:"overrides_reference,omitempty"`
-	RequestedKeys      []*Keys                  `protobuf:"bytes,2,rep,name=requested_keys,json=requestedKeys,proto3" json:"requested_keys,omitempty"`
-	ChunkingParameters *chunking.Parameters     `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters,proto3" json:"chunking_parameters,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_OverridesReference *core.DecodableReference `protobuf:"bytes,1,opt,name=overrides_reference,json=overridesReference"`
+	xxx_hidden_RequestedKeys      *[]*Keys                 `protobuf:"bytes,2,rep,name=requested_keys,json=requestedKeys"`
+	xxx_hidden_ChunkingParameters *chunking.Parameters     `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Action) Reset() {
@@ -516,43 +855,92 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Action.ProtoReflect.Descriptor instead.
-func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *Action) GetOverridesReference() *core.DecodableReference {
 	if x != nil {
-		return x.OverridesReference
+		return x.xxx_hidden_OverridesReference
 	}
 	return nil
 }
 
 func (x *Action) GetRequestedKeys() []*Keys {
 	if x != nil {
-		return x.RequestedKeys
+		if x.xxx_hidden_RequestedKeys != nil {
+			return *x.xxx_hidden_RequestedKeys
+		}
 	}
 	return nil
 }
 
 func (x *Action) GetChunkingParameters() *chunking.Parameters {
 	if x != nil {
-		return x.ChunkingParameters
+		return x.xxx_hidden_ChunkingParameters
 	}
 	return nil
 }
 
+func (x *Action) SetOverridesReference(v *core.DecodableReference) {
+	x.xxx_hidden_OverridesReference = v
+}
+
+func (x *Action) SetRequestedKeys(v []*Keys) {
+	x.xxx_hidden_RequestedKeys = &v
+}
+
+func (x *Action) SetChunkingParameters(v *chunking.Parameters) {
+	x.xxx_hidden_ChunkingParameters = v
+}
+
+func (x *Action) HasOverridesReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_OverridesReference != nil
+}
+
+func (x *Action) HasChunkingParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ChunkingParameters != nil
+}
+
+func (x *Action) ClearOverridesReference() {
+	x.xxx_hidden_OverridesReference = nil
+}
+
+func (x *Action) ClearChunkingParameters() {
+	x.xxx_hidden_ChunkingParameters = nil
+}
+
+type Action_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OverridesReference *core.DecodableReference
+	RequestedKeys      []*Keys
+	ChunkingParameters *chunking.Parameters
+}
+
+func (b0 Action_builder) Build() *Action {
+	m0 := &Action{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_OverridesReference = b.OverridesReference
+	x.xxx_hidden_RequestedKeys = &b.RequestedKeys
+	x.xxx_hidden_ChunkingParameters = b.ChunkingParameters
+	return m0
+}
+
 type Progress struct {
-	state                         protoimpl.MessageState    `protogen:"open.v1"`
-	BlockedKeysCount              uint64                    `protobuf:"varint,1,opt,name=blocked_keys_count,json=blockedKeysCount,proto3" json:"blocked_keys_count,omitempty"`
-	EvaluatableKeysCount          uint64                    `protobuf:"varint,2,opt,name=evaluatable_keys_count,json=evaluatableKeysCount,proto3" json:"evaluatable_keys_count,omitempty"`
-	OldestEvaluatingKeys          []*Progress_EvaluatingKey `protobuf:"bytes,3,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys,proto3" json:"oldest_evaluating_keys,omitempty"`
-	AdditionalEvaluatingKeysCount uint64                    `protobuf:"varint,4,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount,proto3" json:"additional_evaluating_keys_count,omitempty"`
-	EvaluatedKeysCount            uint64                    `protobuf:"varint,5,opt,name=evaluated_keys_count,json=evaluatedKeysCount,proto3" json:"evaluated_keys_count,omitempty"`
-	UploadingKeysCount            uint64                    `protobuf:"varint,6,opt,name=uploading_keys_count,json=uploadingKeysCount,proto3" json:"uploading_keys_count,omitempty"`
-	CompletedKeysCount            uint64                    `protobuf:"varint,7,opt,name=completed_keys_count,json=completedKeysCount,proto3" json:"completed_keys_count,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                    protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_BlockedKeysCount              uint64                     `protobuf:"varint,1,opt,name=blocked_keys_count,json=blockedKeysCount"`
+	xxx_hidden_EvaluatableKeysCount          uint64                     `protobuf:"varint,2,opt,name=evaluatable_keys_count,json=evaluatableKeysCount"`
+	xxx_hidden_OldestEvaluatingKeys          *[]*Progress_EvaluatingKey `protobuf:"bytes,3,rep,name=oldest_evaluating_keys,json=oldestEvaluatingKeys"`
+	xxx_hidden_AdditionalEvaluatingKeysCount uint64                     `protobuf:"varint,4,opt,name=additional_evaluating_keys_count,json=additionalEvaluatingKeysCount"`
+	xxx_hidden_EvaluatedKeysCount            uint64                     `protobuf:"varint,5,opt,name=evaluated_keys_count,json=evaluatedKeysCount"`
+	xxx_hidden_UploadingKeysCount            uint64                     `protobuf:"varint,6,opt,name=uploading_keys_count,json=uploadingKeysCount"`
+	xxx_hidden_CompletedKeysCount            uint64                     `protobuf:"varint,7,opt,name=completed_keys_count,json=completedKeysCount"`
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *Progress) Reset() {
@@ -580,66 +968,117 @@ func (x *Progress) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Progress.ProtoReflect.Descriptor instead.
-func (*Progress) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *Progress) GetBlockedKeysCount() uint64 {
 	if x != nil {
-		return x.BlockedKeysCount
+		return x.xxx_hidden_BlockedKeysCount
 	}
 	return 0
 }
 
 func (x *Progress) GetEvaluatableKeysCount() uint64 {
 	if x != nil {
-		return x.EvaluatableKeysCount
+		return x.xxx_hidden_EvaluatableKeysCount
 	}
 	return 0
 }
 
 func (x *Progress) GetOldestEvaluatingKeys() []*Progress_EvaluatingKey {
 	if x != nil {
-		return x.OldestEvaluatingKeys
+		if x.xxx_hidden_OldestEvaluatingKeys != nil {
+			return *x.xxx_hidden_OldestEvaluatingKeys
+		}
 	}
 	return nil
 }
 
 func (x *Progress) GetAdditionalEvaluatingKeysCount() uint64 {
 	if x != nil {
-		return x.AdditionalEvaluatingKeysCount
+		return x.xxx_hidden_AdditionalEvaluatingKeysCount
 	}
 	return 0
 }
 
 func (x *Progress) GetEvaluatedKeysCount() uint64 {
 	if x != nil {
-		return x.EvaluatedKeysCount
+		return x.xxx_hidden_EvaluatedKeysCount
 	}
 	return 0
 }
 
 func (x *Progress) GetUploadingKeysCount() uint64 {
 	if x != nil {
-		return x.UploadingKeysCount
+		return x.xxx_hidden_UploadingKeysCount
 	}
 	return 0
 }
 
 func (x *Progress) GetCompletedKeysCount() uint64 {
 	if x != nil {
-		return x.CompletedKeysCount
+		return x.xxx_hidden_CompletedKeysCount
 	}
 	return 0
 }
 
+func (x *Progress) SetBlockedKeysCount(v uint64) {
+	x.xxx_hidden_BlockedKeysCount = v
+}
+
+func (x *Progress) SetEvaluatableKeysCount(v uint64) {
+	x.xxx_hidden_EvaluatableKeysCount = v
+}
+
+func (x *Progress) SetOldestEvaluatingKeys(v []*Progress_EvaluatingKey) {
+	x.xxx_hidden_OldestEvaluatingKeys = &v
+}
+
+func (x *Progress) SetAdditionalEvaluatingKeysCount(v uint64) {
+	x.xxx_hidden_AdditionalEvaluatingKeysCount = v
+}
+
+func (x *Progress) SetEvaluatedKeysCount(v uint64) {
+	x.xxx_hidden_EvaluatedKeysCount = v
+}
+
+func (x *Progress) SetUploadingKeysCount(v uint64) {
+	x.xxx_hidden_UploadingKeysCount = v
+}
+
+func (x *Progress) SetCompletedKeysCount(v uint64) {
+	x.xxx_hidden_CompletedKeysCount = v
+}
+
+type Progress_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	BlockedKeysCount              uint64
+	EvaluatableKeysCount          uint64
+	OldestEvaluatingKeys          []*Progress_EvaluatingKey
+	AdditionalEvaluatingKeysCount uint64
+	EvaluatedKeysCount            uint64
+	UploadingKeysCount            uint64
+	CompletedKeysCount            uint64
+}
+
+func (b0 Progress_builder) Build() *Progress {
+	m0 := &Progress{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_BlockedKeysCount = b.BlockedKeysCount
+	x.xxx_hidden_EvaluatableKeysCount = b.EvaluatableKeysCount
+	x.xxx_hidden_OldestEvaluatingKeys = &b.OldestEvaluatingKeys
+	x.xxx_hidden_AdditionalEvaluatingKeysCount = b.AdditionalEvaluatingKeysCount
+	x.xxx_hidden_EvaluatedKeysCount = b.EvaluatedKeysCount
+	x.xxx_hidden_UploadingKeysCount = b.UploadingKeysCount
+	x.xxx_hidden_CompletedKeysCount = b.CompletedKeysCount
+	return m0
+}
+
 type Result struct {
-	state             protoimpl.MessageState   `protogen:"open.v1"`
-	Failure           *Result_Failure          `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
-	OutcomesReference *core.DecodableReference `protobuf:"bytes,2,opt,name=outcomes_reference,json=outcomesReference,proto3" json:"outcomes_reference,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Failure           *Result_Failure          `protobuf:"bytes,1,opt,name=failure"`
+	xxx_hidden_OutcomesReference *core.DecodableReference `protobuf:"bytes,2,opt,name=outcomes_reference,json=outcomesReference"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Result) Reset() {
@@ -667,30 +1106,71 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Result.ProtoReflect.Descriptor instead.
-func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *Result) GetFailure() *Result_Failure {
 	if x != nil {
-		return x.Failure
+		return x.xxx_hidden_Failure
 	}
 	return nil
 }
 
 func (x *Result) GetOutcomesReference() *core.DecodableReference {
 	if x != nil {
-		return x.OutcomesReference
+		return x.xxx_hidden_OutcomesReference
 	}
 	return nil
 }
 
+func (x *Result) SetFailure(v *Result_Failure) {
+	x.xxx_hidden_Failure = v
+}
+
+func (x *Result) SetOutcomesReference(v *core.DecodableReference) {
+	x.xxx_hidden_OutcomesReference = v
+}
+
+func (x *Result) HasFailure() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Failure != nil
+}
+
+func (x *Result) HasOutcomesReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_OutcomesReference != nil
+}
+
+func (x *Result) ClearFailure() {
+	x.xxx_hidden_Failure = nil
+}
+
+func (x *Result) ClearOutcomesReference() {
+	x.xxx_hidden_OutcomesReference = nil
+}
+
+type Result_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Failure           *Result_Failure
+	OutcomesReference *core.DecodableReference
+}
+
+func (b0 Result_builder) Build() *Result {
+	m0 := &Result{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Failure = b.Failure
+	x.xxx_hidden_OutcomesReference = b.OutcomesReference
+	return m0
+}
+
 type Keys_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Keys_Parent) Reset() {
@@ -718,24 +1198,48 @@ func (x *Keys_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Keys_Parent.ProtoReflect.Descriptor instead.
-func (*Keys_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{2, 0}
-}
-
 func (x *Keys_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
+func (x *Keys_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *Keys_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *Keys_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type Keys_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+}
+
+func (b0 Keys_Parent_builder) Build() *Keys_Parent {
+	m0 := &Keys_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	return m0
+}
+
 type Evaluations_Parent struct {
-	state             protoimpl.MessageState   `protogen:"open.v1"`
-	Reference         *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	FirstKeyReference []byte                   `protobuf:"bytes,2,opt,name=first_key_reference,json=firstKeyReference,proto3" json:"first_key_reference,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference         *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_FirstKeyReference []byte                   `protobuf:"bytes,2,opt,name=first_key_reference,json=firstKeyReference"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Evaluations_Parent) Reset() {
@@ -763,31 +1267,64 @@ func (x *Evaluations_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluations_Parent.ProtoReflect.Descriptor instead.
-func (*Evaluations_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5, 0}
-}
-
 func (x *Evaluations_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *Evaluations_Parent) GetFirstKeyReference() []byte {
 	if x != nil {
-		return x.FirstKeyReference
+		return x.xxx_hidden_FirstKeyReference
 	}
 	return nil
 }
 
+func (x *Evaluations_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *Evaluations_Parent) SetFirstKeyReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_FirstKeyReference = v
+}
+
+func (x *Evaluations_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *Evaluations_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type Evaluations_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference         *core.DecodableReference
+	FirstKeyReference []byte
+}
+
+func (b0 Evaluations_Parent_builder) Build() *Evaluations_Parent {
+	m0 := &Evaluations_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_FirstKeyReference = b.FirstKeyReference
+	return m0
+}
+
 type Evaluations_Leaf struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	KeyReference  []byte                 `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
-	Graphlet      *Graphlet              `protobuf:"bytes,2,opt,name=graphlet,proto3" json:"graphlet,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_KeyReference []byte                 `protobuf:"bytes,1,opt,name=key_reference,json=keyReference"`
+	xxx_hidden_Graphlet     *Graphlet              `protobuf:"bytes,2,opt,name=graphlet"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Evaluations_Leaf) Reset() {
@@ -815,34 +1352,69 @@ func (x *Evaluations_Leaf) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Evaluations_Leaf.ProtoReflect.Descriptor instead.
-func (*Evaluations_Leaf) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{5, 1}
-}
-
 func (x *Evaluations_Leaf) GetKeyReference() []byte {
 	if x != nil {
-		return x.KeyReference
+		return x.xxx_hidden_KeyReference
 	}
 	return nil
 }
 
 func (x *Evaluations_Leaf) GetGraphlet() *Graphlet {
 	if x != nil {
-		return x.Graphlet
+		return x.xxx_hidden_Graphlet
 	}
 	return nil
 }
 
+func (x *Evaluations_Leaf) SetKeyReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_KeyReference = v
+}
+
+func (x *Evaluations_Leaf) SetGraphlet(v *Graphlet) {
+	x.xxx_hidden_Graphlet = v
+}
+
+func (x *Evaluations_Leaf) HasGraphlet() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Graphlet != nil
+}
+
+func (x *Evaluations_Leaf) ClearGraphlet() {
+	x.xxx_hidden_Graphlet = nil
+}
+
+type Evaluations_Leaf_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	KeyReference []byte
+	Graphlet     *Graphlet
+}
+
+func (b0 Evaluations_Leaf_builder) Build() *Evaluations_Leaf {
+	m0 := &Evaluations_Leaf{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_KeyReference = b.KeyReference
+	x.xxx_hidden_Graphlet = b.Graphlet
+	return m0
+}
+
 type Progress_EvaluatingKey struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Key                    *core.Any              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart,proto3" json:"first_evaluation_start,omitempty"`
-	CurrentEvaluationStart *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=current_evaluation_start,json=currentEvaluationStart,proto3" json:"current_evaluation_start,omitempty"`
-	Restarts               uint32                 `protobuf:"varint,4,opt,name=restarts,proto3" json:"restarts,omitempty"`
-	Progress               []byte                 `protobuf:"bytes,5,opt,name=progress,proto3,oneof" json:"progress,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Key                    *core.Any              `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_FirstEvaluationStart   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=first_evaluation_start,json=firstEvaluationStart"`
+	xxx_hidden_CurrentEvaluationStart *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=current_evaluation_start,json=currentEvaluationStart"`
+	xxx_hidden_Restarts               uint32                 `protobuf:"varint,4,opt,name=restarts"`
+	xxx_hidden_Progress               []byte                 `protobuf:"bytes,5,opt,name=progress"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *Progress_EvaluatingKey) Reset() {
@@ -870,52 +1442,141 @@ func (x *Progress_EvaluatingKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Progress_EvaluatingKey.ProtoReflect.Descriptor instead.
-func (*Progress_EvaluatingKey) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{7, 0}
-}
-
 func (x *Progress_EvaluatingKey) GetKey() *core.Any {
 	if x != nil {
-		return x.Key
+		return x.xxx_hidden_Key
 	}
 	return nil
 }
 
 func (x *Progress_EvaluatingKey) GetFirstEvaluationStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.FirstEvaluationStart
+		return x.xxx_hidden_FirstEvaluationStart
 	}
 	return nil
 }
 
 func (x *Progress_EvaluatingKey) GetCurrentEvaluationStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.CurrentEvaluationStart
+		return x.xxx_hidden_CurrentEvaluationStart
 	}
 	return nil
 }
 
 func (x *Progress_EvaluatingKey) GetRestarts() uint32 {
 	if x != nil {
-		return x.Restarts
+		return x.xxx_hidden_Restarts
 	}
 	return 0
 }
 
 func (x *Progress_EvaluatingKey) GetProgress() []byte {
 	if x != nil {
-		return x.Progress
+		return x.xxx_hidden_Progress
 	}
 	return nil
 }
 
+func (x *Progress_EvaluatingKey) SetKey(v *core.Any) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *Progress_EvaluatingKey) SetFirstEvaluationStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_FirstEvaluationStart = v
+}
+
+func (x *Progress_EvaluatingKey) SetCurrentEvaluationStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CurrentEvaluationStart = v
+}
+
+func (x *Progress_EvaluatingKey) SetRestarts(v uint32) {
+	x.xxx_hidden_Restarts = v
+}
+
+func (x *Progress_EvaluatingKey) SetProgress(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Progress = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *Progress_EvaluatingKey) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *Progress_EvaluatingKey) HasFirstEvaluationStart() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FirstEvaluationStart != nil
+}
+
+func (x *Progress_EvaluatingKey) HasCurrentEvaluationStart() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CurrentEvaluationStart != nil
+}
+
+func (x *Progress_EvaluatingKey) HasProgress() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *Progress_EvaluatingKey) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+func (x *Progress_EvaluatingKey) ClearFirstEvaluationStart() {
+	x.xxx_hidden_FirstEvaluationStart = nil
+}
+
+func (x *Progress_EvaluatingKey) ClearCurrentEvaluationStart() {
+	x.xxx_hidden_CurrentEvaluationStart = nil
+}
+
+func (x *Progress_EvaluatingKey) ClearProgress() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Progress = nil
+}
+
+type Progress_EvaluatingKey_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Key                    *core.Any
+	FirstEvaluationStart   *timestamppb.Timestamp
+	CurrentEvaluationStart *timestamppb.Timestamp
+	Restarts               uint32
+	Progress               []byte
+}
+
+func (b0 Progress_EvaluatingKey_builder) Build() *Progress_EvaluatingKey {
+	m0 := &Progress_EvaluatingKey{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_FirstEvaluationStart = b.FirstEvaluationStart
+	x.xxx_hidden_CurrentEvaluationStart = b.CurrentEvaluationStart
+	x.xxx_hidden_Restarts = b.Restarts
+	if b.Progress != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Progress = b.Progress
+	}
+	return m0
+}
+
 type Result_Failure struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	StackTraceKeys []*core.Any            `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys,proto3" json:"stack_trace_keys,omitempty"`
-	Status         *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_StackTraceKeys *[]*core.Any           `protobuf:"bytes,1,rep,name=stack_trace_keys,json=stackTraceKeys"`
+	xxx_hidden_Status         *status.Status         `protobuf:"bytes,2,opt,name=status"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Result_Failure) Reset() {
@@ -943,23 +1604,55 @@ func (x *Result_Failure) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Result_Failure.ProtoReflect.Descriptor instead.
-func (*Result_Failure) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP(), []int{8, 0}
-}
-
 func (x *Result_Failure) GetStackTraceKeys() []*core.Any {
 	if x != nil {
-		return x.StackTraceKeys
+		if x.xxx_hidden_StackTraceKeys != nil {
+			return *x.xxx_hidden_StackTraceKeys
+		}
 	}
 	return nil
 }
 
 func (x *Result_Failure) GetStatus() *status.Status {
 	if x != nil {
-		return x.Status
+		return x.xxx_hidden_Status
 	}
 	return nil
+}
+
+func (x *Result_Failure) SetStackTraceKeys(v []*core.Any) {
+	x.xxx_hidden_StackTraceKeys = &v
+}
+
+func (x *Result_Failure) SetStatus(v *status.Status) {
+	x.xxx_hidden_Status = v
+}
+
+func (x *Result_Failure) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Status != nil
+}
+
+func (x *Result_Failure) ClearStatus() {
+	x.xxx_hidden_Status = nil
+}
+
+type Result_Failure_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	StackTraceKeys []*core.Any
+	Status         *status.Status
+}
+
+func (b0 Result_Failure_builder) Build() *Result_Failure {
+	m0 := &Result_Failure{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_StackTraceKeys = &b.StackTraceKeys
+	x.xxx_hidden_Status = b.Status
+	return m0
 }
 
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_extTypes = []protoimpl.ExtensionInfo{
@@ -1032,7 +1725,7 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x06Action\x12\x83\x01\n" +
 	"\x13overrides_reference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x12overridesReference\x12E\n" +
 	"\x0erequested_keys\x18\x02 \x03(\v2\x1e.bonanza.model.evaluation.KeysR\rrequestedKeys\x12S\n" +
-	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\xe4\x05\n" +
+	"\x13chunking_parameters\x18\x03 \x01(\v2\".bonanza.model.chunking.ParametersR\x12chunkingParameters\"\xd9\x05\n" +
 	"\bProgress\x12,\n" +
 	"\x12blocked_keys_count\x18\x01 \x01(\x04R\x10blockedKeysCount\x124\n" +
 	"\x16evaluatable_keys_count\x18\x02 \x01(\x04R\x14evaluatableKeysCount\x12f\n" +
@@ -1040,14 +1733,13 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	" additional_evaluating_keys_count\x18\x04 \x01(\x04R\x1dadditionalEvaluatingKeysCount\x120\n" +
 	"\x14evaluated_keys_count\x18\x05 \x01(\x04R\x12evaluatedKeysCount\x120\n" +
 	"\x14uploading_keys_count\x18\x06 \x01(\x04R\x12uploadingKeysCount\x120\n" +
-	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xac\x02\n" +
+	"\x14completed_keys_count\x18\a \x01(\x04R\x12completedKeysCount\x1a\xa1\x02\n" +
 	"\rEvaluatingKey\x12)\n" +
 	"\x03key\x18\x01 \x01(\v2\x17.bonanza.model.core.AnyR\x03key\x12P\n" +
 	"\x16first_evaluation_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14firstEvaluationStart\x12T\n" +
 	"\x18current_evaluation_start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x16currentEvaluationStart\x12\x1a\n" +
-	"\brestarts\x18\x04 \x01(\rR\brestarts\x12\x1f\n" +
-	"\bprogress\x18\x05 \x01(\fH\x00R\bprogress\x88\x01\x01B\v\n" +
-	"\t_progress\"\xca\x02\n" +
+	"\brestarts\x18\x04 \x01(\rR\brestarts\x12!\n" +
+	"\bprogress\x18\x05 \x01(\fB\x05\xaa\x01\x02\b\x01R\bprogress\"\xca\x02\n" +
 	"\x06Result\x12B\n" +
 	"\afailure\x18\x01 \x01(\v2(.bonanza.model.evaluation.Result.FailureR\afailure\x12\x81\x01\n" +
 	"\x12outcomes_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB*\xea\xd7 &\x1a$bonanza.model.evaluation.EvaluationsR\x11outcomesReference\x1ax\n" +
@@ -1055,19 +1747,7 @@ const file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc = "
 	"\x10stack_trace_keys\x18\x01 \x03(\v2\x17.bonanza.model.core.AnyR\x0estackTraceKeys\x12*\n" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06status:x\n" +
 	"\x0fkey_description\x12\x1f.google.protobuf.MessageOptions\x18\xfe\x8a\x04 \x01(\v2,.bonanza.model.evaluation.MessageDescriptionR\x0ekeyDescription:\x82\x01\n" +
-	"\x14progress_description\x12\x1f.google.protobuf.MessageOptions\x18\xff\x8a\x04 \x01(\v2,.bonanza.model.evaluation.MessageDescriptionR\x13progressDescriptionB*Z(bonanza.build/pkg/proto/model/evaluationb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_rawDescData
-}
+	"\x14progress_description\x12\x1f.google.protobuf.MessageOptions\x18\xff\x8a\x04 \x01(\v2,.bonanza.model.evaluation.MessageDescriptionR\x13progressDescriptionB/Z(bonanza.build/pkg/proto/model/evaluation\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
@@ -1137,18 +1817,17 @@ func file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[2].OneofWrappers = []any{
-		(*Keys_Leaf)(nil),
-		(*Keys_Parent_)(nil),
+		(*keys_Leaf)(nil),
+		(*keys_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[4].OneofWrappers = []any{
-		(*Graphlet_EvaluationInline)(nil),
-		(*Graphlet_EvaluationExternal)(nil),
+		(*graphlet_EvaluationInline)(nil),
+		(*graphlet_EvaluationExternal)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[5].OneofWrappers = []any{
-		(*Evaluations_Leaf_)(nil),
-		(*Evaluations_Parent_)(nil),
+		(*evaluations_Leaf_)(nil),
+		(*evaluations_Parent_)(nil),
 	}
-	file_bonanza_build_pkg_proto_model_evaluation_evaluation_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

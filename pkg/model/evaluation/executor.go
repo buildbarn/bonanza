@@ -192,17 +192,17 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				),
 			)
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 		}
-		chunkingParameters, err := chunking.NewParametersFromProto(actionMessage.Message.ChunkingParameters, referenceFormat)
+		chunkingParameters, err := chunking.NewParametersFromProto(actionMessage.Message.GetChunkingParameters(), referenceFormat)
 		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(util.StatusWrap(err, "Invalid chunking parameters")).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
@@ -217,12 +217,12 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		overrides, err := model_parser.MaybeDereference(
 			ctx,
 			evaluationsReader,
-			model_core.Nested(actionMessage, actionMessage.Message.OverridesReference),
+			model_core.Nested(actionMessage, actionMessage.Message.GetOverridesReference()),
 		)
 		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(err).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
@@ -242,57 +242,56 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 			},
 			&errIterOverrideKeys,
 		) {
-			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
-			if !ok {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+			overrideLeaf := override.Message.GetLeaf()
+			if overrideLeaf == nil {
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.New(codes.InvalidArgument, "Override is not a valid leaf").Proto(),
-				}
+				}.Build())
 				return &result
 			}
-			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.Leaf.KeyReference)
+			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.GetKeyReference())
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			rawKeyReference := keyReference.GetRawReference()
 			if bytes.Compare(previousKeyReferenceWithOverride, rawKeyReference) >= 0 {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.New(codes.InvalidArgument, "Overrides are not sorted by key reference, or contain duplicates").Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			previousKeyReferenceWithOverride = rawKeyReference
 			keyReferencesWithOverridesHasher.Write(rawKeyReference)
 		}
 		if errIterOverrideKeys != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(errIterOverrideKeys).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
 		cacheTagSignaturePublicKey := e.cacheTagSignaturePrivateKey.Public().(ed25519.PublicKey)
 		cacheTagSignaturePKIXPublicKey, err := x509.MarshalPKIXPublicKey(cacheTagSignaturePublicKey)
 		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(err).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
-				keyReferencesWithOverridesHash := keyReferencesWithOverridesHasher.Sum(nil)
 				return &model_evaluation_cache_pb.ActionTagKeyData{
 					CommonTagKeyData: &model_tag_pb.CommonKeyData{
 						SignaturePublicKey: cacheTagSignaturePKIXPublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
 						ObjectEncoders:     action.Encoders,
 					},
-					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHash,
-					ChunkingParameters:             actionMessage.Message.ChunkingParameters,
+					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHasher.Sum(nil),
+					ChunkingParameters:             actionMessage.Message.GetChunkingParameters(),
 				}
 			},
 		).SortAndSetReferences()
@@ -376,45 +375,45 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 			},
 			&errIterRegisterOverrides,
 		) {
-			overrideLeaf, ok := override.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
-			if !ok {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+			overrideLeaf := override.Message.GetLeaf()
+			if overrideLeaf == nil {
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.New(codes.InvalidArgument, "Override is not a valid leaf").Proto(),
-				}
+				}.Build())
 				return &result
 			}
-			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.Leaf.KeyReference)
+			keyReference, err := referenceFormat.NewLocalReference(overrideLeaf.GetKeyReference())
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
-			evaluation, err := GraphletGetEvaluation(ctx, evaluationReader, model_core.Nested(override, overrideLeaf.Leaf.Graphlet))
+			evaluation, err := GraphletGetEvaluation(ctx, evaluationReader, model_core.Nested(override, overrideLeaf.GetGraphlet()))
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
-			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
+			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.GetValue()))
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			if err := recursiveComputer.OverrideKeyState(keyReference, value); err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 		}
 		if errIterRegisterOverrides != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(errIterRegisterOverrides).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
@@ -426,43 +425,43 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		for requestedKeyNode := range btree.AllLeaves(
 			ctx,
 			keysReader,
-			model_core.Nested(actionMessage, actionMessage.Message.RequestedKeys),
+			model_core.Nested(actionMessage, actionMessage.Message.GetRequestedKeys()),
 			/* traverser = */ func(evaluation model_core.Message[*model_evaluation_pb.Keys, buffered.Reference]) (*model_core_pb.DecodableReference, error) {
 				return evaluation.Message.GetParent().GetReference(), nil
 			},
 			&errIterRequestedKeys,
 		) {
-			requestedKeyLeaf, ok := requestedKeyNode.Message.Level.(*model_evaluation_pb.Keys_Leaf)
-			if !ok {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+			requestedKeyLeaf := requestedKeyNode.Message.GetLeaf()
+			if requestedKeyLeaf == nil {
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.New(codes.InvalidArgument, "Key is not a valid leaf").Proto(),
-				}
+				}.Build())
 				return &result
 			}
 
-			requestedKey, err := model_core.FlattenAny(model_core.Nested(requestedKeyNode, requestedKeyLeaf.Leaf))
+			requestedKey, err := model_core.FlattenAny(model_core.Nested(requestedKeyNode, requestedKeyLeaf))
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			requestedKeys = append(requestedKeys, requestedKey)
 
 			requestedKeyReference, err := model_core.ComputeTopLevelMessageReference(requestedKey, referenceFormat)
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			requestedKeyReferences = append(requestedKeyReferences, requestedKeyReference)
 
 		}
 		if errIterRequestedKeys != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(errIterRequestedKeys).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 
@@ -470,9 +469,9 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 		for _, requestedKey := range requestedKeys {
 			keyState, err := recursiveComputer.GetOrCreateKeyState(requestedKey)
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			requestedKeyStates = append(requestedKeyStates, keyState)
@@ -586,9 +585,9 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 
 		outcomes, err := recursiveComputer.GetEvaluations(ctx, requestedKeyStates)
 		if err != nil {
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				Status: status.Convert(err).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 		if len(outcomes.Message) > 0 {
@@ -598,19 +597,19 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				deterministicActionEncoder,
 			)
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
 			outcomesReference, err := resultPatcher.CaptureAndAddDecodableReference(ctx, createdEvaluations, objectManager)
 			if err != nil {
-				result.Failure = &model_evaluation_pb.Result_Failure{
+				result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 					Status: status.Convert(err).Proto(),
-				}
+				}.Build())
 				return &result
 			}
-			result.OutcomesReference = outcomesReference
+			result.SetOutcomesReference(outcomesReference)
 		}
 
 		if errComputeAndUpload != nil {
@@ -623,9 +622,9 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 
 				key, err := recursiveComputer.GetKeyStateKeyMessage(ctx, nestedErr.KeyState)
 				if err != nil {
-					result.Failure = &model_evaluation_pb.Result_Failure{
+					result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 						Status: status.Convert(err).Proto(),
-					}
+					}.Build())
 					return &result
 				}
 				patchedStackTraceKeys = append(
@@ -639,10 +638,10 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 				errComputeAndUpload = nestedErr.Err
 			}
 
-			result.Failure = &model_evaluation_pb.Result_Failure{
+			result.SetFailure(model_evaluation_pb.Result_Failure_builder{
 				StackTraceKeys: patchedStackTraceKeys,
 				Status:         status.Convert(errComputeAndUpload).Proto(),
-			}
+			}.Build())
 			return &result
 		}
 		return &result
@@ -682,7 +681,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
-	if resultMessage.Message.Failure != nil {
+	if resultMessage.Message.GetFailure() != nil {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
 	return resultReference, resultCode, nil

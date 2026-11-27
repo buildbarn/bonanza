@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.evaluation;
 
@@ -8,6 +8,7 @@ import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/evaluation";
 
 // Remote evaluation.
@@ -244,7 +245,7 @@ message Progress {
     // This field has explicit presence, as progress messages may
     // marshal to an empty byte sequence (e.g., when all fields have
     // their default value).
-    optional bytes progress = 5;
+    bytes progress = 5 [features.field_presence = EXPLICIT];
   }
 
   // Keys for which the evaluation function is currently being executed,

@@ -26,9 +26,9 @@ import (
 // message containing a string field.
 func newKeyMessageDescriptor(t *testing.T, name, template string) protoreflect.MessageDescriptor {
 	options := &descriptorpb.MessageOptions{}
-	proto.SetExtension(options, model_evaluation_pb.E_KeyDescription, &model_evaluation_pb.MessageDescription{
+	proto.SetExtension(options, model_evaluation_pb.E_KeyDescription, model_evaluation_pb.MessageDescription_builder{
 		Template: template,
-	})
+	}.Build())
 	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
 		Name:    proto.String("key_description_test_" + name + ".proto"),
 		Package: proto.String("key_description_test_" + name),
@@ -217,9 +217,9 @@ func TestDescribeKey(t *testing.T) {
 // template.
 func newProgressMessageDescriptor(t *testing.T, name, template string, fields []*descriptorpb.FieldDescriptorProto) protoreflect.MessageDescriptor {
 	options := &descriptorpb.MessageOptions{}
-	proto.SetExtension(options, model_evaluation_pb.E_ProgressDescription, &model_evaluation_pb.MessageDescription{
+	proto.SetExtension(options, model_evaluation_pb.E_ProgressDescription, model_evaluation_pb.MessageDescription_builder{
 		Template: template,
-	})
+	}.Build())
 	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
 		Name:    proto.String("progress_description_test_" + name + ".proto"),
 		Package: proto.String("progress_description_test_" + name),
@@ -286,11 +286,11 @@ func TestDescribeProgress(t *testing.T) {
 			{12897485, 42047652, "12.3 MiB of 40.1 MiB"},
 			{3 << 40, 0, "3.0 TiB"},
 		} {
-			counter := &model_evaluation_pb.ProgressCounter{
+			counter := model_evaluation_pb.ProgressCounter_builder{
 				Current: tc.current,
 				Total:   tc.total,
 				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
-			}
+			}.Build()
 			description, ok, err := model_evaluation.DescribeProgress((&model_analysis_pb.HttpFileContents_Progress{
 				Downloaded: counter,
 			}).ProtoReflect())
@@ -325,10 +325,10 @@ func TestDescribeProgress(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, "Extracted 3 of 10 files", description.String())
-		testutil.RequireEqualProto(t, &model_evaluation_pb.ProgressCounter{
+		testutil.RequireEqualProto(t, model_evaluation_pb.ProgressCounter_builder{
 			Current: 3,
 			Total:   10,
-		}, description.Counter)
+		}.Build(), description.Counter)
 	})
 
 	t.Run("InvalidProgressMessages", func(t *testing.T) {

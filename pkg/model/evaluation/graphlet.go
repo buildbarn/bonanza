@@ -18,11 +18,11 @@ func GraphletGetEvaluation[TReference any](
 	reader model_parser.MessageObjectReader[TReference, *model_evaluation_pb.Evaluation],
 	graphlet model_core.Message[*model_evaluation_pb.Graphlet, TReference],
 ) (model_core.Message[*model_evaluation_pb.Evaluation, TReference], error) {
-	switch evaluation := graphlet.Message.GetEvaluation().(type) {
-	case *model_evaluation_pb.Graphlet_EvaluationExternal:
-		return model_parser.Dereference(ctx, reader, model_core.Nested(graphlet, evaluation.EvaluationExternal))
-	case *model_evaluation_pb.Graphlet_EvaluationInline:
-		return model_core.Nested(graphlet, evaluation.EvaluationInline), nil
+	switch graphlet.Message.WhichEvaluation() {
+	case model_evaluation_pb.Graphlet_EvaluationExternal_case:
+		return model_parser.Dereference(ctx, reader, model_core.Nested(graphlet, graphlet.Message.GetEvaluationExternal()))
+	case model_evaluation_pb.Graphlet_EvaluationInline_case:
+		return model_core.Nested(graphlet, graphlet.Message.GetEvaluationInline()), nil
 	default:
 		return model_core.Message[*model_evaluation_pb.Evaluation, TReference]{}, status.Error(codes.InvalidArgument, "Graphlet node has no evaluation")
 	}

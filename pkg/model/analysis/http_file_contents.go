@@ -125,11 +125,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 			event = m.Message
 		}
 		e.ReportHTTPFileContentsProgress(&model_analysis_pb.HttpFileContents_Progress{
-			Downloaded: &model_evaluation_pb.ProgressCounter{
+			Downloaded: model_evaluation_pb.ProgressCounter_builder{
 				Current: event.GetDownloadedSizeBytes(),
 				Total:   event.GetTotalSizeBytes(),
 				Unit:    model_evaluation_pb.ProgressCounter_BYTES,
-			},
+			}.Build(),
 		})
 	}
 	if errExecution != nil {

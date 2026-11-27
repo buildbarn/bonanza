@@ -596,22 +596,23 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetProgress(ctx context.Cont
 					marshaledProgress = []byte{}
 				}
 			}
-			evaluatingKeysMessages = append(evaluatingKeysMessages, &model_evaluation_pb.Progress_EvaluatingKey{
+			evaluatingKeysMessages = append(evaluatingKeysMessages, model_evaluation_pb.Progress_EvaluatingKey_builder{
 				Key:                    model_core.Patch(rc.objectManager, model_core.WrapTopLevelAny(key).Decay()).Merge(patcher),
 				FirstEvaluationStart:   timestamppb.New(ks.firstEvaluationStart),
 				CurrentEvaluationStart: timestamppb.New(ks.currentEvaluationStart),
 				Restarts:               ks.restarts,
 				Progress:               marshaledProgress,
-			})
+			}.Build())
 		}
-		return &model_evaluation_pb.Progress{
+		progress := model_evaluation_pb.Progress_builder{
 			BlockedKeysCount:     rc.blockedKeys.count,
 			EvaluatableKeysCount: rc.evaluatableKeysCount,
 			OldestEvaluatingKeys: evaluatingKeysMessages,
 			EvaluatedKeysCount:   rc.evaluatedKeys.count,
 			UploadingKeysCount:   rc.uploadingKeys.count,
 			CompletedKeysCount:   rc.completedKeys.count,
-		}, nil
+		}.Build()
+		return progress, nil
 	})
 }
 
@@ -625,21 +626,19 @@ func (rc *RecursiveComputer[TReference, TMetadata]) enqueueForEvaluation(ks *Key
 func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsParentNodeComputer(ctx context.Context) btree.ParentNodeComputer[*model_evaluation_pb.Evaluations, TMetadata] {
 	return btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Evaluations, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Evaluations, TMetadata] {
 		var firstKeyReference []byte
-		switch firstEntry := childNodes.Message[0].Level.(type) {
-		case *model_evaluation_pb.Evaluations_Leaf_:
-			firstKeyReference = firstEntry.Leaf.KeyReference
-		case *model_evaluation_pb.Evaluations_Parent_:
-			firstKeyReference = firstEntry.Parent.FirstKeyReference
+		switch childNodes.Message[0].WhichLevel() {
+		case model_evaluation_pb.Evaluations_Leaf_case:
+			firstKeyReference = childNodes.Message[0].GetLeaf().GetKeyReference()
+		case model_evaluation_pb.Evaluations_Parent_case:
+			firstKeyReference = childNodes.Message[0].GetParent().GetFirstKeyReference()
 		}
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Evaluations {
-			return &model_evaluation_pb.Evaluations{
-				Level: &model_evaluation_pb.Evaluations_Parent_{
-					Parent: &model_evaluation_pb.Evaluations_Parent{
-						Reference:         patcher.AddDecodableReference(createdObject),
-						FirstKeyReference: firstKeyReference,
-					},
-				},
-			}
+			return model_evaluation_pb.Evaluations_builder{
+				Parent: model_evaluation_pb.Evaluations_Parent_builder{
+					Reference:         patcher.AddDecodableReference(createdObject),
+					FirstKeyReference: firstKeyReference,
+				}.Build(),
+			}.Build()
 		})
 	})
 }
@@ -691,14 +690,12 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 			if err != nil {
 				return nil, err
 			}
-			return &model_evaluation_pb.Evaluations{
-				Level: &model_evaluation_pb.Evaluations_Leaf_{
-					Leaf: &model_evaluation_pb.Evaluations_Leaf{
-						KeyReference: ks.keyReference.GetRawReference(),
-						Graphlet:     model_core.Patch(rc.objectManager, graphlet).Merge(patcher),
-					},
-				},
-			}, nil
+			return model_evaluation_pb.Evaluations_builder{
+				Leaf: model_evaluation_pb.Evaluations_Leaf_builder{
+					KeyReference: ks.keyReference.GetRawReference(),
+					Graphlet:     model_core.Patch(rc.objectManager, graphlet).Merge(patcher),
+				}.Build(),
+			}.Build(), nil
 		})
 		if err != nil {
 			return model_core.PatchedMessage[[]*model_evaluation_pb.Evaluations, TMetadata]{}, err
@@ -714,13 +711,11 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getEvaluationsForSortedList(
 func (rc *RecursiveComputer[TReference, TMetadata]) getKeysParentNodeComputer(ctx context.Context) btree.ParentNodeComputer[*model_evaluation_pb.Keys, TMetadata] {
 	return btree.Capturing(ctx, rc.objectManager, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_evaluation_pb.Keys, object.LocalReference]) model_core.PatchedMessage[*model_evaluation_pb.Keys, TMetadata] {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_pb.Keys {
-			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Parent_{
-					Parent: &model_evaluation_pb.Keys_Parent{
-						Reference: patcher.AddDecodableReference(createdObject),
-					},
-				},
-			}
+			return model_evaluation_pb.Keys_builder{
+				Parent: model_evaluation_pb.Keys_Parent_builder{
+					Reference: patcher.AddDecodableReference(createdObject),
+				}.Build(),
+			}.Build()
 		})
 	})
 }
@@ -747,14 +742,12 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getKeysForSortedList(ctx con
 			if err != nil {
 				return nil, err
 			}
-			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Leaf{
-					Leaf: model_core.Patch(
-						rc.objectManager,
-						model_core.WrapTopLevelAny(key).Decay(),
-					).Merge(patcher),
-				},
-			}, nil
+			return model_evaluation_pb.Keys_builder{
+				Leaf: proto.ValueOrDefault(model_core.Patch(
+					rc.objectManager,
+					model_core.WrapTopLevelAny(key).Decay(),
+				).Merge(patcher)),
+			}.Build(), nil
 		})
 		if err != nil {
 			return model_core.PatchedMessage[[]*model_evaluation_pb.Keys, TMetadata]{}, err
@@ -883,11 +876,11 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forEachCachedKey(
 		},
 		&errIter,
 	) {
-		leaf, ok := key.Message.Level.(*model_evaluation_pb.Keys_Leaf)
-		if !ok {
+		leaf := key.Message.GetLeaf()
+		if leaf == nil {
 			return false, nil
 		}
-		keyMessage, err := model_core.FlattenAny(model_core.Nested(key, leaf.Leaf))
+		keyMessage, err := model_core.FlattenAny(model_core.Nested(key, leaf))
 		if err != nil {
 			return false, nil
 		}
@@ -981,7 +974,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 		inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
 			patchedValue.Patcher,
 			func(evaluation model_core.PatchedMessage[*model_evaluation_pb.Evaluation, TMetadata]) {
-				evaluation.Message.Value = patchedValue.Message
+				evaluation.Message.SetValue(patchedValue.Message)
 			},
 		))
 	}
@@ -1008,7 +1001,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildEvaluation(ctx context.
 			if err != nil {
 				return err
 			}
-			evaluation.Message.DirectVariableDependencyKeys = directVariableDependencies
+			evaluation.Message.SetDirectVariableDependencyKeys(directVariableDependencies)
 			return nil
 		},
 	})
@@ -1032,13 +1025,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) buildGraphletEvaluation(ctx 
 			externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 		) {
 			if externalObject == nil {
-				graphlet.Message.Evaluation = &model_evaluation_pb.Graphlet_EvaluationInline{
-					EvaluationInline: evaluation.Message,
-				}
+				graphlet.Message.SetEvaluationInline(proto.ValueOrDefault(evaluation.Message))
 			} else {
-				graphlet.Message.Evaluation = &model_evaluation_pb.Graphlet_EvaluationExternal{
-					EvaluationExternal: graphlet.Patcher.AddDecodableReference(*externalObject),
-				}
+				graphlet.Message.SetEvaluationExternal(proto.ValueOrDefault(graphlet.Patcher.AddDecodableReference(*externalObject)))
 			}
 		}),
 	}, nil
@@ -1807,7 +1796,7 @@ func (vs *variableDependenciesComputedValueState[TReference, TMetadata]) buildGr
 			if err != nil {
 				return err
 			}
-			graphlet.Message.DependencyEvaluations = dependencyEvaluations
+			graphlet.Message.SetDependencyEvaluations(dependencyEvaluations)
 			return nil
 		},
 	})
@@ -2001,18 +1990,18 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			return vs.fallBackToValueLookup(ctx, rc, ks)
 		}
 
-		switch r := lookupResult.Message.Result.(type) {
+		switch lookupResult.Message.GetResult().(type) {
 		case *model_evaluation_cache_pb.LookupResult_HitGraphlet:
 			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
-			evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, model_core.Nested(lookupResult, r.HitGraphlet))
+			evaluation, err := GraphletGetEvaluation(ctx, rc.evaluationReader, model_core.Nested(lookupResult, lookupResult.Message.GetHitGraphlet()))
 			if err != nil {
 				return &earlyFailedValueState[TReference, TMetadata]{
 					err: err,
 				}, nil
 			}
-			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
+			value, err := model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.GetValue()))
 			if err != nil {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -2027,7 +2016,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
-			value, err := model_core.FlattenOpaque(model_core.Nested(lookupResult, r.HitValue))
+			value, err := model_core.FlattenOpaque(model_core.Nested(lookupResult, lookupResult.Message.GetHitValue()))
 			if err != nil {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -2044,7 +2033,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			// The dependencies gathered up to this point
 			// are insufficient to obtain a hit. Extend the
 			// set of dependencies and perform another lookup.
-			additionalDependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(lookupResult, r.MissingDependencies.AdditionalVariableDependencyKeys))
+			additionalDependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(lookupResult, lookupResult.Message.GetMissingDependencies().GetAdditionalVariableDependencyKeys()))
 			if err != nil {
 				return &earlyFailedValueState[TReference, TMetadata]{
 					err: err,
@@ -2245,12 +2234,10 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) upload
 		return model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
 				return &model_evaluation_cache_pb.LookupResult{
-					Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{
-						HitGraphlet: model_core.Patch(
-							rc.objectManager,
-							vs.graphlet,
-						).Merge(patcher),
-					},
+					Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{HitGraphlet: model_core.Patch(
+						rc.objectManager,
+						vs.graphlet,
+					).Merge(patcher)},
 				}
 			},
 		), nil
@@ -2272,12 +2259,10 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) upload
 			return model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
 					return &model_evaluation_cache_pb.LookupResult{
-						Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-							HitValue: model_core.Patch(
-								rc.objectManager,
-								model_core.Nested(evaluation, evaluation.Message.Value),
-							).Merge(patcher),
-						},
+						Result: &model_evaluation_cache_pb.LookupResult_HitValue{HitValue: model_core.Patch(
+							rc.objectManager,
+							model_core.Nested(evaluation, evaluation.Message.GetValue()),
+						).Merge(patcher)},
 					}
 				},
 			), nil
@@ -2722,7 +2707,7 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) getVal
 	if err != nil {
 		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
+	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.GetValue()))
 }
 
 func (variableDependenciesMarshaledValueState[TReference, TMetadata]) getError() error {
@@ -2786,13 +2771,13 @@ func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) getValu
 		rc.evaluationReader,
 		model_core.Nested(
 			hitGraphletLookupResult,
-			hitGraphletLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+			hitGraphletLookupResult.Message.GetHitGraphlet(),
 		),
 	)
 	if err != nil {
 		return model_core.TopLevelMessage[[]byte, TReference]{}, err
 	}
-	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.Value))
+	return model_core.FlattenOpaque(model_core.Nested(evaluation, evaluation.Message.GetValue()))
 }
 
 func (variableDependenciesUploadedValueState[TReference, TMetadata]) getError() error {
@@ -2844,14 +2829,11 @@ func newValueOnlyGraphlet[TReference any](value model_core.TopLevelMessage[[]byt
 	// TODO: Should this also use inlinedtree?
 	wrappedValue := model_core.WrapTopLevelOpaque(value).Decay()
 	return model_core.Nested(
-		wrappedValue,
-		&model_evaluation_pb.Graphlet{
-			Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{
-				EvaluationInline: &model_evaluation_pb.Evaluation{
-					Value: wrappedValue.Message,
-				},
-			},
-		},
+		wrappedValue, model_evaluation_pb.Graphlet_builder{
+			EvaluationInline: model_evaluation_pb.Evaluation_builder{
+				Value: wrappedValue.Message,
+			}.Build(),
+		}.Build(),
 	)
 }
 

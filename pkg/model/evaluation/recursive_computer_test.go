@@ -177,8 +177,8 @@ func TestRecursiveComputer(t *testing.T) {
 		// knows it.
 		evaluations, _ := patchedEvaluations.SortAndSetReferences()
 		require.Len(t, evaluations.Message, 1)
-		testutil.RequireEqualProto(t, &model_evaluation_pb.Evaluations{
-			Level: &model_evaluation_pb.Evaluations_Leaf_{Leaf: &model_evaluation_pb.Evaluations_Leaf{
+		testutil.RequireEqualProto(t, model_evaluation_pb.Evaluations_builder{
+			Leaf: model_evaluation_pb.Evaluations_Leaf_builder{
 				// &wrapperspb.UInt32Value{Value: 93}
 				KeyReference: []byte{
 					0x0c, 0xfe, 0x3c, 0x1c, 0x36, 0x0e, 0x96, 0x44,
@@ -187,18 +187,18 @@ func TestRecursiveComputer(t *testing.T) {
 					0x41, 0xe7, 0x61, 0x11, 0xa8, 0x1b, 0xe3, 0xdd,
 					0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				},
-				Graphlet: &model_evaluation_pb.Graphlet{
-					Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{EvaluationInline: &model_evaluation_pb.Evaluation{
+				Graphlet: model_evaluation_pb.Graphlet_builder{
+					EvaluationInline: model_evaluation_pb.Evaluation_builder{
 						Value: model_core_pb.Opaque_builder{
 							Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
 								Value: 12200160415121876738,
 							})),
 							References: &model_core_pb.ReferenceSet{},
 						}.Build(),
-					}},
-				},
-			}},
-		}, evaluations.Message[0])
+					}.Build(),
+				}.Build(),
+			}.Build(),
+		}.Build(), evaluations.Message[0])
 	})
 
 	t.Run("ReportProgress", func(t *testing.T) {
@@ -1045,12 +1045,12 @@ func TestRecursiveComputer(t *testing.T) {
 		// Initial lookup for &wrapperspb.UInt32Value{Value: 18},
 		// returning lists of keys in descending order.
 		newKeysLeaf := func(n uint32) *model_evaluation_pb.Keys {
-			return &model_evaluation_pb.Keys{
-				Level: &model_evaluation_pb.Keys_Leaf{Leaf: model_core_pb.Any_builder{
+			return model_evaluation_pb.Keys_builder{
+				Leaf: model_core_pb.Any_builder{
 					Value:      util.Must(anypb.New(&wrapperspb.UInt32Value{Value: n})),
 					References: &model_core_pb.ReferenceSet{},
-				}.Build()},
-			}
+				}.Build(),
+			}.Build()
 		}
 		low, high := uint32(16), uint32(17)
 		if bytes.Compare(cacheTestKeyReference(low).GetRawReference(), cacheTestKeyReference(high).GetRawReference()) > 0 {

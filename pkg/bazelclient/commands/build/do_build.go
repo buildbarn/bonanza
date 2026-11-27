@@ -803,16 +803,16 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			return nil, err
 		}
 
-		return model_format.NewProtoList[model_evaluation_pb.Evaluations]().NewMarshaler([]*model_evaluation_pb.Evaluations{{
-			Level: &model_evaluation_pb.Evaluations_Leaf_{Leaf: &model_evaluation_pb.Evaluations_Leaf{
+		return model_format.NewProtoList[model_evaluation_pb.Evaluations]().NewMarshaler([]*model_evaluation_pb.Evaluations{model_evaluation_pb.Evaluations_builder{
+			Leaf: model_evaluation_pb.Evaluations_Leaf_builder{
 				KeyReference: buildSpecificationKeyReference.GetRawReference(),
-				Graphlet: &model_evaluation_pb.Graphlet{
-					Evaluation: &model_evaluation_pb.Graphlet_EvaluationInline{EvaluationInline: &model_evaluation_pb.Evaluation{
+				Graphlet: model_evaluation_pb.Graphlet_builder{
+					EvaluationInline: model_evaluation_pb.Evaluation_builder{
 						Value: buildSpecificationValue.Merge(patcher),
-					}},
-				},
-			}},
-		}}), nil
+					}.Build(),
+				}.Build(),
+			}.Build(),
+		}.Build()}), nil
 	})
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create overrides list message: %s", err))
@@ -854,11 +854,11 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 			return nil, err
 		}
 
-		return model_format.NewProto[model_evaluation_pb.Action]().NewMarshaler(&model_evaluation_pb.Action{
+		return model_format.NewProto[model_evaluation_pb.Action]().NewMarshaler(model_evaluation_pb.Action_builder{
 			OverridesReference: overridesReference,
-			RequestedKeys: []*model_evaluation_pb.Keys{{
-				Level: &model_evaluation_pb.Keys_Leaf{Leaf: patchedRequestedKeyAny.Merge(patcher)},
-			}},
+			RequestedKeys: []*model_evaluation_pb.Keys{model_evaluation_pb.Keys_builder{
+				Leaf: proto.ValueOrDefault(patchedRequestedKeyAny.Merge(patcher)),
+			}.Build()},
 			// Keep these parameters constant, so that the
 			// graphlets that are returned remain comparable
 			// across evaluations.
@@ -866,7 +866,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 				MinimumSizeBytes: 8 * 1024,
 				HorizonSizeBytes: 8 * 8 * 1024,
 			}.Build(),
-		}), nil
+		}.Build()), nil
 	})
 	if err != nil {
 		logger.Fatal(formatted.Textf("Failed to create action message: %s", err))
@@ -1232,9 +1232,9 @@ func formatEvaluatingKeyProgress(line formatted.Node, key *anypb.Any, marshaledP
 		padding = minimumPadding
 	}
 	line = formatted.Join(line, formatted.Text(strings.Repeat(" ", padding)), progressNode)
-	if counter := description.Counter; counter != nil && counter.Total > 0 {
-		current := min(counter.Current, counter.Total)
-		line = formatted.ProgressBar(int(uint64(columns)*current/counter.Total), line)
+	if counter := description.Counter; counter != nil && counter.GetTotal() > 0 {
+		current := min(counter.GetCurrent(), counter.GetTotal())
+		line = formatted.ProgressBar(int(uint64(columns)*current/counter.GetTotal()), line)
 	}
 	return line
 }

@@ -106,11 +106,11 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 		evaluationsReader,
 		outcomes,
 		func(entry model_core.Message[*model_evaluation_pb.Evaluations, object.LocalReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
-			case *model_evaluation_pb.Evaluations_Leaf_:
-				return bytes.Compare(keyReference.GetRawReference(), level.Leaf.KeyReference), nil
-			case *model_evaluation_pb.Evaluations_Parent_:
-				return bytes.Compare(keyReference.GetRawReference(), level.Parent.FirstKeyReference), level.Parent.Reference
+			switch entry.Message.WhichLevel() {
+			case model_evaluation_pb.Evaluations_Leaf_case:
+				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetLeaf().GetKeyReference()), nil
+			case model_evaluation_pb.Evaluations_Parent_case:
+				return bytes.Compare(keyReference.GetRawReference(), entry.Message.GetParent().GetFirstKeyReference()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -122,8 +122,8 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 	if !evaluations.IsSet() {
 		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("requested key is not present in outcomes")
 	}
-	leaf, ok := evaluations.Message.Level.(*model_evaluation_pb.Evaluations_Leaf_)
-	if !ok {
+	leaf := evaluations.Message.GetLeaf()
+	if leaf == nil {
 		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("outcomes entry of requested key is not a valid leaf")
 	}
 
@@ -136,13 +136,14 @@ func (e *Evaluation) GetRequestedValue(ctx context.Context) (model_core.Message[
 				model_parser.NewProtoObjectParser[object.LocalReference, model_evaluation_pb.Evaluation](),
 			),
 		),
-		model_core.Nested(evaluations, leaf.Leaf.Graphlet),
+		model_core.Nested(evaluations, leaf.GetGraphlet()),
 	)
 	if err != nil {
 		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, fmt.Errorf("failed to obtain evaluation of requested key: %w", err)
 	}
-	if evaluation.Message.Value == nil {
+	value := evaluation.Message.GetValue()
+	if value == nil {
 		return model_core.Message[*model_core_pb.Opaque, object.LocalReference]{}, errors.New("evaluation of requested key has no value")
 	}
-	return model_core.Nested(evaluation, evaluation.Message.Value), nil
+	return model_core.Nested(evaluation, value), nil
 }

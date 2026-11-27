@@ -48,11 +48,11 @@ func newArchiveProgressReporter(report func(*model_analysis_pb.HttpArchiveConten
 
 func (pr *archiveProgressReporter) reportCurrent() {
 	pr.report(&model_analysis_pb.HttpArchiveContents_Progress{
-		Extracted: &model_evaluation_pb.ProgressCounter{
+		Extracted: model_evaluation_pb.ProgressCounter_builder{
 			Current: pr.currentBytes,
 			Total:   pr.totalBytes,
 			Unit:    model_evaluation_pb.ProgressCounter_BYTES,
-		},
+		}.Build(),
 	})
 }
 
