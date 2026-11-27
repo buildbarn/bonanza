@@ -52,12 +52,12 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.StorageGrpcClient, dependenciesGroup)
+		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetStorageGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
@@ -66,10 +66,10 @@ func main() {
 				object_pb.NewDownloaderClient(storageGRPCClient),
 			),
 		)
-		if configuration.LocalObjectStore != nil {
+		if localObjectStoreConfiguration := configuration.GetLocalObjectStore(); localObjectStoreConfiguration != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
-				configuration.LocalObjectStore,
+				localObjectStoreConfiguration,
 				/* leaseTracking = */ nil,
 			)
 			if err != nil {
@@ -81,62 +81,63 @@ func main() {
 			)
 		}
 
-		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
+		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.GetParsedObjectPool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
 
-		filePool, err := pool.NewFilePoolFromConfiguration(configuration.FilePool)
+		filePool, err := pool.NewFilePoolFromConfiguration(configuration.GetFilePool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create file pool")
 		}
 
-		executionGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.ExecutionGrpcClient, dependenciesGroup)
+		executionGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetExecutionGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create execution gRPC client")
 		}
 
-		executionClientPrivateKey, err := crypto.ParsePEMWithPKCS8ECDHPrivateKey([]byte(configuration.ExecutionClientPrivateKey))
+		executionClientPrivateKey, err := crypto.ParsePEMWithPKCS8ECDHPrivateKey([]byte(configuration.GetExecutionClientPrivateKey()))
 		if err != nil {
 			return util.StatusWrap(err, "Failed to parse execution client private key")
 		}
-		executionClientCertificateChain, err := crypto.ParsePEMWithCertificateChain([]byte(configuration.ExecutionClientCertificateChain))
+		executionClientCertificateChain, err := crypto.ParsePEMWithCertificateChain([]byte(configuration.GetExecutionClientCertificateChain()))
 		if err != nil {
 			return util.StatusWrap(err, "Failed to parse execution client certificate chain")
 		}
 
-		remoteWorkerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.RemoteWorkerGrpcClient, dependenciesGroup)
+		remoteWorkerConnection, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetRemoteWorkerGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create remote worker RPC client")
 		}
 		remoteWorkerClient := remoteworker_pb.NewOperationQueueClient(remoteWorkerConnection)
 
-		platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(configuration.PlatformPrivateKeys)
+		platformPrivateKeys, err := remoteworker.ParsePlatformPrivateKeys(configuration.GetPlatformPrivateKeys())
 		if err != nil {
 			return err
 		}
-		clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(configuration.ClientCertificateVerifier, dependenciesGroup)
+		clientCertificateVerifier, err := x509.NewClientCertificateVerifierFromConfiguration(configuration.GetClientCertificateVerifier(), dependenciesGroup)
 		if err != nil {
 			return err
 		}
-		workerName, err := json.Marshal(configuration.WorkerId)
+		workerName, err := json.Marshal(configuration.GetWorkerId())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to marshal worker ID")
 		}
 
-		cacheTagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(configuration.CacheTagSignaturePrivateKey))
+		cacheTagSignaturePrivateKey, err := crypto.ParsePEMWithEd25519PrivateKey([]byte(configuration.GetCacheTagSignaturePrivateKey()))
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create cache tag signature private key")
 		}
 
-		if configuration.BufferedObjectsLimit == nil {
+		bufferedObjectsLimit := configuration.GetBufferedObjectsLimit()
+		if bufferedObjectsLimit == nil {
 			return status.Error(codes.InvalidArgument, "No buffered objects limit provided")
 		}
-		cacheLookupResultIndirectionMaximumAge := configuration.CacheLookupResultIndirectionMaximumAge
+		cacheLookupResultIndirectionMaximumAge := configuration.GetCacheLookupResultIndirectionMaximumAge()
 		if err := cacheLookupResultIndirectionMaximumAge.CheckValid(); err != nil {
 			return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid cache lookup result indirection maximum age")
 		}
-		binaryEncoderFactory := model_encoding.NewBinaryEncoderFactory(configuration.PermitUnencryptedBinaryEncoders)
+		binaryEncoderFactory := model_encoding.NewBinaryEncoderFactory(configuration.GetPermitUnencryptedBinaryEncoders())
 
 		bzlFileBuiltins, buildFileBuiltins := model_starlark.GetBuiltins[buffered.Reference, *model_core.LeakCheckingReferenceMetadata[buffered.ReferenceMetadata]]()
 		client, err := remoteworker.NewClient(
@@ -158,23 +159,23 @@ func main() {
 							),
 							bzlFileBuiltins,
 							buildFileBuiltins,
-							semaphore.NewWeighted(configuration.ObjectStoreConcurrency),
+							semaphore.NewWeighted(configuration.GetObjectStoreConcurrency()),
 							binaryEncoderFactory,
 						),
 						&queuesFactory[buffered.Reference, buffered.ReferenceMetadata]{
-							local:  model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.LocalEvaluationConcurrency),
-							remote: model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.RemoteEvaluationConcurrency),
+							local:  model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.GetLocalEvaluationConcurrency()),
+							remote: model_evaluation.NewSimpleRecursiveComputerEvaluationQueuesFactory[buffered.Reference, buffered.ReferenceMetadata](configuration.GetRemoteEvaluationConcurrency()),
 						},
 						parsedObjectPool,
 						dag_pb.NewUploaderClient(storageGRPCClient),
-						object.NewLimit(configuration.BufferedObjectsLimit),
-						configuration.BufferedObjectsCacheReplacementPolicy,
+						object.NewLimit(bufferedObjectsLimit),
+						configuration.GetBufferedObjectsCacheReplacementPolicy(),
 						tag_grpc.NewResolver(
 							tag_pb.NewResolverClient(storageGRPCClient),
 							/* leaseValidationContextSource = */ nil,
 						),
 						cacheTagSignaturePrivateKey,
-						configuration.UploadConcurrency,
+						configuration.GetUploadConcurrency(),
 						cacheLookupResultIndirectionMaximumAge.AsDuration(),
 						binaryEncoderFactory,
 						clock.SystemClock,
@@ -185,7 +186,7 @@ func main() {
 			random.CryptoThreadSafeGenerator,
 			platformPrivateKeys,
 			clientCertificateVerifier,
-			configuration.WorkerId,
+			configuration.GetWorkerId(),
 			/* sizeClass = */ 0,
 			/* isLargestSizeClass = */ true,
 		)

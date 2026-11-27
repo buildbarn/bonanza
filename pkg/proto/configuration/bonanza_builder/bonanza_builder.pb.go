@@ -19,7 +19,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -31,30 +30,30 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                                  protoimpl.MessageState                       `protogen:"open.v1"`
-	Global                                 *global.Configuration                        `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	StorageGrpcClient                      *grpc.ClientConfiguration                    `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	FilePool                               *filesystem.FilePoolConfiguration            `protobuf:"bytes,5,opt,name=file_pool,json=filePool,proto3" json:"file_pool,omitempty"`
-	ExecutionGrpcClient                    *grpc.ClientConfiguration                    `protobuf:"bytes,7,opt,name=execution_grpc_client,json=executionGrpcClient,proto3" json:"execution_grpc_client,omitempty"`
-	ExecutionClientPrivateKey              string                                       `protobuf:"bytes,8,opt,name=execution_client_private_key,json=executionClientPrivateKey,proto3" json:"execution_client_private_key,omitempty"`
-	ExecutionClientCertificateChain        string                                       `protobuf:"bytes,9,opt,name=execution_client_certificate_chain,json=executionClientCertificateChain,proto3" json:"execution_client_certificate_chain,omitempty"`
-	RemoteWorkerGrpcClient                 *grpc.ClientConfiguration                    `protobuf:"bytes,10,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient,proto3" json:"remote_worker_grpc_client,omitempty"`
-	PlatformPrivateKeys                    []string                                     `protobuf:"bytes,11,rep,name=platform_private_keys,json=platformPrivateKeys,proto3" json:"platform_private_keys,omitempty"`
-	ClientCertificateVerifier              *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier,proto3" json:"client_certificate_verifier,omitempty"`
-	WorkerId                               map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	LocalObjectStore                       *local.StoreConfiguration                    `protobuf:"bytes,17,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool                       *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	LocalEvaluationConcurrency             uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency,proto3" json:"local_evaluation_concurrency,omitempty"`
-	RemoteEvaluationConcurrency            uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency,proto3" json:"remote_evaluation_concurrency,omitempty"`
-	UploadConcurrency                      uint32                                       `protobuf:"varint,20,opt,name=upload_concurrency,json=uploadConcurrency,proto3" json:"upload_concurrency,omitempty"`
-	ObjectStoreConcurrency                 int64                                        `protobuf:"varint,18,opt,name=object_store_concurrency,json=objectStoreConcurrency,proto3" json:"object_store_concurrency,omitempty"`
-	CacheTagSignaturePrivateKey            string                                       `protobuf:"bytes,19,opt,name=cache_tag_signature_private_key,json=cacheTagSignaturePrivateKey,proto3" json:"cache_tag_signature_private_key,omitempty"`
-	BufferedObjectsLimit                   *object.Limit                                `protobuf:"bytes,21,opt,name=buffered_objects_limit,json=bufferedObjectsLimit,proto3" json:"buffered_objects_limit,omitempty"`
-	BufferedObjectsCacheReplacementPolicy  eviction.CacheReplacementPolicy              `protobuf:"varint,22,opt,name=buffered_objects_cache_replacement_policy,json=bufferedObjectsCacheReplacementPolicy,proto3,enum=buildbarn.configuration.eviction.CacheReplacementPolicy" json:"buffered_objects_cache_replacement_policy,omitempty"`
-	CacheLookupResultIndirectionMaximumAge *durationpb.Duration                         `protobuf:"bytes,23,opt,name=cache_lookup_result_indirection_maximum_age,json=cacheLookupResultIndirectionMaximumAge,proto3" json:"cache_lookup_result_indirection_maximum_age,omitempty"`
-	PermitUnencryptedBinaryEncoders        bool                                         `protobuf:"varint,24,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders,proto3" json:"permit_unencrypted_binary_encoders,omitempty"`
-	unknownFields                          protoimpl.UnknownFields
-	sizeCache                              protoimpl.SizeCache
+	state                                             protoimpl.MessageState                       `protogen:"opaque.v1"`
+	xxx_hidden_Global                                 *global.Configuration                        `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_StorageGrpcClient                      *grpc.ClientConfiguration                    `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient"`
+	xxx_hidden_FilePool                               *filesystem.FilePoolConfiguration            `protobuf:"bytes,5,opt,name=file_pool,json=filePool"`
+	xxx_hidden_ExecutionGrpcClient                    *grpc.ClientConfiguration                    `protobuf:"bytes,7,opt,name=execution_grpc_client,json=executionGrpcClient"`
+	xxx_hidden_ExecutionClientPrivateKey              string                                       `protobuf:"bytes,8,opt,name=execution_client_private_key,json=executionClientPrivateKey"`
+	xxx_hidden_ExecutionClientCertificateChain        string                                       `protobuf:"bytes,9,opt,name=execution_client_certificate_chain,json=executionClientCertificateChain"`
+	xxx_hidden_RemoteWorkerGrpcClient                 *grpc.ClientConfiguration                    `protobuf:"bytes,10,opt,name=remote_worker_grpc_client,json=remoteWorkerGrpcClient"`
+	xxx_hidden_PlatformPrivateKeys                    []string                                     `protobuf:"bytes,11,rep,name=platform_private_keys,json=platformPrivateKeys"`
+	xxx_hidden_ClientCertificateVerifier              *x509.ClientCertificateVerifierConfiguration `protobuf:"bytes,12,opt,name=client_certificate_verifier,json=clientCertificateVerifier"`
+	xxx_hidden_WorkerId                               map[string]string                            `protobuf:"bytes,13,rep,name=worker_id,json=workerId" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_LocalObjectStore                       *local.StoreConfiguration                    `protobuf:"bytes,17,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_ParsedObjectPool                       *parser.ParsedObjectPool                     `protobuf:"bytes,14,opt,name=parsed_object_pool,json=parsedObjectPool"`
+	xxx_hidden_LocalEvaluationConcurrency             uint32                                       `protobuf:"varint,15,opt,name=local_evaluation_concurrency,json=localEvaluationConcurrency"`
+	xxx_hidden_RemoteEvaluationConcurrency            uint32                                       `protobuf:"varint,16,opt,name=remote_evaluation_concurrency,json=remoteEvaluationConcurrency"`
+	xxx_hidden_UploadConcurrency                      uint32                                       `protobuf:"varint,20,opt,name=upload_concurrency,json=uploadConcurrency"`
+	xxx_hidden_ObjectStoreConcurrency                 int64                                        `protobuf:"varint,18,opt,name=object_store_concurrency,json=objectStoreConcurrency"`
+	xxx_hidden_CacheTagSignaturePrivateKey            string                                       `protobuf:"bytes,19,opt,name=cache_tag_signature_private_key,json=cacheTagSignaturePrivateKey"`
+	xxx_hidden_BufferedObjectsLimit                   *object.Limit                                `protobuf:"bytes,21,opt,name=buffered_objects_limit,json=bufferedObjectsLimit"`
+	xxx_hidden_BufferedObjectsCacheReplacementPolicy  eviction.CacheReplacementPolicy              `protobuf:"varint,22,opt,name=buffered_objects_cache_replacement_policy,json=bufferedObjectsCacheReplacementPolicy,enum=buildbarn.configuration.eviction.CacheReplacementPolicy"`
+	xxx_hidden_CacheLookupResultIndirectionMaximumAge *durationpb.Duration                         `protobuf:"bytes,23,opt,name=cache_lookup_result_indirection_maximum_age,json=cacheLookupResultIndirectionMaximumAge"`
+	xxx_hidden_PermitUnencryptedBinaryEncoders        bool                                         `protobuf:"varint,24,opt,name=permit_unencrypted_binary_encoders,json=permitUnencryptedBinaryEncoders"`
+	unknownFields                                     protoimpl.UnknownFields
+	sizeCache                                         protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -82,156 +81,399 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.StorageGrpcClient
+		return x.xxx_hidden_StorageGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetFilePool() *filesystem.FilePoolConfiguration {
 	if x != nil {
-		return x.FilePool
+		return x.xxx_hidden_FilePool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetExecutionGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.ExecutionGrpcClient
+		return x.xxx_hidden_ExecutionGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetExecutionClientPrivateKey() string {
 	if x != nil {
-		return x.ExecutionClientPrivateKey
+		return x.xxx_hidden_ExecutionClientPrivateKey
 	}
 	return ""
 }
 
 func (x *ApplicationConfiguration) GetExecutionClientCertificateChain() string {
 	if x != nil {
-		return x.ExecutionClientCertificateChain
+		return x.xxx_hidden_ExecutionClientCertificateChain
 	}
 	return ""
 }
 
 func (x *ApplicationConfiguration) GetRemoteWorkerGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.RemoteWorkerGrpcClient
+		return x.xxx_hidden_RemoteWorkerGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPlatformPrivateKeys() []string {
 	if x != nil {
-		return x.PlatformPrivateKeys
+		return x.xxx_hidden_PlatformPrivateKeys
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetClientCertificateVerifier() *x509.ClientCertificateVerifierConfiguration {
 	if x != nil {
-		return x.ClientCertificateVerifier
+		return x.xxx_hidden_ClientCertificateVerifier
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetWorkerId() map[string]string {
 	if x != nil {
-		return x.WorkerId
+		return x.xxx_hidden_WorkerId
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
-		return x.ParsedObjectPool
+		return x.xxx_hidden_ParsedObjectPool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalEvaluationConcurrency() uint32 {
 	if x != nil {
-		return x.LocalEvaluationConcurrency
+		return x.xxx_hidden_LocalEvaluationConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetRemoteEvaluationConcurrency() uint32 {
 	if x != nil {
-		return x.RemoteEvaluationConcurrency
+		return x.xxx_hidden_RemoteEvaluationConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetUploadConcurrency() uint32 {
 	if x != nil {
-		return x.UploadConcurrency
+		return x.xxx_hidden_UploadConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetObjectStoreConcurrency() int64 {
 	if x != nil {
-		return x.ObjectStoreConcurrency
+		return x.xxx_hidden_ObjectStoreConcurrency
 	}
 	return 0
 }
 
 func (x *ApplicationConfiguration) GetCacheTagSignaturePrivateKey() string {
 	if x != nil {
-		return x.CacheTagSignaturePrivateKey
+		return x.xxx_hidden_CacheTagSignaturePrivateKey
 	}
 	return ""
 }
 
 func (x *ApplicationConfiguration) GetBufferedObjectsLimit() *object.Limit {
 	if x != nil {
-		return x.BufferedObjectsLimit
+		return x.xxx_hidden_BufferedObjectsLimit
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetBufferedObjectsCacheReplacementPolicy() eviction.CacheReplacementPolicy {
 	if x != nil {
-		return x.BufferedObjectsCacheReplacementPolicy
+		return x.xxx_hidden_BufferedObjectsCacheReplacementPolicy
 	}
 	return eviction.CacheReplacementPolicy(0)
 }
 
 func (x *ApplicationConfiguration) GetCacheLookupResultIndirectionMaximumAge() *durationpb.Duration {
 	if x != nil {
-		return x.CacheLookupResultIndirectionMaximumAge
+		return x.xxx_hidden_CacheLookupResultIndirectionMaximumAge
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetPermitUnencryptedBinaryEncoders() bool {
 	if x != nil {
-		return x.PermitUnencryptedBinaryEncoders
+		return x.xxx_hidden_PermitUnencryptedBinaryEncoders
 	}
 	return false
+}
+
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetStorageGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_StorageGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetFilePool(v *filesystem.FilePoolConfiguration) {
+	x.xxx_hidden_FilePool = v
+}
+
+func (x *ApplicationConfiguration) SetExecutionGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_ExecutionGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetExecutionClientPrivateKey(v string) {
+	x.xxx_hidden_ExecutionClientPrivateKey = v
+}
+
+func (x *ApplicationConfiguration) SetExecutionClientCertificateChain(v string) {
+	x.xxx_hidden_ExecutionClientCertificateChain = v
+}
+
+func (x *ApplicationConfiguration) SetRemoteWorkerGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_RemoteWorkerGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetPlatformPrivateKeys(v []string) {
+	x.xxx_hidden_PlatformPrivateKeys = v
+}
+
+func (x *ApplicationConfiguration) SetClientCertificateVerifier(v *x509.ClientCertificateVerifierConfiguration) {
+	x.xxx_hidden_ClientCertificateVerifier = v
+}
+
+func (x *ApplicationConfiguration) SetWorkerId(v map[string]string) {
+	x.xxx_hidden_WorkerId = v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetParsedObjectPool(v *parser.ParsedObjectPool) {
+	x.xxx_hidden_ParsedObjectPool = v
+}
+
+func (x *ApplicationConfiguration) SetLocalEvaluationConcurrency(v uint32) {
+	x.xxx_hidden_LocalEvaluationConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetRemoteEvaluationConcurrency(v uint32) {
+	x.xxx_hidden_RemoteEvaluationConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetUploadConcurrency(v uint32) {
+	x.xxx_hidden_UploadConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetObjectStoreConcurrency(v int64) {
+	x.xxx_hidden_ObjectStoreConcurrency = v
+}
+
+func (x *ApplicationConfiguration) SetCacheTagSignaturePrivateKey(v string) {
+	x.xxx_hidden_CacheTagSignaturePrivateKey = v
+}
+
+func (x *ApplicationConfiguration) SetBufferedObjectsLimit(v *object.Limit) {
+	x.xxx_hidden_BufferedObjectsLimit = v
+}
+
+func (x *ApplicationConfiguration) SetBufferedObjectsCacheReplacementPolicy(v eviction.CacheReplacementPolicy) {
+	x.xxx_hidden_BufferedObjectsCacheReplacementPolicy = v
+}
+
+func (x *ApplicationConfiguration) SetCacheLookupResultIndirectionMaximumAge(v *durationpb.Duration) {
+	x.xxx_hidden_CacheLookupResultIndirectionMaximumAge = v
+}
+
+func (x *ApplicationConfiguration) SetPermitUnencryptedBinaryEncoders(v bool) {
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasStorageGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StorageGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasFilePool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FilePool != nil
+}
+
+func (x *ApplicationConfiguration) HasExecutionGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExecutionGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasRemoteWorkerGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RemoteWorkerGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasClientCertificateVerifier() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ClientCertificateVerifier != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasParsedObjectPool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ParsedObjectPool != nil
+}
+
+func (x *ApplicationConfiguration) HasBufferedObjectsLimit() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BufferedObjectsLimit != nil
+}
+
+func (x *ApplicationConfiguration) HasCacheLookupResultIndirectionMaximumAge() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CacheLookupResultIndirectionMaximumAge != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearStorageGrpcClient() {
+	x.xxx_hidden_StorageGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearFilePool() {
+	x.xxx_hidden_FilePool = nil
+}
+
+func (x *ApplicationConfiguration) ClearExecutionGrpcClient() {
+	x.xxx_hidden_ExecutionGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearRemoteWorkerGrpcClient() {
+	x.xxx_hidden_RemoteWorkerGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearClientCertificateVerifier() {
+	x.xxx_hidden_ClientCertificateVerifier = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearParsedObjectPool() {
+	x.xxx_hidden_ParsedObjectPool = nil
+}
+
+func (x *ApplicationConfiguration) ClearBufferedObjectsLimit() {
+	x.xxx_hidden_BufferedObjectsLimit = nil
+}
+
+func (x *ApplicationConfiguration) ClearCacheLookupResultIndirectionMaximumAge() {
+	x.xxx_hidden_CacheLookupResultIndirectionMaximumAge = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                                 *global.Configuration
+	StorageGrpcClient                      *grpc.ClientConfiguration
+	FilePool                               *filesystem.FilePoolConfiguration
+	ExecutionGrpcClient                    *grpc.ClientConfiguration
+	ExecutionClientPrivateKey              string
+	ExecutionClientCertificateChain        string
+	RemoteWorkerGrpcClient                 *grpc.ClientConfiguration
+	PlatformPrivateKeys                    []string
+	ClientCertificateVerifier              *x509.ClientCertificateVerifierConfiguration
+	WorkerId                               map[string]string
+	LocalObjectStore                       *local.StoreConfiguration
+	ParsedObjectPool                       *parser.ParsedObjectPool
+	LocalEvaluationConcurrency             uint32
+	RemoteEvaluationConcurrency            uint32
+	UploadConcurrency                      uint32
+	ObjectStoreConcurrency                 int64
+	CacheTagSignaturePrivateKey            string
+	BufferedObjectsLimit                   *object.Limit
+	BufferedObjectsCacheReplacementPolicy  eviction.CacheReplacementPolicy
+	CacheLookupResultIndirectionMaximumAge *durationpb.Duration
+	PermitUnencryptedBinaryEncoders        bool
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_StorageGrpcClient = b.StorageGrpcClient
+	x.xxx_hidden_FilePool = b.FilePool
+	x.xxx_hidden_ExecutionGrpcClient = b.ExecutionGrpcClient
+	x.xxx_hidden_ExecutionClientPrivateKey = b.ExecutionClientPrivateKey
+	x.xxx_hidden_ExecutionClientCertificateChain = b.ExecutionClientCertificateChain
+	x.xxx_hidden_RemoteWorkerGrpcClient = b.RemoteWorkerGrpcClient
+	x.xxx_hidden_PlatformPrivateKeys = b.PlatformPrivateKeys
+	x.xxx_hidden_ClientCertificateVerifier = b.ClientCertificateVerifier
+	x.xxx_hidden_WorkerId = b.WorkerId
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_ParsedObjectPool = b.ParsedObjectPool
+	x.xxx_hidden_LocalEvaluationConcurrency = b.LocalEvaluationConcurrency
+	x.xxx_hidden_RemoteEvaluationConcurrency = b.RemoteEvaluationConcurrency
+	x.xxx_hidden_UploadConcurrency = b.UploadConcurrency
+	x.xxx_hidden_ObjectStoreConcurrency = b.ObjectStoreConcurrency
+	x.xxx_hidden_CacheTagSignaturePrivateKey = b.CacheTagSignaturePrivateKey
+	x.xxx_hidden_BufferedObjectsLimit = b.BufferedObjectsLimit
+	x.xxx_hidden_BufferedObjectsCacheReplacementPolicy = b.BufferedObjectsCacheReplacementPolicy
+	x.xxx_hidden_CacheLookupResultIndirectionMaximumAge = b.CacheLookupResultIndirectionMaximumAge
+	x.xxx_hidden_PermitUnencryptedBinaryEncoders = b.PermitUnencryptedBinaryEncoders
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto protoreflect.FileDescriptor
@@ -264,19 +506,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder
 	"\"permit_unencrypted_binary_encoders\x18\x18 \x01(\bR\x1fpermitUnencryptedBinaryEncoders\x1a;\n" +
 	"\rWorkerIdEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B7Z5bonanza.build/pkg/proto/configuration/bonanza_builderb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_rawDescData
-}
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B<Z5bonanza.build/pkg/proto/configuration/bonanza_builder\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_bonanza_build_pkg_proto_configuration_bonanza_builder_bonanza_builder_proto_goTypes = []any{
