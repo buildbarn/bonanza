@@ -8,6 +8,12 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	buildqueuestate_pb "bonanza.build/pkg/proto/buildqueuestate"
 	"bonanza.build/pkg/proto/configuration/bonanza_browser"
+	// Included to ensure message of these types are displayable.
+	_ "bonanza.build/pkg/proto/model/analysis"
+	_ "bonanza.build/pkg/proto/model/command"
+	_ "bonanza.build/pkg/proto/model/core"
+	_ "bonanza.build/pkg/proto/model/evaluation"
+	_ "bonanza.build/pkg/proto/model/filesystem"
 	object_pb "bonanza.build/pkg/proto/storage/object"
 	object_grpc "bonanza.build/pkg/storage/object/grpc"
 	object_local "bonanza.build/pkg/storage/object/local"
@@ -17,13 +23,6 @@ import (
 	http_server "github.com/buildbarn/bb-storage/pkg/http/server"
 	"github.com/buildbarn/bb-storage/pkg/program"
 	"github.com/buildbarn/bb-storage/pkg/util"
-
-	// Included to ensure message of these types are displayable.
-	_ "bonanza.build/pkg/proto/model/analysis"
-	_ "bonanza.build/pkg/proto/model/command"
-	_ "bonanza.build/pkg/proto/model/core"
-	_ "bonanza.build/pkg/proto/model/evaluation"
-	_ "bonanza.build/pkg/proto/model/filesystem"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,27 +37,27 @@ func main() {
 		if err := util.UnmarshalConfigurationFromFile(os.Args[1], &configuration); err != nil {
 			return util.StatusWrapf(err, "Failed to read configuration from %s", os.Args[1])
 		}
-		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.Global, dependenciesGroup)
+		lifecycleState, grpcClientFactory, err := global.ApplyConfiguration(configuration.GetGlobal(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to apply global configuration options")
 		}
 
-		buildQueueStateGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.BuildQueueStateGrpcClient, dependenciesGroup)
+		buildQueueStateGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetBuildQueueStateGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create build queue state gRPC client")
 		}
 
-		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.StorageGrpcClient, dependenciesGroup)
+		storageGRPCClient, err := grpcClientFactory.NewClientFromConfiguration(configuration.GetStorageGrpcClient(), dependenciesGroup)
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create storage gRPC client")
 		}
 		objectDownloader := object_grpc.NewDownloader(
 			object_pb.NewDownloaderClient(storageGRPCClient),
 		)
-		if configuration.LocalObjectStore != nil {
+		if localObjectStoreConfiguration := configuration.GetLocalObjectStore(); localObjectStoreConfiguration != nil {
 			localObjectStore, err := object_local.NewStoreFromConfiguration(
 				dependenciesGroup,
-				configuration.LocalObjectStore,
+				localObjectStoreConfiguration,
 				/* leaseTracking = */ nil,
 			)
 			if err != nil {
@@ -70,7 +69,7 @@ func main() {
 			)
 		}
 
-		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.ParsedObjectPool)
+		parsedObjectPool, err := model_parser.NewParsedObjectPoolFromConfiguration(configuration.GetParsedObjectPool())
 		if err != nil {
 			return util.StatusWrap(err, "Failed to create parsed object pool")
 		}
@@ -83,7 +82,7 @@ func main() {
 		)
 		browserService.RegisterHandlers(mux)
 		http_server.NewServersFromConfigurationAndServe(
-			configuration.HttpServers,
+			configuration.GetHttpServers(),
 			http_server.NewMetricsHandler(mux, "BrowserUI"),
 			siblingsGroup,
 			grpcClientFactory,

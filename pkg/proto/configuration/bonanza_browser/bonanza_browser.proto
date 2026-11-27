@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.configuration.bonanza_browser;
 
@@ -8,6 +8,7 @@ import "github.com/buildbarn/bb-storage/pkg/proto/configuration/global/global.pr
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/grpc/grpc.proto";
 import "github.com/buildbarn/bb-storage/pkg/proto/configuration/http/server/server.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/configuration/bonanza_browser";
 
 message ApplicationConfiguration {

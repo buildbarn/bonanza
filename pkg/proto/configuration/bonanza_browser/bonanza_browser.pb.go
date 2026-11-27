@@ -15,7 +15,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -27,15 +26,15 @@ const (
 )
 
 type ApplicationConfiguration struct {
-	state                     protoimpl.MessageState    `protogen:"open.v1"`
-	Global                    *global.Configuration     `protobuf:"bytes,1,opt,name=global,proto3" json:"global,omitempty"`
-	HttpServers               []*server.Configuration   `protobuf:"bytes,2,rep,name=http_servers,json=httpServers,proto3" json:"http_servers,omitempty"`
-	StorageGrpcClient         *grpc.ClientConfiguration `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient,proto3" json:"storage_grpc_client,omitempty"`
-	LocalObjectStore          *local.StoreConfiguration `protobuf:"bytes,6,opt,name=local_object_store,json=localObjectStore,proto3" json:"local_object_store,omitempty"`
-	ParsedObjectPool          *parser.ParsedObjectPool  `protobuf:"bytes,4,opt,name=parsed_object_pool,json=parsedObjectPool,proto3" json:"parsed_object_pool,omitempty"`
-	BuildQueueStateGrpcClient *grpc.ClientConfiguration `protobuf:"bytes,5,opt,name=build_queue_state_grpc_client,json=buildQueueStateGrpcClient,proto3" json:"build_queue_state_grpc_client,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                                protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Global                    *global.Configuration     `protobuf:"bytes,1,opt,name=global"`
+	xxx_hidden_HttpServers               *[]*server.Configuration  `protobuf:"bytes,2,rep,name=http_servers,json=httpServers"`
+	xxx_hidden_StorageGrpcClient         *grpc.ClientConfiguration `protobuf:"bytes,3,opt,name=storage_grpc_client,json=storageGrpcClient"`
+	xxx_hidden_LocalObjectStore          *local.StoreConfiguration `protobuf:"bytes,6,opt,name=local_object_store,json=localObjectStore"`
+	xxx_hidden_ParsedObjectPool          *parser.ParsedObjectPool  `protobuf:"bytes,4,opt,name=parsed_object_pool,json=parsedObjectPool"`
+	xxx_hidden_BuildQueueStateGrpcClient *grpc.ClientConfiguration `protobuf:"bytes,5,opt,name=build_queue_state_grpc_client,json=buildQueueStateGrpcClient"`
+	unknownFields                        protoimpl.UnknownFields
+	sizeCache                            protoimpl.SizeCache
 }
 
 func (x *ApplicationConfiguration) Reset() {
@@ -63,51 +62,151 @@ func (x *ApplicationConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ApplicationConfiguration.ProtoReflect.Descriptor instead.
-func (*ApplicationConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ApplicationConfiguration) GetGlobal() *global.Configuration {
 	if x != nil {
-		return x.Global
+		return x.xxx_hidden_Global
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetHttpServers() []*server.Configuration {
 	if x != nil {
-		return x.HttpServers
+		if x.xxx_hidden_HttpServers != nil {
+			return *x.xxx_hidden_HttpServers
+		}
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetStorageGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.StorageGrpcClient
+		return x.xxx_hidden_StorageGrpcClient
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetLocalObjectStore() *local.StoreConfiguration {
 	if x != nil {
-		return x.LocalObjectStore
+		return x.xxx_hidden_LocalObjectStore
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetParsedObjectPool() *parser.ParsedObjectPool {
 	if x != nil {
-		return x.ParsedObjectPool
+		return x.xxx_hidden_ParsedObjectPool
 	}
 	return nil
 }
 
 func (x *ApplicationConfiguration) GetBuildQueueStateGrpcClient() *grpc.ClientConfiguration {
 	if x != nil {
-		return x.BuildQueueStateGrpcClient
+		return x.xxx_hidden_BuildQueueStateGrpcClient
 	}
 	return nil
+}
+
+func (x *ApplicationConfiguration) SetGlobal(v *global.Configuration) {
+	x.xxx_hidden_Global = v
+}
+
+func (x *ApplicationConfiguration) SetHttpServers(v []*server.Configuration) {
+	x.xxx_hidden_HttpServers = &v
+}
+
+func (x *ApplicationConfiguration) SetStorageGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_StorageGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) SetLocalObjectStore(v *local.StoreConfiguration) {
+	x.xxx_hidden_LocalObjectStore = v
+}
+
+func (x *ApplicationConfiguration) SetParsedObjectPool(v *parser.ParsedObjectPool) {
+	x.xxx_hidden_ParsedObjectPool = v
+}
+
+func (x *ApplicationConfiguration) SetBuildQueueStateGrpcClient(v *grpc.ClientConfiguration) {
+	x.xxx_hidden_BuildQueueStateGrpcClient = v
+}
+
+func (x *ApplicationConfiguration) HasGlobal() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Global != nil
+}
+
+func (x *ApplicationConfiguration) HasStorageGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StorageGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) HasLocalObjectStore() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LocalObjectStore != nil
+}
+
+func (x *ApplicationConfiguration) HasParsedObjectPool() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ParsedObjectPool != nil
+}
+
+func (x *ApplicationConfiguration) HasBuildQueueStateGrpcClient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BuildQueueStateGrpcClient != nil
+}
+
+func (x *ApplicationConfiguration) ClearGlobal() {
+	x.xxx_hidden_Global = nil
+}
+
+func (x *ApplicationConfiguration) ClearStorageGrpcClient() {
+	x.xxx_hidden_StorageGrpcClient = nil
+}
+
+func (x *ApplicationConfiguration) ClearLocalObjectStore() {
+	x.xxx_hidden_LocalObjectStore = nil
+}
+
+func (x *ApplicationConfiguration) ClearParsedObjectPool() {
+	x.xxx_hidden_ParsedObjectPool = nil
+}
+
+func (x *ApplicationConfiguration) ClearBuildQueueStateGrpcClient() {
+	x.xxx_hidden_BuildQueueStateGrpcClient = nil
+}
+
+type ApplicationConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Global                    *global.Configuration
+	HttpServers               []*server.Configuration
+	StorageGrpcClient         *grpc.ClientConfiguration
+	LocalObjectStore          *local.StoreConfiguration
+	ParsedObjectPool          *parser.ParsedObjectPool
+	BuildQueueStateGrpcClient *grpc.ClientConfiguration
+}
+
+func (b0 ApplicationConfiguration_builder) Build() *ApplicationConfiguration {
+	m0 := &ApplicationConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Global = b.Global
+	x.xxx_hidden_HttpServers = &b.HttpServers
+	x.xxx_hidden_StorageGrpcClient = b.StorageGrpcClient
+	x.xxx_hidden_LocalObjectStore = b.LocalObjectStore
+	x.xxx_hidden_ParsedObjectPool = b.ParsedObjectPool
+	x.xxx_hidden_BuildQueueStateGrpcClient = b.BuildQueueStateGrpcClient
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto protoreflect.FileDescriptor
@@ -121,19 +220,7 @@ const file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser
 	"\x13storage_grpc_client\x18\x03 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x11storageGrpcClient\x12l\n" +
 	"\x12local_object_store\x18\x06 \x01(\v2>.bonanza.configuration.storage.object.local.StoreConfigurationR\x10localObjectStore\x12b\n" +
 	"\x12parsed_object_pool\x18\x04 \x01(\v24.bonanza.configuration.model.parser.ParsedObjectPoolR\x10parsedObjectPool\x12s\n" +
-	"\x1dbuild_queue_state_grpc_client\x18\x05 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x19buildQueueStateGrpcClientB7Z5bonanza.build/pkg/proto/configuration/bonanza_browserb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_rawDescData
-}
+	"\x1dbuild_queue_state_grpc_client\x18\x05 \x01(\v21.buildbarn.configuration.grpc.ClientConfigurationR\x19buildQueueStateGrpcClientB<Z5bonanza.build/pkg/proto/configuration/bonanza_browser\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_configuration_bonanza_browser_bonanza_browser_proto_goTypes = []any{
