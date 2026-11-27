@@ -21,8 +21,8 @@ func TestResolverServerWithoutClusterWatermark(t *testing.T) {
 	// storage frontend, instead of storage shards. Such requests
 	// should be rejected.
 	server := tag.NewResolverServer(nil, nil)
-	_, err := server.ResolveTag(context.Background(), &tag_pb.ResolveTagRequest{
+	_, err := server.ResolveTag(context.Background(), tag_pb.ResolveTagRequest_builder{
 		LeaseValidationContext: &object_pb.LeaseValidationContext{},
-	})
+	}.Build())
 	testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "This server is not a storage shard, and does not accept lease validation contexts"), err)
 }

@@ -45,16 +45,16 @@ func (d *resolver) ResolveTag(ctx context.Context, namespace object.Namespace, k
 		minimumTimestampMessage = timestamppb.New(*minimumTimestamp)
 	}
 
-	request := &tag_pb.ResolveTagRequest{
+	request := tag_pb.ResolveTagRequest_builder{
 		Namespace:        namespace.ToProto(),
 		Key:              keyMessage,
 		MinimumTimestamp: minimumTimestampMessage,
-	}
+	}.Build()
 	response, err := object.CallWithLeaseValidationContext(
 		ctx,
 		d.leaseValidationContextSource,
 		func(leaseValidationContext *object_pb.LeaseValidationContext) (*tag_pb.ResolveTagResponse, error) {
-			request.LeaseValidationContext = leaseValidationContext
+			request.SetLeaseValidationContext(leaseValidationContext)
 			return d.client.ResolveTag(ctx, request)
 		},
 	)
@@ -63,10 +63,10 @@ func (d *resolver) ResolveTag(ctx context.Context, namespace object.Namespace, k
 		return badSignedValue, false, err
 	}
 
-	signedValue, err := tag.NewSignedValueFromProto(response.SignedValue, namespace.ReferenceFormat, key)
+	signedValue, err := tag.NewSignedValueFromProto(response.GetSignedValue(), namespace.ReferenceFormat, key)
 	if err != nil {
 		var badSignedValue tag.SignedValue
 		return badSignedValue, false, util.StatusWrapWithCode(err, codes.Internal, "Received invalid signed value from server")
 	}
-	return signedValue, response.Complete, nil
+	return signedValue, response.GetComplete(), nil
 }

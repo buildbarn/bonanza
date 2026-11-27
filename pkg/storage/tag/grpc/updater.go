@@ -38,17 +38,17 @@ func (d *updater) UpdateTag(ctx context.Context, namespace object.Namespace, key
 		return util.StatusWrap(err, "Failed to marshal key")
 	}
 
-	request := &tag_pb.UpdateTagRequest{
+	request := tag_pb.UpdateTagRequest_builder{
 		Namespace:   namespace.ToProto(),
 		Key:         keyMessage,
 		SignedValue: value.ToProto(),
 		Lease:       lease,
-	}
+	}.Build()
 	_, err = object.CallWithLeaseValidationContext(
 		ctx,
 		d.leaseValidationContextSource,
 		func(leaseValidationContext *object_pb.LeaseValidationContext) (*emptypb.Empty, error) {
-			request.LeaseValidationContext = leaseValidationContext
+			request.SetLeaseValidationContext(leaseValidationContext)
 			return d.client.UpdateTag(ctx, request)
 		},
 	)

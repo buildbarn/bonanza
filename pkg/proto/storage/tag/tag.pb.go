@@ -13,7 +13,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -25,11 +24,11 @@ const (
 )
 
 type Key struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	SignaturePublicKey []byte                 `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey,proto3" json:"signature_public_key,omitempty"`
-	Hash               []byte                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SignaturePublicKey []byte                 `protobuf:"bytes,1,opt,name=signature_public_key,json=signaturePublicKey"`
+	xxx_hidden_Hash               []byte                 `protobuf:"bytes,2,opt,name=hash"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Key) Reset() {
@@ -57,31 +56,56 @@ func (x *Key) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Key.ProtoReflect.Descriptor instead.
-func (*Key) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Key) GetSignaturePublicKey() []byte {
 	if x != nil {
-		return x.SignaturePublicKey
+		return x.xxx_hidden_SignaturePublicKey
 	}
 	return nil
 }
 
 func (x *Key) GetHash() []byte {
 	if x != nil {
-		return x.Hash
+		return x.xxx_hidden_Hash
 	}
 	return nil
 }
 
+func (x *Key) SetSignaturePublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_SignaturePublicKey = v
+}
+
+func (x *Key) SetHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Hash = v
+}
+
+type Key_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SignaturePublicKey []byte
+	Hash               []byte
+}
+
+func (b0 Key_builder) Build() *Key {
+	m0 := &Key{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SignaturePublicKey = b.SignaturePublicKey
+	x.xxx_hidden_Hash = b.Hash
+	return m0
+}
+
 type Value struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reference     []byte                 `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Reference []byte                 `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_Timestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Value) Reset() {
@@ -109,31 +133,64 @@ func (x *Value) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Value.ProtoReflect.Descriptor instead.
-func (*Value) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Value) GetReference() []byte {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *Value) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timestamp
+		return x.xxx_hidden_Timestamp
 	}
 	return nil
 }
 
+func (x *Value) SetReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Reference = v
+}
+
+func (x *Value) SetTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Timestamp = v
+}
+
+func (x *Value) HasTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Timestamp != nil
+}
+
+func (x *Value) ClearTimestamp() {
+	x.xxx_hidden_Timestamp = nil
+}
+
+type Value_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference []byte
+	Timestamp *timestamppb.Timestamp
+}
+
+func (b0 Value_builder) Build() *Value {
+	m0 := &Value{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_Timestamp = b.Timestamp
+	return m0
+}
+
 type SignedValue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         *Value                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	Signature     []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value     *Value                 `protobuf:"bytes,1,opt,name=value"`
+	xxx_hidden_Signature []byte                 `protobuf:"bytes,2,opt,name=signature"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *SignedValue) Reset() {
@@ -161,32 +218,65 @@ func (x *SignedValue) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SignedValue.ProtoReflect.Descriptor instead.
-func (*SignedValue) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *SignedValue) GetValue() *Value {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
 func (x *SignedValue) GetSignature() []byte {
 	if x != nil {
-		return x.Signature
+		return x.xxx_hidden_Signature
 	}
 	return nil
 }
 
+func (x *SignedValue) SetValue(v *Value) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *SignedValue) SetSignature(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Signature = v
+}
+
+func (x *SignedValue) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *SignedValue) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type SignedValue_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Value     *Value
+	Signature []byte
+}
+
+func (b0 SignedValue_builder) Build() *SignedValue {
+	m0 := &SignedValue{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Value = b.Value
+	x.xxx_hidden_Signature = b.Signature
+	return m0
+}
+
 type ValueSigningInput struct {
-	state           protoimpl.MessageState       `protogen:"open.v1"`
-	ReferenceFormat object.ReferenceFormat_Value `protobuf:"varint,1,opt,name=reference_format,json=referenceFormat,proto3,enum=bonanza.storage.object.ReferenceFormat_Value" json:"reference_format,omitempty"`
-	KeyHash         []byte                       `protobuf:"bytes,2,opt,name=key_hash,json=keyHash,proto3" json:"key_hash,omitempty"`
-	Value           *Value                       `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ReferenceFormat object.ReferenceFormat_Value `protobuf:"varint,1,opt,name=reference_format,json=referenceFormat,enum=bonanza.storage.object.ReferenceFormat_Value"`
+	xxx_hidden_KeyHash         []byte                       `protobuf:"bytes,2,opt,name=key_hash,json=keyHash"`
+	xxx_hidden_Value           *Value                       `protobuf:"bytes,3,opt,name=value"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *ValueSigningInput) Reset() {
@@ -214,40 +304,79 @@ func (x *ValueSigningInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ValueSigningInput.ProtoReflect.Descriptor instead.
-func (*ValueSigningInput) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *ValueSigningInput) GetReferenceFormat() object.ReferenceFormat_Value {
 	if x != nil {
-		return x.ReferenceFormat
+		return x.xxx_hidden_ReferenceFormat
 	}
 	return object.ReferenceFormat_Value(0)
 }
 
 func (x *ValueSigningInput) GetKeyHash() []byte {
 	if x != nil {
-		return x.KeyHash
+		return x.xxx_hidden_KeyHash
 	}
 	return nil
 }
 
 func (x *ValueSigningInput) GetValue() *Value {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
+func (x *ValueSigningInput) SetReferenceFormat(v object.ReferenceFormat_Value) {
+	x.xxx_hidden_ReferenceFormat = v
+}
+
+func (x *ValueSigningInput) SetKeyHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_KeyHash = v
+}
+
+func (x *ValueSigningInput) SetValue(v *Value) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *ValueSigningInput) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *ValueSigningInput) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type ValueSigningInput_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ReferenceFormat object.ReferenceFormat_Value
+	KeyHash         []byte
+	Value           *Value
+}
+
+func (b0 ValueSigningInput_builder) Build() *ValueSigningInput {
+	m0 := &ValueSigningInput{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ReferenceFormat = b.ReferenceFormat
+	x.xxx_hidden_KeyHash = b.KeyHash
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type ResolveTagRequest struct {
-	state                  protoimpl.MessageState         `protogen:"open.v1"`
-	Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key                    *Key                           `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	MinimumTimestamp       *timestamppb.Timestamp         `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp,proto3" json:"minimum_timestamp,omitempty"`
-	LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,4,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_Key                    *Key                           `protobuf:"bytes,2,opt,name=key"`
+	xxx_hidden_MinimumTimestamp       *timestamppb.Timestamp         `protobuf:"bytes,3,opt,name=minimum_timestamp,json=minimumTimestamp"`
+	xxx_hidden_LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,4,opt,name=lease_validation_context,json=leaseValidationContext"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *ResolveTagRequest) Reset() {
@@ -275,45 +404,120 @@ func (x *ResolveTagRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResolveTagRequest.ProtoReflect.Descriptor instead.
-func (*ResolveTagRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *ResolveTagRequest) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *ResolveTagRequest) GetKey() *Key {
 	if x != nil {
-		return x.Key
+		return x.xxx_hidden_Key
 	}
 	return nil
 }
 
 func (x *ResolveTagRequest) GetMinimumTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.MinimumTimestamp
+		return x.xxx_hidden_MinimumTimestamp
 	}
 	return nil
 }
 
 func (x *ResolveTagRequest) GetLeaseValidationContext() *object.LeaseValidationContext {
 	if x != nil {
-		return x.LeaseValidationContext
+		return x.xxx_hidden_LeaseValidationContext
 	}
 	return nil
 }
 
+func (x *ResolveTagRequest) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *ResolveTagRequest) SetKey(v *Key) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *ResolveTagRequest) SetMinimumTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_MinimumTimestamp = v
+}
+
+func (x *ResolveTagRequest) SetLeaseValidationContext(v *object.LeaseValidationContext) {
+	x.xxx_hidden_LeaseValidationContext = v
+}
+
+func (x *ResolveTagRequest) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *ResolveTagRequest) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *ResolveTagRequest) HasMinimumTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MinimumTimestamp != nil
+}
+
+func (x *ResolveTagRequest) HasLeaseValidationContext() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LeaseValidationContext != nil
+}
+
+func (x *ResolveTagRequest) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *ResolveTagRequest) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+func (x *ResolveTagRequest) ClearMinimumTimestamp() {
+	x.xxx_hidden_MinimumTimestamp = nil
+}
+
+func (x *ResolveTagRequest) ClearLeaseValidationContext() {
+	x.xxx_hidden_LeaseValidationContext = nil
+}
+
+type ResolveTagRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace              *object.Namespace
+	Key                    *Key
+	MinimumTimestamp       *timestamppb.Timestamp
+	LeaseValidationContext *object.LeaseValidationContext
+}
+
+func (b0 ResolveTagRequest_builder) Build() *ResolveTagRequest {
+	m0 := &ResolveTagRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_MinimumTimestamp = b.MinimumTimestamp
+	x.xxx_hidden_LeaseValidationContext = b.LeaseValidationContext
+	return m0
+}
+
 type ResolveTagResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SignedValue   *SignedValue           `protobuf:"bytes,1,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
-	Complete      bool                   `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SignedValue *SignedValue           `protobuf:"bytes,1,opt,name=signed_value,json=signedValue"`
+	xxx_hidden_Complete    bool                   `protobuf:"varint,2,opt,name=complete"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ResolveTagResponse) Reset() {
@@ -341,34 +545,64 @@ func (x *ResolveTagResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResolveTagResponse.ProtoReflect.Descriptor instead.
-func (*ResolveTagResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *ResolveTagResponse) GetSignedValue() *SignedValue {
 	if x != nil {
-		return x.SignedValue
+		return x.xxx_hidden_SignedValue
 	}
 	return nil
 }
 
 func (x *ResolveTagResponse) GetComplete() bool {
 	if x != nil {
-		return x.Complete
+		return x.xxx_hidden_Complete
 	}
 	return false
 }
 
+func (x *ResolveTagResponse) SetSignedValue(v *SignedValue) {
+	x.xxx_hidden_SignedValue = v
+}
+
+func (x *ResolveTagResponse) SetComplete(v bool) {
+	x.xxx_hidden_Complete = v
+}
+
+func (x *ResolveTagResponse) HasSignedValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SignedValue != nil
+}
+
+func (x *ResolveTagResponse) ClearSignedValue() {
+	x.xxx_hidden_SignedValue = nil
+}
+
+type ResolveTagResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SignedValue *SignedValue
+	Complete    bool
+}
+
+func (b0 ResolveTagResponse_builder) Build() *ResolveTagResponse {
+	m0 := &ResolveTagResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_SignedValue = b.SignedValue
+	x.xxx_hidden_Complete = b.Complete
+	return m0
+}
+
 type UpdateTagRequest struct {
-	state                  protoimpl.MessageState         `protogen:"open.v1"`
-	Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key                    *Key                           `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	SignedValue            *SignedValue                   `protobuf:"bytes,3,opt,name=signed_value,json=signedValue,proto3" json:"signed_value,omitempty"`
-	Lease                  []byte                         `protobuf:"bytes,4,opt,name=lease,proto3" json:"lease,omitempty"`
-	LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,5,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Namespace              *object.Namespace              `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_Key                    *Key                           `protobuf:"bytes,2,opt,name=key"`
+	xxx_hidden_SignedValue            *SignedValue                   `protobuf:"bytes,3,opt,name=signed_value,json=signedValue"`
+	xxx_hidden_Lease                  []byte                         `protobuf:"bytes,4,opt,name=lease"`
+	xxx_hidden_LeaseValidationContext *object.LeaseValidationContext `protobuf:"bytes,5,opt,name=lease_validation_context,json=leaseValidationContext"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *UpdateTagRequest) Reset() {
@@ -396,44 +630,128 @@ func (x *UpdateTagRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateTagRequest.ProtoReflect.Descriptor instead.
-func (*UpdateTagRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *UpdateTagRequest) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *UpdateTagRequest) GetKey() *Key {
 	if x != nil {
-		return x.Key
+		return x.xxx_hidden_Key
 	}
 	return nil
 }
 
 func (x *UpdateTagRequest) GetSignedValue() *SignedValue {
 	if x != nil {
-		return x.SignedValue
+		return x.xxx_hidden_SignedValue
 	}
 	return nil
 }
 
 func (x *UpdateTagRequest) GetLease() []byte {
 	if x != nil {
-		return x.Lease
+		return x.xxx_hidden_Lease
 	}
 	return nil
 }
 
 func (x *UpdateTagRequest) GetLeaseValidationContext() *object.LeaseValidationContext {
 	if x != nil {
-		return x.LeaseValidationContext
+		return x.xxx_hidden_LeaseValidationContext
 	}
 	return nil
+}
+
+func (x *UpdateTagRequest) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *UpdateTagRequest) SetKey(v *Key) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *UpdateTagRequest) SetSignedValue(v *SignedValue) {
+	x.xxx_hidden_SignedValue = v
+}
+
+func (x *UpdateTagRequest) SetLease(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Lease = v
+}
+
+func (x *UpdateTagRequest) SetLeaseValidationContext(v *object.LeaseValidationContext) {
+	x.xxx_hidden_LeaseValidationContext = v
+}
+
+func (x *UpdateTagRequest) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *UpdateTagRequest) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *UpdateTagRequest) HasSignedValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SignedValue != nil
+}
+
+func (x *UpdateTagRequest) HasLeaseValidationContext() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LeaseValidationContext != nil
+}
+
+func (x *UpdateTagRequest) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *UpdateTagRequest) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+func (x *UpdateTagRequest) ClearSignedValue() {
+	x.xxx_hidden_SignedValue = nil
+}
+
+func (x *UpdateTagRequest) ClearLeaseValidationContext() {
+	x.xxx_hidden_LeaseValidationContext = nil
+}
+
+type UpdateTagRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace              *object.Namespace
+	Key                    *Key
+	SignedValue            *SignedValue
+	Lease                  []byte
+	LeaseValidationContext *object.LeaseValidationContext
+}
+
+func (b0 UpdateTagRequest_builder) Build() *UpdateTagRequest {
+	m0 := &UpdateTagRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_SignedValue = b.SignedValue
+	x.xxx_hidden_Lease = b.Lease
+	x.xxx_hidden_LeaseValidationContext = b.LeaseValidationContext
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_storage_tag_tag_proto protoreflect.FileDescriptor
@@ -472,19 +790,7 @@ const file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc = "" +
 	"\n" +
 	"ResolveTag\x12&.bonanza.storage.tag.ResolveTagRequest\x1a'.bonanza.storage.tag.ResolveTagResponse2U\n" +
 	"\aUpdater\x12J\n" +
-	"\tUpdateTag\x12%.bonanza.storage.tag.UpdateTagRequest\x1a\x16.google.protobuf.EmptyB%Z#bonanza.build/pkg/proto/storage/tagb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_storage_tag_tag_proto_rawDescData
-}
+	"\tUpdateTag\x12%.bonanza.storage.tag.UpdateTagRequest\x1a\x16.google.protobuf.EmptyB*Z#bonanza.build/pkg/proto/storage/tag\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_bonanza_build_pkg_proto_storage_tag_tag_proto_goTypes = []any{

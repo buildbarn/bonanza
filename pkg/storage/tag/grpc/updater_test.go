@@ -31,12 +31,12 @@ func TestUpdater(t *testing.T) {
 
 	t.Run("BackendFailure", func(t *testing.T) {
 		// Errors reported by the backend should be propagated.
-		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, &tag_pb.UpdateTagRequest{
+		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, tag_pb.UpdateTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -53,9 +53,9 @@ func TestUpdater(t *testing.T) {
 					0xec, 0xad, 0x6f, 0xec, 0xfa, 0x1a, 0xad, 0x59,
 					0x0a, 0x88, 0x26, 0xc0, 0x1d, 0x0c, 0xe8, 0xe0,
 				},
-			},
-			SignedValue: &tag_pb.SignedValue{
-				Value: &tag_pb.Value{
+			}.Build(),
+			SignedValue: tag_pb.SignedValue_builder{
+				Value: tag_pb.Value_builder{
 					Reference: []byte{
 						// SHA-256 hash.
 						0x75, 0x1a, 0x11, 0x12, 0xa7, 0xb0, 0x3c, 0x95,
@@ -72,7 +72,7 @@ func TestUpdater(t *testing.T) {
 						0x77, 0x43,
 					},
 					Timestamp: &timestamppb.Timestamp{Seconds: 1762285450},
-				},
+				}.Build(),
 				Signature: []byte{
 					0xf5, 0xfc, 0xf7, 0xa4, 0x29, 0xa4, 0xeb, 0xdb,
 					0x06, 0x6f, 0xf6, 0x3c, 0xf2, 0xf1, 0x0c, 0x44,
@@ -83,9 +83,9 @@ func TestUpdater(t *testing.T) {
 					0x2a, 0x38, 0xec, 0xb9, 0x0a, 0xe4, 0xac, 0xbb,
 					0x7c, 0x16, 0x75, 0x4c, 0x11, 0x21, 0x1c, 0x07,
 				},
-			},
+			}.Build(),
 			Lease: []byte{1, 2, 3},
-		})).Return(nil, status.Error(codes.Unavailable, "Server offline"))
+		}.Build())).Return(nil, status.Error(codes.Unavailable, "Server offline"))
 
 		testutil.RequireEqualStatus(
 			t,
@@ -132,12 +132,12 @@ func TestUpdater(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, &tag_pb.UpdateTagRequest{
+		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, tag_pb.UpdateTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -154,9 +154,9 @@ func TestUpdater(t *testing.T) {
 					0xd0, 0x71, 0x0f, 0x5d, 0x4e, 0xef, 0x8c, 0x48,
 					0xa9, 0x80, 0x7a, 0x95, 0xe5, 0x71, 0x27, 0x63,
 				},
-			},
-			SignedValue: &tag_pb.SignedValue{
-				Value: &tag_pb.Value{
+			}.Build(),
+			SignedValue: tag_pb.SignedValue_builder{
+				Value: tag_pb.Value_builder{
 					Reference: []byte{
 						// SHA-256 hash.
 						0x91, 0x59, 0x32, 0xae, 0x3e, 0x36, 0xa2, 0xf3,
@@ -173,7 +173,7 @@ func TestUpdater(t *testing.T) {
 						0x77, 0x43,
 					},
 					Timestamp: &timestamppb.Timestamp{Seconds: 1762286373},
-				},
+				}.Build(),
 				Signature: []byte{
 					0x2c, 0xac, 0xd3, 0xe0, 0x58, 0x57, 0x4b, 0x42,
 					0xd1, 0x32, 0xf0, 0x22, 0xec, 0x59, 0xf2, 0x69,
@@ -184,9 +184,9 @@ func TestUpdater(t *testing.T) {
 					0x71, 0xbb, 0x89, 0x2f, 0xb4, 0x0c, 0xa3, 0x7b,
 					0xc3, 0x63, 0x29, 0x32, 0x65, 0x85, 0x88, 0x09,
 				},
-			},
+			}.Build(),
 			Lease: []byte{1, 2, 3},
-		})).Return(&emptypb.Empty{}, nil)
+		}.Build())).Return(&emptypb.Empty{}, nil)
 
 		require.NoError(t, updater.UpdateTag(
 			ctx,

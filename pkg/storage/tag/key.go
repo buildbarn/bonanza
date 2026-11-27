@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 
 	tag_pb "bonanza.build/pkg/proto/storage/tag"
+
 	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc/codes"
@@ -36,7 +37,7 @@ func NewKeyFromProto(m *tag_pb.Key) (Key, error) {
 	if m == nil {
 		return Key{}, status.Error(codes.InvalidArgument, "No key provided")
 	}
-	signaturePublicKey, err := x509.ParsePKIXPublicKey(m.SignaturePublicKey)
+	signaturePublicKey, err := x509.ParsePKIXPublicKey(m.GetSignaturePublicKey())
 	if err != nil {
 		return Key{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid signature public key")
 	}
@@ -44,12 +45,13 @@ func NewKeyFromProto(m *tag_pb.Key) (Key, error) {
 	if !ok {
 		return Key{}, status.Error(codes.InvalidArgument, "Signature public key is not of type Ed25519")
 	}
-	if l := len(m.Hash); l != sha256.Size {
+	hash := m.GetHash()
+	if l := len(hash); l != sha256.Size {
 		return Key{}, status.Errorf(codes.InvalidArgument, "Hash is %d bytes in size, while %d bytes were expected", l, sha256.Size)
 	}
 	return Key{
 		SignaturePublicKey: *(*[ed25519.PublicKeySize]byte)(ed25519SignaturePublicKey),
-		Hash:               *(*[sha256.Size]byte)(m.Hash),
+		Hash:               *(*[sha256.Size]byte)(hash),
 	}, nil
 }
 
@@ -59,10 +61,10 @@ func (k *Key) ToProto() (*tag_pb.Key, error) {
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.Internal, "Failed to marshal signature public key")
 	}
-	return &tag_pb.Key{
+	return tag_pb.Key_builder{
 		SignaturePublicKey: signaturePublicKey,
 		Hash:               k.Hash[:],
-	}, nil
+	}.Build(), nil
 }
 
 // VerifySignature verifies that a signature corresponds to a given tag

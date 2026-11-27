@@ -30,26 +30,26 @@ func NewUpdaterServer(updater Updater[object.Namespace, []byte], clusterWatermar
 }
 
 func (s *updaterServer) UpdateTag(ctx context.Context, request *tag.UpdateTagRequest) (*emptypb.Empty, error) {
-	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.GetLeaseValidationContext()); err != nil {
 		return nil, util.StatusWrap(err, "Invalid lease validation context")
 	}
 
-	namespace, err := object.NewNamespace(request.Namespace)
+	namespace, err := object.NewNamespace(request.GetNamespace())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")
 	}
 
-	key, err := NewKeyFromProto(request.Key)
+	key, err := NewKeyFromProto(request.GetKey())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid key")
 	}
 
-	signedValue, err := NewSignedValueFromProto(request.SignedValue, namespace.ReferenceFormat, key)
+	signedValue, err := NewSignedValueFromProto(request.GetSignedValue(), namespace.ReferenceFormat, key)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid signed value")
 	}
 
-	if err := s.updater.UpdateTag(ctx, namespace, key, signedValue, request.Lease); err != nil {
+	if err := s.updater.UpdateTag(ctx, namespace, key, signedValue, request.GetLease()); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil

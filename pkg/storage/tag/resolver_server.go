@@ -36,26 +36,27 @@ func NewResolverServer(resolver Resolver[object.Namespace], clusterWatermark *ob
 }
 
 func (s *resolverServer) ResolveTag(ctx context.Context, request *tag_pb.ResolveTagRequest) (*tag_pb.ResolveTagResponse, error) {
+	leaseValidationContext := request.GetLeaseValidationContext()
 	if s.clusterWatermark != nil {
-		if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+		if err := s.clusterWatermark.ProcessLeaseValidationContext(leaseValidationContext); err != nil {
 			return nil, util.StatusWrap(err, "Invalid lease validation context")
 		}
-	} else if request.LeaseValidationContext != nil {
+	} else if leaseValidationContext != nil {
 		return nil, status.Error(codes.InvalidArgument, "This server is not a storage shard, and does not accept lease validation contexts")
 	}
 
-	namespace, err := object.NewNamespace(request.Namespace)
+	namespace, err := object.NewNamespace(request.GetNamespace())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")
 	}
 
-	key, err := NewKeyFromProto(request.Key)
+	key, err := NewKeyFromProto(request.GetKey())
 	if err != nil {
 		return nil, err
 	}
 
 	var minimumTimestamp *time.Time
-	if ts := request.MinimumTimestamp; ts != nil {
+	if ts := request.GetMinimumTimestamp(); ts != nil {
 		if err := ts.CheckValid(); err != nil {
 			return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid minimum timestamp")
 		}
@@ -67,16 +68,8 @@ func (s *resolverServer) ResolveTag(ctx context.Context, request *tag_pb.Resolve
 	if err != nil {
 		return nil, err
 	}
-	return &tag_pb.ResolveTagResponse{
+	return tag_pb.ResolveTagResponse_builder{
 		SignedValue: signedValue.ToProto(),
-		/*
-				Value: &tag_pb.Value{
-					Reference: signedValue.Reference.GetRawReference(),
-					Timestamp: timestamppb.New(signedValue.Timestamp),
-				},
-				Signature: signedValue.Signature,
-			},
-		*/
-		Complete: complete,
-	}, nil
+		Complete:    complete,
+	}.Build(), nil
 }

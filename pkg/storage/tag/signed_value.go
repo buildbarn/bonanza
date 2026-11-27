@@ -32,12 +32,12 @@ func NewValueFromProto(m *tag_pb.Value, referenceFormat object.ReferenceFormat) 
 		return Value{}, status.Error(codes.InvalidArgument, "No value provided")
 	}
 
-	reference, err := referenceFormat.NewLocalReference(m.Reference)
+	reference, err := referenceFormat.NewLocalReference(m.GetReference())
 	if err != nil {
 		return Value{}, util.StatusWrap(err, "Invalid reference")
 	}
 
-	timestamp := m.Timestamp
+	timestamp := m.GetTimestamp()
 	if err := timestamp.CheckValid(); err != nil {
 		return Value{}, util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid timestamp")
 	}
@@ -57,18 +57,18 @@ func (v *Value) Equal(other Value) bool {
 // ToProto converts the value of a tag from the native type to a
 // Protobuf message.
 func (v *Value) ToProto() *tag_pb.Value {
-	return &tag_pb.Value{
+	return tag_pb.Value_builder{
 		Reference: v.Reference.GetRawReference(),
 		Timestamp: timestamppb.New(v.Timestamp),
-	}
+	}.Build()
 }
 
 func (v *Value) getSigningInput(keyHash [sha256.Size]byte) ([]byte, error) {
-	valueSigningInput, err := proto.Marshal(&tag_pb.ValueSigningInput{
+	valueSigningInput, err := proto.Marshal(tag_pb.ValueSigningInput_builder{
 		ReferenceFormat: v.Reference.GetReferenceFormat().ToProto(),
 		KeyHash:         keyHash[:],
 		Value:           v.ToProto(),
-	})
+	}.Build())
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to marshal value signing input")
 	}
@@ -102,14 +102,15 @@ func NewSignedValueFromProto(m *tag_pb.SignedValue, referenceFormat object.Refer
 	if m == nil {
 		return SignedValue{}, status.Error(codes.InvalidArgument, "No signed value provided")
 	}
-	value, err := NewValueFromProto(m.Value, referenceFormat)
+	value, err := NewValueFromProto(m.GetValue(), referenceFormat)
 	if err != nil {
 		return SignedValue{}, err
 	}
-	if len(m.Signature) != ed25519.SignatureSize {
-		return SignedValue{}, status.Errorf(codes.InvalidArgument, "Signature is %d bytes in size, while %d bytes were expected", len(m.Signature), ed25519.SignatureSize)
+	signature := m.GetSignature()
+	if len(signature) != ed25519.SignatureSize {
+		return SignedValue{}, status.Errorf(codes.InvalidArgument, "Signature is %d bytes in size, while %d bytes were expected", len(signature), ed25519.SignatureSize)
 	}
-	return key.VerifySignature(value, (*[ed25519.SignatureSize]byte)(m.Signature))
+	return key.VerifySignature(value, (*[ed25519.SignatureSize]byte)(signature))
 }
 
 // Equal returns whether two signed tag values are equal, namely if they
@@ -122,8 +123,8 @@ func (sv *SignedValue) Equal(other SignedValue) bool {
 // ToProto converts the signed value from the native type to a Protobuf
 // message.
 func (sv *SignedValue) ToProto() *tag_pb.SignedValue {
-	return &tag_pb.SignedValue{
+	return tag_pb.SignedValue_builder{
 		Value:     sv.Value.ToProto(),
 		Signature: sv.Signature[:],
-	}
+	}.Build()
 }

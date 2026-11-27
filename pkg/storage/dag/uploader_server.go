@@ -419,10 +419,10 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			return err
 		}
 
-		switch requestType := request.Type.(type) {
+		switch request.GetType().(type) {
 		case *dag.UploadDagsRequest_InitiateDag_:
-			initiateDAG := requestType.InitiateDag
-			rootReference, err := r.namespace.NewLocalReference(initiateDAG.RootReference)
+			initiateDAG := request.GetInitiateDag()
+			rootReference, err := r.namespace.NewLocalReference(initiateDAG.GetRootReference())
 			if err != nil {
 				return util.StatusWrap(err, "Invalid root reference")
 			}
@@ -436,19 +436,19 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			}
 
 			var rootTag *unfinalizedTagState
-			if rootTagMessage := initiateDAG.RootTag; rootTagMessage != nil {
-				key, err := tag.NewKeyFromProto(rootTagMessage.Key)
+			if rootTagMessage := initiateDAG.GetRootTag(); rootTagMessage != nil {
+				key, err := tag.NewKeyFromProto(rootTagMessage.GetKey())
 				if err != nil {
 					return util.StatusWrap(err, "Invalid root tag key")
 				}
 				signedValue, err := tag.NewSignedValueFromProto(
-					&tag_pb.SignedValue{
-						Value: &tag_pb.Value{
+					tag_pb.SignedValue_builder{
+						Value: tag_pb.Value_builder{
 							Reference: rootReference.GetRawReference(),
-							Timestamp: rootTagMessage.Timestamp,
-						},
-						Signature: rootTagMessage.Signature,
-					},
+							Timestamp: rootTagMessage.GetTimestamp(),
+						}.Build(),
+						Signature: rootTagMessage.GetSignature(),
+					}.Build(),
 					r.namespace.ReferenceFormat,
 					key,
 				)
@@ -493,22 +493,22 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 
 			nextReferenceIndex++
 		case *dag.UploadDagsRequest_ProvideObjectContents_:
-			provideObjectContents := requestType.ProvideObjectContents
+			provideObjectContents := request.GetProvideObjectContents()
 			r.lock.Lock()
-			o, ok := r.requestedObjects[provideObjectContents.LowestReferenceIndex]
+			o, ok := r.requestedObjects[provideObjectContents.GetLowestReferenceIndex()]
 			if !ok {
 				r.lock.Unlock()
-				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, which was not expected", provideObjectContents.LowestReferenceIndex)
+				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, which was not expected", provideObjectContents.GetLowestReferenceIndex())
 			}
-			delete(r.requestedObjects, provideObjectContents.LowestReferenceIndex)
+			delete(r.requestedObjects, provideObjectContents.GetLowestReferenceIndex())
 
 			if o.storedOutgoingReferences != nil {
 				r.lock.Unlock()
-				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, even though its children were requested", provideObjectContents.LowestReferenceIndex)
+				return status.Errorf(codes.InvalidArgument, "Client provided object contents for lowest reference index %d, even though its children were requested", provideObjectContents.GetLowestReferenceIndex())
 			}
 			o.needsClient = false
 
-			if len(provideObjectContents.ObjectContents) == 0 {
+			if len(provideObjectContents.GetObjectContents()) == 0 {
 				// Client left ObjectContents unset. This can
 				// be used to clients to cancel the
 				// transmission of DAGs without tearing down
@@ -520,7 +520,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 				r.lock.Unlock()
 
 				// Validate the contents of the provided object.
-				contents, err := object.NewContentsFromFullData(o.reference, provideObjectContents.ObjectContents)
+				contents, err := object.NewContentsFromFullData(o.reference, provideObjectContents.GetObjectContents())
 				if err != nil {
 					return util.StatusWrapf(err, "Invalid contents for object with reference %s", o.reference)
 				}
@@ -577,19 +577,19 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 				}
 			}
 		case *dag.UploadDagsRequest_ProvideObjectChildren_:
-			provideObjectChildren := requestType.ProvideObjectChildren
+			provideObjectChildren := request.GetProvideObjectChildren()
 			r.lock.Lock()
-			o, ok := r.requestedObjects[provideObjectChildren.LowestReferenceIndex]
+			o, ok := r.requestedObjects[provideObjectChildren.GetLowestReferenceIndex()]
 			if !ok || o.storedOutgoingReferences == nil {
 				r.lock.Unlock()
-				return status.Errorf(codes.InvalidArgument, "Client provided object children for lowest reference index %d, which was not expected", provideObjectChildren.LowestReferenceIndex)
+				return status.Errorf(codes.InvalidArgument, "Client provided object children for lowest reference index %d, which was not expected", provideObjectChildren.GetLowestReferenceIndex())
 			}
-			delete(r.requestedObjects, provideObjectChildren.LowestReferenceIndex)
+			delete(r.requestedObjects, provideObjectChildren.GetLowestReferenceIndex())
 			outgoingReferences := o.storedOutgoingReferences
 			o.storedOutgoingReferences = nil
 			o.needsClient = false
 
-			if provideObjectChildren.Cancel {
+			if provideObjectChildren.GetCancel() {
 				// Client canceled the transmission of
 				// DAGs containing this object.
 				var lease TLease

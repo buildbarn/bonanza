@@ -30,12 +30,12 @@ func TestResolver(t *testing.T) {
 
 	t.Run("BackendFailure", func(t *testing.T) {
 		// Errors reported by the backend should be propagated.
-		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
+		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, tag_pb.ResolveTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -52,8 +52,8 @@ func TestResolver(t *testing.T) {
 					0x6f, 0xaa, 0xbb, 0x1a, 0xf8, 0x6a, 0x51, 0xf7,
 					0xfd, 0x82, 0xaa, 0xcc, 0x44, 0x51, 0x5b, 0x1b,
 				},
-			},
-		})).Return(nil, status.Error(codes.Unavailable, "Server offline"))
+			}.Build(),
+		}.Build())).Return(nil, status.Error(codes.Unavailable, "Server offline"))
 
 		_, _, err := updater.ResolveTag(
 			ctx,
@@ -83,12 +83,12 @@ func TestResolver(t *testing.T) {
 	t.Run("InvalidReference", func(t *testing.T) {
 		// If the server returns a malformed reference, an
 		// internal server error should be returned.
-		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
+		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, tag_pb.ResolveTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -105,14 +105,14 @@ func TestResolver(t *testing.T) {
 					0xa3, 0x04, 0x27, 0xf4, 0x16, 0x59, 0x28, 0x60,
 					0x67, 0xa7, 0xfd, 0x98, 0x6a, 0xb2, 0x94, 0x38,
 				},
-			},
+			}.Build(),
 			MinimumTimestamp: &timestamppb.Timestamp{Seconds: 1762284040},
-		})).Return(&tag_pb.ResolveTagResponse{
-			SignedValue: &tag_pb.SignedValue{
-				Value: &tag_pb.Value{
+		}.Build())).Return(tag_pb.ResolveTagResponse_builder{
+			SignedValue: tag_pb.SignedValue_builder{
+				Value: tag_pb.Value_builder{
 					Reference: []byte{1, 2, 3},
 					Timestamp: &timestamppb.Timestamp{Seconds: 1762284057},
-				},
+				}.Build(),
 				Signature: []byte{
 					0x06, 0xb5, 0x0c, 0xc2, 0x63, 0x26, 0x81, 0x02,
 					0xe4, 0x3f, 0x67, 0x1f, 0xcc, 0x26, 0x93, 0x78,
@@ -123,9 +123,9 @@ func TestResolver(t *testing.T) {
 					0x5c, 0x81, 0xdb, 0x29, 0xa0, 0x50, 0xff, 0x97,
 					0x0a, 0x40, 0xab, 0xc9, 0x20, 0x27, 0xa4, 0x08,
 				},
-			},
+			}.Build(),
 			Complete: false,
-		}, nil)
+		}.Build(), nil)
 
 		minimumTimestamp := time.Unix(1762284040, 0)
 		_, _, err := updater.ResolveTag(
@@ -156,12 +156,12 @@ func TestResolver(t *testing.T) {
 	t.Run("InvalidSignature", func(t *testing.T) {
 		// We should reject any values returned by the server
 		// that do not pass signature validation.
-		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
+		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, tag_pb.ResolveTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -178,10 +178,10 @@ func TestResolver(t *testing.T) {
 					0xa3, 0x04, 0x27, 0xf4, 0x16, 0x59, 0x28, 0x60,
 					0x67, 0xa7, 0xfd, 0x98, 0x6a, 0xb2, 0x94, 0x38,
 				},
-			},
-		})).Return(&tag_pb.ResolveTagResponse{
-			SignedValue: &tag_pb.SignedValue{
-				Value: &tag_pb.Value{
+			}.Build(),
+		}.Build())).Return(tag_pb.ResolveTagResponse_builder{
+			SignedValue: tag_pb.SignedValue_builder{
+				Value: tag_pb.Value_builder{
 					Reference: []byte{
 						// SHA-256 hash.
 						0xb7, 0xdb, 0x00, 0xfc, 0x7a, 0xcf, 0xa6, 0xac,
@@ -198,7 +198,7 @@ func TestResolver(t *testing.T) {
 						0x77, 0x43,
 					},
 					Timestamp: &timestamppb.Timestamp{Seconds: 1762288419},
-				},
+				}.Build(),
 				Signature: []byte{
 					0x63, 0x1b, 0x0a, 0x3a, 0x33, 0x0f, 0x6d, 0x34,
 					0xc0, 0x26, 0x51, 0x74, 0x50, 0x12, 0x1c, 0xc7,
@@ -209,9 +209,9 @@ func TestResolver(t *testing.T) {
 					0xea, 0x41, 0x75, 0x8c, 0xc1, 0xb9, 0x04, 0xf9,
 					0x43, 0x83, 0xa6, 0x5c, 0xd5, 0xae, 0x20, 0x75,
 				},
-			},
+			}.Build(),
 			Complete: true,
-		}, nil)
+		}.Build(), nil)
 
 		_, _, err := updater.ResolveTag(
 			ctx,
@@ -239,12 +239,12 @@ func TestResolver(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
+		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, tag_pb.ResolveTagRequest_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-			Key: &tag_pb.Key{
+			Key: tag_pb.Key_builder{
 				SignaturePublicKey: []byte{
 					// PKIX header.
 					0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
@@ -261,10 +261,10 @@ func TestResolver(t *testing.T) {
 					0xa3, 0x04, 0x27, 0xf4, 0x16, 0x59, 0x28, 0x60,
 					0x67, 0xa7, 0xfd, 0x98, 0x6a, 0xb2, 0x94, 0x38,
 				},
-			},
-		})).Return(&tag_pb.ResolveTagResponse{
-			SignedValue: &tag_pb.SignedValue{
-				Value: &tag_pb.Value{
+			}.Build(),
+		}.Build())).Return(tag_pb.ResolveTagResponse_builder{
+			SignedValue: tag_pb.SignedValue_builder{
+				Value: tag_pb.Value_builder{
 					Reference: []byte{
 						// SHA-256 hash.
 						0x1e, 0xf1, 0x27, 0x20, 0x45, 0xcc, 0xe7, 0xd3,
@@ -281,7 +281,7 @@ func TestResolver(t *testing.T) {
 						0x77, 0x43,
 					},
 					Timestamp: &timestamppb.Timestamp{Seconds: 1762284528},
-				},
+				}.Build(),
 				Signature: []byte{
 					0x24, 0xfe, 0xad, 0x8e, 0xee, 0x8c, 0x55, 0xfb,
 					0x90, 0x2a, 0x95, 0x71, 0xa7, 0x87, 0x9e, 0x65,
@@ -292,9 +292,9 @@ func TestResolver(t *testing.T) {
 					0xac, 0x23, 0x65, 0x41, 0x85, 0xf1, 0x43, 0xaf,
 					0x7f, 0xbf, 0xab, 0x88, 0xa2, 0x1b, 0xb0, 0x0f,
 				},
-			},
+			}.Build(),
 			Complete: true,
-		}, nil)
+		}.Build(), nil)
 
 		signedValue, complete, err := updater.ResolveTag(
 			ctx,
