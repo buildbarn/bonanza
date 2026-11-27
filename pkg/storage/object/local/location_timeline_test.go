@@ -109,8 +109,8 @@ func TestLocationTimeline(t *testing.T) {
 		// synchronized are not persisted.
 		entries, watermark := lt.getPersistentState(150)
 		require.Equal(t, []*pb.LocationTimelineEntry{
-			{Location: 0, Time: timestamppb.New(t0)},
-			{Location: 100, Time: timestamppb.New(t0.Add(10 * time.Second))},
+			pb.LocationTimelineEntry_builder{Location: 0, Time: timestamppb.New(t0)}.Build(),
+			pb.LocationTimelineEntry_builder{Location: 100, Time: timestamppb.New(t0.Add(10 * time.Second))}.Build(),
 		}, entries)
 		require.Equal(t, timestamppb.New(t0.Add(5*time.Second)), watermark)
 

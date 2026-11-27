@@ -1,9 +1,10 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.storage.object.local;
 
 import "google/protobuf/timestamp.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/storage/object/local";
 
 message EpochState {

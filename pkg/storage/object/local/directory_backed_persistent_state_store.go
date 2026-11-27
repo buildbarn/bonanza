@@ -36,10 +36,10 @@ func NewDirectoryBackedPersistentStateStore(directory filesystem.Directory) Pers
 }
 
 func newPersistentState() *pb.PersistentState {
-	return &pb.PersistentState{
+	return pb.PersistentState_builder{
 		MinimumEpochId:                         1,
 		ReferenceLocationMapHashInitialization: random.CryptoThreadSafeGenerator.Uint64(),
-	}
+	}.Build()
 }
 
 func (pss directoryBackedPersistentStateStore) ReadPersistentState() (*pb.PersistentState, error) {

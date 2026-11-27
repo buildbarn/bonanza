@@ -40,10 +40,10 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 		dataSyncer.Call,
 	)
 
-	exampleEpochStates := []*pb.EpochState{{
+	exampleEpochStates := []*pb.EpochState{pb.EpochState_builder{
 		HashSeed:         0xc6e9c01b35dfeb40,
 		LocationIncrease: 100,
-	}}
+	}.Build()}
 
 	t.Run("KeepGoing", func(t *testing.T) {
 		// Simulate the entire flow of writing the persistent
@@ -90,17 +90,17 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 			// The persistent state should be updated immediately,
 			// so that the data that has been synchronized remains
 			// available after restarts.
-			source.EXPECT().GetPersistentState().Return(&pb.PersistentState{
+			source.EXPECT().GetPersistentState().Return(pb.PersistentState_builder{
 				MinimumEpochId:  7,
 				MinimumLocation: 13,
 				Epochs:          exampleEpochStates,
-			}),
-			store.EXPECT().WritePersistentState(&pb.PersistentState{
+			}.Build()),
+			store.EXPECT().WritePersistentState(pb.PersistentState_builder{
 				MinimumEpochId:                         7,
 				MinimumLocation:                        13,
 				Epochs:                                 exampleEpochStates,
 				ReferenceLocationMapHashInitialization: 0xdf280dd45b2c39e,
-			}),
+			}.Build()),
 		)
 
 		require.True(t, periodicSyncer.ProcessLocationsChanged(ctx))
@@ -124,19 +124,19 @@ func TestPeriodicSyncerProcessLocationsChanged(t *testing.T) {
 			dataSyncer.EXPECT().Call(true),
 			source.EXPECT().NotifySyncCompleted(),
 
-			source.EXPECT().GetPersistentState().Return(&pb.PersistentState{
+			source.EXPECT().GetPersistentState().Return(pb.PersistentState_builder{
 				MinimumEpochId:  13,
 				MinimumLocation: 20,
 				Epochs:          exampleEpochStates,
 				LeaseTracking:   &pb.LeaseTrackingState{},
-			}),
-			store.EXPECT().WritePersistentState(&pb.PersistentState{
+			}.Build()),
+			store.EXPECT().WritePersistentState(pb.PersistentState_builder{
 				MinimumEpochId:                         13,
 				MinimumLocation:                        20,
 				Epochs:                                 exampleEpochStates,
 				ReferenceLocationMapHashInitialization: 0xdf280dd45b2c39e,
 				LeaseTracking:                          &pb.LeaseTrackingState{},
-			}),
+			}.Build()),
 		)
 
 		cancelledCtx, cancel := context.WithCancel(ctx)

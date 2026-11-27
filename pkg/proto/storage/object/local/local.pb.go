@@ -11,7 +11,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -23,11 +22,11 @@ const (
 )
 
 type EpochState struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	HashSeed         uint64                 `protobuf:"fixed64,1,opt,name=hash_seed,json=hashSeed,proto3" json:"hash_seed,omitempty"`
-	LocationIncrease uint64                 `protobuf:"varint,2,opt,name=location_increase,json=locationIncrease,proto3" json:"location_increase,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_HashSeed         uint64                 `protobuf:"fixed64,1,opt,name=hash_seed,json=hashSeed"`
+	xxx_hidden_LocationIncrease uint64                 `protobuf:"varint,2,opt,name=location_increase,json=locationIncrease"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *EpochState) Reset() {
@@ -55,31 +54,50 @@ func (x *EpochState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EpochState.ProtoReflect.Descriptor instead.
-func (*EpochState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *EpochState) GetHashSeed() uint64 {
 	if x != nil {
-		return x.HashSeed
+		return x.xxx_hidden_HashSeed
 	}
 	return 0
 }
 
 func (x *EpochState) GetLocationIncrease() uint64 {
 	if x != nil {
-		return x.LocationIncrease
+		return x.xxx_hidden_LocationIncrease
 	}
 	return 0
 }
 
+func (x *EpochState) SetHashSeed(v uint64) {
+	x.xxx_hidden_HashSeed = v
+}
+
+func (x *EpochState) SetLocationIncrease(v uint64) {
+	x.xxx_hidden_LocationIncrease = v
+}
+
+type EpochState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	HashSeed         uint64
+	LocationIncrease uint64
+}
+
+func (b0 EpochState_builder) Build() *EpochState {
+	m0 := &EpochState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_HashSeed = b.HashSeed
+	x.xxx_hidden_LocationIncrease = b.LocationIncrease
+	return m0
+}
+
 type LocationTimelineEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Location      uint64                 `protobuf:"varint,1,opt,name=location,proto3" json:"location,omitempty"`
-	Time          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=time,proto3" json:"time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Location uint64                 `protobuf:"varint,1,opt,name=location"`
+	xxx_hidden_Time     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=time"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *LocationTimelineEntry) Reset() {
@@ -107,33 +125,63 @@ func (x *LocationTimelineEntry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocationTimelineEntry.ProtoReflect.Descriptor instead.
-func (*LocationTimelineEntry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *LocationTimelineEntry) GetLocation() uint64 {
 	if x != nil {
-		return x.Location
+		return x.xxx_hidden_Location
 	}
 	return 0
 }
 
 func (x *LocationTimelineEntry) GetTime() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Time
+		return x.xxx_hidden_Time
 	}
 	return nil
 }
 
+func (x *LocationTimelineEntry) SetLocation(v uint64) {
+	x.xxx_hidden_Location = v
+}
+
+func (x *LocationTimelineEntry) SetTime(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Time = v
+}
+
+func (x *LocationTimelineEntry) HasTime() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Time != nil
+}
+
+func (x *LocationTimelineEntry) ClearTime() {
+	x.xxx_hidden_Time = nil
+}
+
+type LocationTimelineEntry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Location uint64
+	Time     *timestamppb.Timestamp
+}
+
+func (b0 LocationTimelineEntry_builder) Build() *LocationTimelineEntry {
+	m0 := &LocationTimelineEntry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Location = b.Location
+	x.xxx_hidden_Time = b.Time
+	return m0
+}
+
 type LeaseTrackingState struct {
-	state                protoimpl.MessageState   `protogen:"open.v1"`
-	LocationTimeline     []*LocationTimelineEntry `protobuf:"bytes,1,rep,name=location_timeline,json=locationTimeline,proto3" json:"location_timeline,omitempty"`
-	Watermark            *timestamppb.Timestamp   `protobuf:"bytes,2,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	Incarnation          []byte                   `protobuf:"bytes,3,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
-	LastIncarnationsHash []byte                   `protobuf:"bytes,4,opt,name=last_incarnations_hash,json=lastIncarnationsHash,proto3" json:"last_incarnations_hash,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_LocationTimeline     *[]*LocationTimelineEntry `protobuf:"bytes,1,rep,name=location_timeline,json=locationTimeline"`
+	xxx_hidden_Watermark            *timestamppb.Timestamp    `protobuf:"bytes,2,opt,name=watermark"`
+	xxx_hidden_Incarnation          []byte                    `protobuf:"bytes,3,opt,name=incarnation"`
+	xxx_hidden_LastIncarnationsHash []byte                    `protobuf:"bytes,4,opt,name=last_incarnations_hash,json=lastIncarnationsHash"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *LeaseTrackingState) Reset() {
@@ -161,48 +209,98 @@ func (x *LeaseTrackingState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LeaseTrackingState.ProtoReflect.Descriptor instead.
-func (*LeaseTrackingState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *LeaseTrackingState) GetLocationTimeline() []*LocationTimelineEntry {
 	if x != nil {
-		return x.LocationTimeline
+		if x.xxx_hidden_LocationTimeline != nil {
+			return *x.xxx_hidden_LocationTimeline
+		}
 	}
 	return nil
 }
 
 func (x *LeaseTrackingState) GetWatermark() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Watermark
+		return x.xxx_hidden_Watermark
 	}
 	return nil
 }
 
 func (x *LeaseTrackingState) GetIncarnation() []byte {
 	if x != nil {
-		return x.Incarnation
+		return x.xxx_hidden_Incarnation
 	}
 	return nil
 }
 
 func (x *LeaseTrackingState) GetLastIncarnationsHash() []byte {
 	if x != nil {
-		return x.LastIncarnationsHash
+		return x.xxx_hidden_LastIncarnationsHash
 	}
 	return nil
 }
 
+func (x *LeaseTrackingState) SetLocationTimeline(v []*LocationTimelineEntry) {
+	x.xxx_hidden_LocationTimeline = &v
+}
+
+func (x *LeaseTrackingState) SetWatermark(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Watermark = v
+}
+
+func (x *LeaseTrackingState) SetIncarnation(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Incarnation = v
+}
+
+func (x *LeaseTrackingState) SetLastIncarnationsHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_LastIncarnationsHash = v
+}
+
+func (x *LeaseTrackingState) HasWatermark() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Watermark != nil
+}
+
+func (x *LeaseTrackingState) ClearWatermark() {
+	x.xxx_hidden_Watermark = nil
+}
+
+type LeaseTrackingState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LocationTimeline     []*LocationTimelineEntry
+	Watermark            *timestamppb.Timestamp
+	Incarnation          []byte
+	LastIncarnationsHash []byte
+}
+
+func (b0 LeaseTrackingState_builder) Build() *LeaseTrackingState {
+	m0 := &LeaseTrackingState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LocationTimeline = &b.LocationTimeline
+	x.xxx_hidden_Watermark = b.Watermark
+	x.xxx_hidden_Incarnation = b.Incarnation
+	x.xxx_hidden_LastIncarnationsHash = b.LastIncarnationsHash
+	return m0
+}
+
 type PersistentState struct {
-	state                                  protoimpl.MessageState `protogen:"open.v1"`
-	MinimumEpochId                         uint32                 `protobuf:"varint,1,opt,name=minimum_epoch_id,json=minimumEpochId,proto3" json:"minimum_epoch_id,omitempty"`
-	MinimumLocation                        uint64                 `protobuf:"varint,2,opt,name=minimum_location,json=minimumLocation,proto3" json:"minimum_location,omitempty"`
-	ReferenceLocationMapHashInitialization uint64                 `protobuf:"varint,3,opt,name=reference_location_map_hash_initialization,json=referenceLocationMapHashInitialization,proto3" json:"reference_location_map_hash_initialization,omitempty"`
-	Epochs                                 []*EpochState          `protobuf:"bytes,4,rep,name=epochs,proto3" json:"epochs,omitempty"`
-	LeaseTracking                          *LeaseTrackingState    `protobuf:"bytes,5,opt,name=lease_tracking,json=leaseTracking,proto3" json:"lease_tracking,omitempty"`
-	unknownFields                          protoimpl.UnknownFields
-	sizeCache                              protoimpl.SizeCache
+	state                                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MinimumEpochId                         uint32                 `protobuf:"varint,1,opt,name=minimum_epoch_id,json=minimumEpochId"`
+	xxx_hidden_MinimumLocation                        uint64                 `protobuf:"varint,2,opt,name=minimum_location,json=minimumLocation"`
+	xxx_hidden_ReferenceLocationMapHashInitialization uint64                 `protobuf:"varint,3,opt,name=reference_location_map_hash_initialization,json=referenceLocationMapHashInitialization"`
+	xxx_hidden_Epochs                                 *[]*EpochState         `protobuf:"bytes,4,rep,name=epochs"`
+	xxx_hidden_LeaseTracking                          *LeaseTrackingState    `protobuf:"bytes,5,opt,name=lease_tracking,json=leaseTracking"`
+	unknownFields                                     protoimpl.UnknownFields
+	sizeCache                                         protoimpl.SizeCache
 }
 
 func (x *PersistentState) Reset() {
@@ -230,44 +328,94 @@ func (x *PersistentState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PersistentState.ProtoReflect.Descriptor instead.
-func (*PersistentState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *PersistentState) GetMinimumEpochId() uint32 {
 	if x != nil {
-		return x.MinimumEpochId
+		return x.xxx_hidden_MinimumEpochId
 	}
 	return 0
 }
 
 func (x *PersistentState) GetMinimumLocation() uint64 {
 	if x != nil {
-		return x.MinimumLocation
+		return x.xxx_hidden_MinimumLocation
 	}
 	return 0
 }
 
 func (x *PersistentState) GetReferenceLocationMapHashInitialization() uint64 {
 	if x != nil {
-		return x.ReferenceLocationMapHashInitialization
+		return x.xxx_hidden_ReferenceLocationMapHashInitialization
 	}
 	return 0
 }
 
 func (x *PersistentState) GetEpochs() []*EpochState {
 	if x != nil {
-		return x.Epochs
+		if x.xxx_hidden_Epochs != nil {
+			return *x.xxx_hidden_Epochs
+		}
 	}
 	return nil
 }
 
 func (x *PersistentState) GetLeaseTracking() *LeaseTrackingState {
 	if x != nil {
-		return x.LeaseTracking
+		return x.xxx_hidden_LeaseTracking
 	}
 	return nil
+}
+
+func (x *PersistentState) SetMinimumEpochId(v uint32) {
+	x.xxx_hidden_MinimumEpochId = v
+}
+
+func (x *PersistentState) SetMinimumLocation(v uint64) {
+	x.xxx_hidden_MinimumLocation = v
+}
+
+func (x *PersistentState) SetReferenceLocationMapHashInitialization(v uint64) {
+	x.xxx_hidden_ReferenceLocationMapHashInitialization = v
+}
+
+func (x *PersistentState) SetEpochs(v []*EpochState) {
+	x.xxx_hidden_Epochs = &v
+}
+
+func (x *PersistentState) SetLeaseTracking(v *LeaseTrackingState) {
+	x.xxx_hidden_LeaseTracking = v
+}
+
+func (x *PersistentState) HasLeaseTracking() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LeaseTracking != nil
+}
+
+func (x *PersistentState) ClearLeaseTracking() {
+	x.xxx_hidden_LeaseTracking = nil
+}
+
+type PersistentState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MinimumEpochId                         uint32
+	MinimumLocation                        uint64
+	ReferenceLocationMapHashInitialization uint64
+	Epochs                                 []*EpochState
+	LeaseTracking                          *LeaseTrackingState
+}
+
+func (b0 PersistentState_builder) Build() *PersistentState {
+	m0 := &PersistentState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_MinimumEpochId = b.MinimumEpochId
+	x.xxx_hidden_MinimumLocation = b.MinimumLocation
+	x.xxx_hidden_ReferenceLocationMapHashInitialization = b.ReferenceLocationMapHashInitialization
+	x.xxx_hidden_Epochs = &b.Epochs
+	x.xxx_hidden_LeaseTracking = b.LeaseTracking
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_storage_object_local_local_proto protoreflect.FileDescriptor
@@ -292,19 +440,7 @@ const file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc = ""
 	"\x10minimum_location\x18\x02 \x01(\x04R\x0fminimumLocation\x12Z\n" +
 	"*reference_location_map_hash_initialization\x18\x03 \x01(\x04R&referenceLocationMapHashInitialization\x12@\n" +
 	"\x06epochs\x18\x04 \x03(\v2(.bonanza.storage.object.local.EpochStateR\x06epochs\x12W\n" +
-	"\x0elease_tracking\x18\x05 \x01(\v20.bonanza.storage.object.local.LeaseTrackingStateR\rleaseTrackingB.Z,bonanza.build/pkg/proto/storage/object/localb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_storage_object_local_local_proto_rawDescData
-}
+	"\x0elease_tracking\x18\x05 \x01(\v20.bonanza.storage.object.local.LeaseTrackingStateR\rleaseTrackingB3Z,bonanza.build/pkg/proto/storage/object/local\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_storage_object_local_local_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_bonanza_build_pkg_proto_storage_object_local_local_proto_goTypes = []any{

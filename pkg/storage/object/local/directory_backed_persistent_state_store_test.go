@@ -26,10 +26,10 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 	persistentStateStore := local.NewDirectoryBackedPersistentStateStore(directory)
 
 	// Example persistent state to read from/write to disk.
-	examplePersistentState := pb.PersistentState{
+	examplePersistentState := pb.PersistentState_builder{
 		MinimumEpochId:                         123,
 		ReferenceLocationMapHashInitialization: 0xa0d1949bda40b526,
-	}
+	}.Build()
 	examplePersistentStateBytes := []byte{0x08, 0x7b, 0x18, 0xa6, 0xea, 0x82, 0xd2, 0xbd, 0x93, 0xe5, 0xe8, 0xa0, 0x01}
 
 	t.Run("ReadNotFound", func(t *testing.T) {
@@ -37,9 +37,9 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 
 		persistentState, err := persistentStateStore.ReadPersistentState()
 		require.NoError(t, err)
-		require.Equal(t, uint32(1), persistentState.MinimumEpochId)
-		require.Equal(t, uint64(0), persistentState.MinimumLocation)
-		require.Empty(t, persistentState.Epochs)
+		require.Equal(t, uint32(1), persistentState.GetMinimumEpochId())
+		require.Equal(t, uint64(0), persistentState.GetMinimumLocation())
+		require.Empty(t, persistentState.GetEpochs())
 	})
 
 	t.Run("ReadOpenFailure", func(t *testing.T) {
@@ -69,9 +69,9 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 
 		persistentState, err := persistentStateStore.ReadPersistentState()
 		require.NoError(t, err)
-		require.Equal(t, uint32(1), persistentState.MinimumEpochId)
-		require.Equal(t, uint64(0), persistentState.MinimumLocation)
-		require.Empty(t, persistentState.Epochs)
+		require.Equal(t, uint32(1), persistentState.GetMinimumEpochId())
+		require.Equal(t, uint64(0), persistentState.GetMinimumLocation())
+		require.Empty(t, persistentState.GetEpochs())
 	})
 
 	t.Run("ReadSuccess", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 
 		persistentState, err := persistentStateStore.ReadPersistentState()
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &examplePersistentState, persistentState)
+		testutil.RequireEqualProto(t, examplePersistentState, persistentState)
 	})
 
 	t.Run("WriteTemporaryFileRemovalFailure", func(t *testing.T) {
@@ -93,7 +93,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to remove previous temporary file: permission denied"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -104,7 +104,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to create temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -118,7 +118,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to write to temporary file: no space left on device"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -133,7 +133,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to synchronize temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -148,7 +148,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to close temporary file: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -164,7 +164,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to rename temporary file: permission denied"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -181,7 +181,7 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		testutil.RequireEqualStatus(
 			t,
 			status.Error(codes.Internal, "Failed to synchronize directory: input/output error"),
-			persistentStateStore.WritePersistentState(&examplePersistentState),
+			persistentStateStore.WritePersistentState(examplePersistentState),
 		)
 	})
 
@@ -195,6 +195,6 @@ func TestDirectoryBackedPersistentStateStore(t *testing.T) {
 		directory.EXPECT().Rename(path.MustNewComponent("state.new"), directory, path.MustNewComponent("state"))
 		directory.EXPECT().Sync()
 
-		require.NoError(t, persistentStateStore.WritePersistentState(&examplePersistentState))
+		require.NoError(t, persistentStateStore.WritePersistentState(examplePersistentState))
 	})
 }

@@ -85,7 +85,7 @@ func (ps *PeriodicSyncer) writePersistentState() error {
 	persistentState := ps.source.GetPersistentState()
 	ps.sourceLock.RUnlock()
 
-	persistentState.ReferenceLocationMapHashInitialization = ps.referenceLocationMapHashInitialization
+	persistentState.SetReferenceLocationMapHashInitialization(ps.referenceLocationMapHashInitialization)
 	return ps.store.WritePersistentState(persistentState)
 }
 

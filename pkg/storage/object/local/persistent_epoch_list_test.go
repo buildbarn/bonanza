@@ -10,8 +10,9 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/random"
 	"github.com/stretchr/testify/require"
 
-	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestPersistentEpochListLeaseTracking(t *testing.T) {
@@ -23,23 +24,23 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 	// enabled. Lease tracking state is only present if the previous
 	// incarnation shut down cleanly.
 	newPersistentState := func(cleanShutdown bool) *pb.PersistentState {
-		persistentState := &pb.PersistentState{
+		persistentState := pb.PersistentState_builder{
 			MinimumEpochId:  1,
 			MinimumLocation: 0,
 			Epochs: []*pb.EpochState{
-				{HashSeed: 123, LocationIncrease: 1000},
+				pb.EpochState_builder{HashSeed: 123, LocationIncrease: 1000}.Build(),
 			},
-		}
+		}.Build()
 		if cleanShutdown {
-			persistentState.LeaseTracking = &pb.LeaseTrackingState{
+			persistentState.SetLeaseTracking(pb.LeaseTrackingState_builder{
 				LocationTimeline: []*pb.LocationTimelineEntry{
-					{Location: 0, Time: timestamppb.New(t0)},
-					{Location: 500, Time: timestamppb.New(t0.Add(10 * time.Second))},
+					pb.LocationTimelineEntry_builder{Location: 0, Time: timestamppb.New(t0)}.Build(),
+					pb.LocationTimelineEntry_builder{Location: 500, Time: timestamppb.New(t0.Add(10 * time.Second))}.Build(),
 				},
 				Watermark:            timestamppb.New(t0.Add(5 * time.Second)),
 				Incarnation:          []byte("incarnation"),
 				LastIncarnationsHash: []byte("hash"),
-			}
+			}.Build())
 		}
 		return persistentState
 	}
@@ -65,7 +66,7 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 
 		require.Equal(t, time.Time{}, el.GetSafeSince(600))
 		require.Equal(t, time.Time{}, el.GetWatermark())
-		require.Nil(t, el.GetPersistentState().LeaseTracking)
+		require.Nil(t, el.GetPersistentState().GetLeaseTracking())
 		incarnation, lastIncarnationsHash := el.GetIncarnation()
 		require.Nil(t, incarnation)
 		require.Nil(t, lastIncarnationsHash)
@@ -124,7 +125,7 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 
 		el.NotifySyncStarting(true)
 		el.NotifySyncCompleted()
-		require.Equal(t, timestamppb.New(t1), el.GetPersistentState().LeaseTracking.Watermark)
+		require.Equal(t, timestamppb.New(t1), el.GetPersistentState().GetLeaseTracking().GetWatermark())
 	})
 
 	t.Run("PersistLeaseTrackingState", func(t *testing.T) {
@@ -135,15 +136,15 @@ func TestPersistentEpochListLeaseTracking(t *testing.T) {
 		el := local.NewPersistentEpochList(10000, random.NewFastSingleThreadedGenerator(), newLeaseTracking(ctrl, t1), newPersistentState(true))
 		el.NotifySyncStarting(false)
 		el.NotifySyncCompleted()
-		require.Nil(t, el.GetPersistentState().LeaseTracking)
+		require.Nil(t, el.GetPersistentState().GetLeaseTracking())
 
 		el.NotifySyncStarting(true)
 		el.NotifySyncCompleted()
-		leaseTracking := el.GetPersistentState().LeaseTracking
+		leaseTracking := el.GetPersistentState().GetLeaseTracking()
 		require.NotNil(t, leaseTracking)
-		require.Equal(t, timestamppb.New(t0.Add(5*time.Second)), leaseTracking.Watermark)
-		require.Equal(t, []byte("incarnation"), leaseTracking.Incarnation)
-		require.Equal(t, []byte("newHash"), leaseTracking.LastIncarnationsHash)
+		require.Equal(t, timestamppb.New(t0.Add(5*time.Second)), leaseTracking.GetWatermark())
+		require.Equal(t, []byte("incarnation"), leaseTracking.GetIncarnation())
+		require.Equal(t, []byte("newHash"), leaseTracking.GetLastIncarnationsHash())
 	})
 }
 
@@ -167,14 +168,14 @@ func TestPersistentEpochListOutOfOrderWrites(t *testing.T) {
 	epochStateA, epochIDA := el.GetCurrentEpochState()
 	require.Equal(t, epochIDB+1, epochIDA)
 	require.True(t, epochStateA.IsValidLocation(0, 100))
-	require.Len(t, el.GetPersistentState().Epochs, 1)
+	require.Len(t, el.GetPersistentState().GetEpochs(), 1)
 
 	el.NotifySyncStarting(false)
 	el.NotifySyncCompleted()
-	epochs := el.GetPersistentState().Epochs
+	epochs := el.GetPersistentState().GetEpochs()
 	require.Len(t, epochs, 2)
-	require.Equal(t, uint64(200), epochs[0].LocationIncrease)
-	require.Equal(t, uint64(0), epochs[1].LocationIncrease)
+	require.Equal(t, uint64(200), epochs[0].GetLocationIncrease())
+	require.Equal(t, uint64(0), epochs[1].GetLocationIncrease())
 
 	// Reloading the persistent state should allow entries
 	// belonging to either epoch to be interpreted.

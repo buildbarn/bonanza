@@ -97,29 +97,29 @@ func NewPersistentEpochList(
 		maximumLocationSpan:   maximumLocationSpan,
 		randomNumberGenerator: randomNumberGenerator,
 
-		minimumEpochID:         persistentState.MinimumEpochId,
-		minimumLocation:        persistentState.MinimumLocation,
+		minimumEpochID:         persistentState.GetMinimumEpochId(),
+		minimumLocation:        persistentState.GetMinimumLocation(),
 		locationsChangedWakeup: newNotificationChannel(),
 	}
 
 	// Reload all epochs, so that epochs written by a previous
 	// incarnation of this process can be read again.
-	maximumLocation := persistentState.MinimumLocation
-	for _, epoch := range persistentState.Epochs {
+	maximumLocation := persistentState.GetMinimumLocation()
+	for _, epoch := range persistentState.GetEpochs() {
 		var carryOut uint64
-		maximumLocation, carryOut = bits.Add64(maximumLocation, epoch.LocationIncrease, 0)
+		maximumLocation, carryOut = bits.Add64(maximumLocation, epoch.GetLocationIncrease(), 0)
 		if carryOut != 0 {
 			el.reinitialize()
 		}
 		el.epochs = append(el.epochs, persistentEpochInfo{
-			hashSeed:        epoch.HashSeed,
+			hashSeed:        epoch.GetHashSeed(),
 			maximumLocation: maximumLocation,
 		})
 		el.synchronizingEpochs++
 		el.synchronizedEpochs++
 	}
 
-	el.leaseTracker = newLeaseTracker(leaseTracking, persistentState.LeaseTracking, maximumLocation)
+	el.leaseTracker = newLeaseTracker(leaseTracking, persistentState.GetLeaseTracking(), maximumLocation)
 	el.pruneStaleEpochs()
 	el.leaseTracker.update(el.minimumLocation, maximumLocation)
 	return el
@@ -299,13 +299,13 @@ func (el *PersistentEpochList) GetPersistentState() *pb.PersistentState {
 	epochStates := make([]*pb.EpochState, 0, el.synchronizedEpochs)
 	previousMaximumLocation := el.minimumLocation
 	for _, epoch := range el.epochs[:el.synchronizedEpochs] {
-		epochStates = append(epochStates, &pb.EpochState{
+		epochStates = append(epochStates, pb.EpochState_builder{
 			HashSeed:         epoch.hashSeed,
 			LocationIncrease: epoch.maximumLocation - previousMaximumLocation,
-		})
+		}.Build())
 		previousMaximumLocation = epoch.maximumLocation
 	}
-	return &pb.PersistentState{
+	return pb.PersistentState_builder{
 		MinimumEpochId:  el.minimumEpochID,
 		MinimumLocation: el.minimumLocation,
 		Epochs:          epochStates,
@@ -313,7 +313,7 @@ func (el *PersistentEpochList) GetPersistentState() *pb.PersistentState {
 			previousMaximumLocation,
 			/* cleanShutdown = */ el.closedForWriting && el.synchronizedEpochs == len(el.epochs),
 		),
-	}
+	}.Build()
 }
 
 func (el *PersistentEpochList) getMaximumLocation() uint64 {

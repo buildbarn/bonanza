@@ -54,8 +54,8 @@ func newLocationTimelineFromPersistentState(entries []*pb.LocationTimelineEntry,
 	var lt locationTimeline
 	for _, entry := range entries {
 		e := locationTimelineEntry{
-			location: entry.Location,
-			time:     entry.Time.AsTime(),
+			location: entry.GetLocation(),
+			time:     entry.GetTime().AsTime(),
 		}
 		// Discard entries that refer to data that was not
 		// synchronized, or are not properly ordered.
@@ -212,10 +212,10 @@ func (lt *locationTimeline) getPersistentState(maximumLocation uint64) ([]*pb.Lo
 		if entry.location > maximumLocation {
 			break
 		}
-		entries = append(entries, &pb.LocationTimelineEntry{
+		entries = append(entries, pb.LocationTimelineEntry_builder{
 			Location: entry.location,
 			Time:     timestamppb.New(entry.time),
-		})
+		}.Build())
 	}
 	watermark := lt.floor
 	if watermark.Before(lt.lastWatermark) {

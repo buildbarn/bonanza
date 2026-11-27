@@ -62,14 +62,14 @@ func NewStoreFromConfiguration(terminationGroup program.Group, configuration *co
 		// this process does not shut down cleanly.
 		if initialPersistentState.GetLeaseTracking() != nil {
 			clearedPersistentState := proto.Clone(initialPersistentState).(*pb.PersistentState)
-			clearedPersistentState.LeaseTracking = nil
+			clearedPersistentState.ClearLeaseTracking()
 			if err := persistentStateStore.WritePersistentState(clearedPersistentState); err != nil {
 				return nil, util.StatusWrap(err, "Failed to clear lease tracking state")
 			}
 		}
 	} else {
 		initialPersistentState = &pb.PersistentState{}
-		initialPersistentState.ReferenceLocationMapHashInitialization = rand.Uint64()
+		initialPersistentState.SetReferenceLocationMapHashInitialization(rand.Uint64())
 	}
 
 	// Construct the reference-location map that stores the location

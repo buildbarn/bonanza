@@ -175,13 +175,15 @@ func (lt *leaseTracker) getPersistentState(maximumLocation uint64, cleanShutdown
 		return nil
 	}
 	entries, watermark := lt.locationTimeline.getPersistentState(maximumLocation)
-	state := &pb.LeaseTrackingState{
+	state := pb.LeaseTrackingState_builder{
 		LocationTimeline: entries,
 		Watermark:        watermark,
-		Incarnation:      lt.incarnation,
+	}.Build()
+	if lt.incarnation != nil {
+		state.SetIncarnation(lt.incarnation)
 	}
 	if lt.getLastIncarnationsHash != nil {
-		state.LastIncarnationsHash = lt.getLastIncarnationsHash()
+		state.SetLastIncarnationsHash(lt.getLastIncarnationsHash())
 	}
 	return state
 }
