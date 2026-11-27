@@ -144,13 +144,13 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 	}
 
 	directoryParameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
-		&model_filesystem_pb.DirectoryCreationParameters{
+		model_filesystem_pb.DirectoryCreationParameters_builder{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
 			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
 			}.Build(),
-		},
+		}.Build(),
 		object.SHA256V1ReferenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
 	)
@@ -261,12 +261,12 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 			require.NoError(t, errIter)
 			if index == specialIndex {
 				require.Len(t, nodes, 2)
-				testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
+				testutil.RequireEqualProto(t, model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: "link",
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{Symlink: &model_filesystem_pb.SymlinkProperties{
+					Symlink: model_filesystem_pb.SymlinkProperties_builder{
 						Target: "../../../target",
-					}},
-				}, nodes[0])
+					}.Build(),
+				}.Build(), nodes[0])
 				require.Equal(t, "nested", nodes[1].GetName())
 			} else {
 				require.Empty(t, nodes)
@@ -277,12 +277,12 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 	t.Run("LookupNode", func(t *testing.T) {
 		node, _, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, rootDirectory, path.MustNewComponent("dir0550.lnk"))
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
+		testutil.RequireEqualProto(t, model_filesystem_pb.DirectoryEntry_Node_builder{
 			Name: "dir0550.lnk",
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{Symlink: &model_filesystem_pb.SymlinkProperties{
+			Symlink: model_filesystem_pb.SymlinkProperties_builder{
 				Target: "dir0550",
-			}},
-		}, node.Message)
+			}.Build(),
+		}.Build(), node.Message)
 
 		node, directoryIndex, err := model_filesystem.DirectoryLookupNode(ctx, entriesReader, rootDirectory, path.MustNewComponent("dir0789"))
 		require.NoError(t, err)

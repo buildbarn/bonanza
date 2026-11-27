@@ -15,9 +15,9 @@ import (
 
 func TestAllLeaves(t *testing.T) {
 	root := model_core.NewSimpleMessage[object.LocalReference]([]*model_filesystem_pb.FileContents{
-		{TotalSizeBytes: 1},
-		{TotalSizeBytes: 2},
-		{TotalSizeBytes: 3},
+		model_filesystem_pb.FileContents_builder{TotalSizeBytes: 1}.Build(),
+		model_filesystem_pb.FileContents_builder{TotalSizeBytes: 2}.Build(),
+		model_filesystem_pb.FileContents_builder{TotalSizeBytes: 3}.Build(),
 	})
 	allLeaves := func(traverser btree.Traverser[*model_filesystem_pb.FileContents, object.LocalReference], errOut *error) func(yield func(model_core.Message[*model_filesystem_pb.FileContents, object.LocalReference]) bool) {
 		return btree.AllLeaves(t.Context(), nil, root, traverser, errOut)
@@ -30,7 +30,7 @@ func TestAllLeaves(t *testing.T) {
 		var sizes []uint64
 		var errIter error
 		for entry := range allLeaves(noParents, &errIter) {
-			sizes = append(sizes, entry.Message.TotalSizeBytes)
+			sizes = append(sizes, entry.Message.GetTotalSizeBytes())
 		}
 		require.NoError(t, errIter)
 		require.Equal(t, []uint64{1, 2, 3}, sizes)
@@ -40,12 +40,12 @@ func TestAllLeaves(t *testing.T) {
 		var sizes []uint64
 		var errIter error
 		for entry := range allLeaves(func(entry model_core.Message[*model_filesystem_pb.FileContents, object.LocalReference]) (*model_core_pb.DecodableReference, error) {
-			if entry.Message.TotalSizeBytes == 2 {
+			if entry.Message.GetTotalSizeBytes() == 2 {
 				return nil, errors.New("invalid entry")
 			}
 			return nil, nil
 		}, &errIter) {
-			sizes = append(sizes, entry.Message.TotalSizeBytes)
+			sizes = append(sizes, entry.Message.GetTotalSizeBytes())
 		}
 		require.EqualError(t, errIter, "invalid entry")
 		require.Equal(t, []uint64{1}, sizes)

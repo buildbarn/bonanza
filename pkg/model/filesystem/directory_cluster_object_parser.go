@@ -77,12 +77,12 @@ func (c *DirectoryCluster) addDirectory(entries []*model_filesystem_pb.Directory
 	c.Directories = append(c.Directories, Directory{Entries: entries})
 	childDirectoryIndices := make([]int, 0, len(entries))
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_, *model_filesystem_pb.DirectoryEntry_Node_:
+		switch entry.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case, model_filesystem_pb.DirectoryEntry_Node_case:
 			childDirectoryIndices = append(childDirectoryIndices, -1)
-		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+		case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
 			childDirectoryIndices = append(childDirectoryIndices, len(c.Directories))
-			if err := c.addDirectory(level.DirectoryContents.Entries); err != nil {
+			if err := c.addDirectory(entry.GetDirectoryContents().GetEntries()); err != nil {
 				return err
 			}
 		default:
@@ -137,7 +137,7 @@ type DirectoryClusterNode struct {
 // GetNode returns the node that is stored at the location.
 func (n *DirectoryClusterNode) GetNode() model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, object.LocalReference] {
 	d := n.Location.GetDirectory()
-	return model_core.Nested(d, d.Message[n.EntryIndex].Level.(*model_filesystem_pb.DirectoryEntry_Node_).Node)
+	return model_core.Nested(d, d.Message[n.EntryIndex].GetNode())
 }
 
 func clusterDirectoryTree(reader model_parser.MessageObjectReader[object.LocalReference, DirectoryCluster]) directoryTree[DirectoryClusterLocation] {
@@ -146,7 +146,7 @@ func clusterDirectoryTree(reader model_parser.MessageObjectReader[object.LocalRe
 			return location.Cluster.Message.Directories[location.Index].Entries
 		},
 		descend: func(ctx context.Context, location DirectoryClusterLocation, parent *model_filesystem_pb.DirectoryEntry_Parent) (DirectoryClusterLocation, error) {
-			reference, err := model_core.FlattenDecodableReference(model_core.Nested(location.Cluster, parent.Reference))
+			reference, err := model_core.FlattenDecodableReference(model_core.Nested(location.Cluster, parent.GetReference()))
 			if err != nil {
 				return DirectoryClusterLocation{}, err
 			}

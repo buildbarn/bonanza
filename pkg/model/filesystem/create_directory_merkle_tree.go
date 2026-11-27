@@ -20,6 +20,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -160,9 +161,9 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
 			directoryIndex := nextDirectoryIndex
 			nextDirectoryIndex++
 			ud.nodes = append(ud.nodes, unfinalizedNode[TFile]{
-				node: &model_filesystem_pb.DirectoryEntry_Node{
+				node: model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: name.String(),
-				},
+				}.Build(),
 				directoryIndex: directoryIndex,
 			})
 			if childOut := &ud.directories[directoryIndex]; childExisting == nil {
@@ -190,14 +191,12 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
 				return util.StatusWrapf(err, "Failed to open file %#v", directoryPath.Append(name).GetUNIXString())
 			}
 			ud.nodes = append(ud.nodes, unfinalizedNode[TFile]{
-				node: &model_filesystem_pb.DirectoryEntry_Node{
+				node: model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: name.String(),
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{
-						File: &model_filesystem_pb.FileProperties{
-							IsExecutable: entry.IsExecutable(),
-						},
-					},
-				},
+					File: model_filesystem_pb.FileProperties_builder{
+						IsExecutable: entry.IsExecutable(),
+					}.Build(),
+				}.Build(),
 				directoryIndex: -1,
 			})
 			fileNode := &ud.nodes[len(ud.nodes)-1]
@@ -228,14 +227,12 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) walkDirectory(
 				return util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", directoryPath.Append(name).GetUNIXString())
 			}
 			ud.nodes = append(ud.nodes, unfinalizedNode[TFile]{
-				node: &model_filesystem_pb.DirectoryEntry_Node{
+				node: model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: name.String(),
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-						Symlink: &model_filesystem_pb.SymlinkProperties{
-							Target: targetBuilder.GetUNIXString(),
-						},
-					},
-				},
+					Symlink: model_filesystem_pb.SymlinkProperties_builder{
+						Target: targetBuilder.GetUNIXString(),
+					}.Build(),
+				}.Build(),
 				directoryIndex: -1,
 			})
 		}
@@ -262,14 +259,14 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *un
 		node := unfinalizedNode.node
 		if unfinalizedNode.directoryIndex >= 0 {
 			nodes = append(nodes, DirectoryNode[TDirectory]{
-				Name:      node.Name,
+				Name:      node.GetName(),
 				Directory: &ud.directories[unfinalizedNode.directoryIndex],
 			})
 			continue
 		}
 		patcher := model_core.NewReferenceMessagePatcher[TDirectory]()
-		if file, ok := node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_File); ok && unfinalizedNode.fileContents.IsSet() {
-			file.File.Contents = unfinalizedNode.fileContents.Message
+		if file := node.GetFile(); file != nil && unfinalizedNode.fileContents.IsSet() {
+			file.SetContents(unfinalizedNode.fileContents.Message)
 			patcher = model_core.MapReferenceMessagePatcherMetadata(
 				unfinalizedNode.fileContents.Patcher,
 				func(capturedObject model_core.MetadataEntry[TFile]) TDirectory {
@@ -278,7 +275,7 @@ func (b *directoryMerkleTreeBuilder[TDirectory, TFile]) finalizeDirectory(ud *un
 			)
 		}
 		nodes = append(nodes, DirectoryNode[TDirectory]{
-			Name: node.Name,
+			Name: node.GetName(),
 			Leaf: model_core.NewPatchedMessage(node, patcher),
 		})
 	}
@@ -331,9 +328,9 @@ func CreateDirectory[TDirectory model_core.ReferenceMetadata](
 	directoriesCount := uint32(0)
 	for _, node := range nodes {
 		if node.Directory == nil {
-			if symlink, ok := node.Leaf.Message.Kind.(*model_filesystem_pb.DirectoryEntry_Node_Symlink); ok {
+			if symlink := node.Leaf.Message.GetSymlink(); symlink != nil {
 				escapementCounter := NewEscapementCountingScopeWalker()
-				if err := path.Resolve(path.UNIXFormat.NewParser(symlink.Symlink.Target), escapementCounter); err != nil {
+				if err := path.Resolve(path.UNIXFormat.NewParser(symlink.GetTarget()), escapementCounter); err != nil {
 					return CreatedDirectory[TDirectory]{}, util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", node.Name)
 				}
 				escapementLevels.raise(escapementCounter.GetLevels())
@@ -352,13 +349,11 @@ func CreateDirectory[TDirectory model_core.ReferenceMetadata](
 		directoryContents := createdDirectory.Message
 		if err := treeBuilder.PushChild(
 			model_core.NewPatchedMessage(
-				&model_filesystem_pb.DirectoryEntry{
-					Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
-						DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{
-							Entries: directoryContents.Message,
-						},
-					},
-				},
+				model_filesystem_pb.DirectoryEntry_builder{
+					DirectoryContents: model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{
+						Entries: directoryContents.Message,
+					}.Build(),
+				}.Build(),
 				directoryContents.Patcher,
 			),
 		); err != nil {
@@ -371,22 +366,20 @@ func CreateDirectory[TDirectory model_core.ReferenceMetadata](
 	for _, node := range nodes {
 		var patchedNode model_core.PatchedMessage[*model_filesystem_pb.DirectoryEntry_Node, TDirectory]
 		if node.Directory != nil {
-			patchedNode = model_core.NewSimplePatchedMessage[TDirectory](&model_filesystem_pb.DirectoryEntry_Node{
+			patchedNode = model_core.NewSimplePatchedMessage[TDirectory](model_filesystem_pb.DirectoryEntry_Node_builder{
 				Name: node.Name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
-					Directory: &model_filesystem_pb.DirectoryProperties{
-						DirectoriesCount: node.Directory.DirectoriesCount,
-					},
-				},
-			})
+				Directory: model_filesystem_pb.DirectoryProperties_builder{
+					DirectoriesCount: node.Directory.DirectoriesCount,
+				}.Build(),
+			}.Build())
 		} else {
 			patchedNode = node.Leaf
 		}
+		de := &model_filesystem_pb.DirectoryEntry{}
+		de.SetNode(proto.ValueOrDefault(patchedNode.Message))
 		if err := treeBuilder.PushChild(
 			model_core.NewPatchedMessage(
-				&model_filesystem_pb.DirectoryEntry{
-					Level: &model_filesystem_pb.DirectoryEntry_Node_{Node: patchedNode.Message},
-				},
+				de,
 				patchedNode.Patcher,
 			),
 		); err != nil {
@@ -432,11 +425,11 @@ func NewDirectoryEntryParentNodeComputer[TMetadata model_core.ReferenceMetadata]
 		}
 		var firstName string
 		if len(childNodes) > 0 {
-			switch level := childNodes[0].Level.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Parent_:
-				firstName = level.Parent.FirstName
-			case *model_filesystem_pb.DirectoryEntry_Node_:
-				firstName = level.Node.Name
+			switch childNodes[0].WhichLevel() {
+			case model_filesystem_pb.DirectoryEntry_Parent_case:
+				firstName = childNodes[0].GetParent().GetFirstName()
+			case model_filesystem_pb.DirectoryEntry_Node_case:
+				firstName = childNodes[0].GetNode().GetName()
 			}
 		}
 		maximumSymlinkEscapementLevels, err := getDirectoryEntriesMaximumSymlinkEscapementLevels(childNodes)
@@ -450,18 +443,16 @@ func NewDirectoryEntryParentNodeComputer[TMetadata model_core.ReferenceMetadata]
 		}
 		capturedObject := model_core.CopyDecodable(createdObject, metadataEntry)
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_filesystem_pb.DirectoryEntry {
-			return &model_filesystem_pb.DirectoryEntry{
-				Level: &model_filesystem_pb.DirectoryEntry_Parent_{
-					Parent: &model_filesystem_pb.DirectoryEntry_Parent{
-						Reference:                      patcher.AddDecodableReference(capturedObject),
-						FirstName:                      firstName,
-						LeafNodesCount:                 uint32(counts.nodes - counts.directoryNodes),
-						DirectoryNodesCount:            uint32(counts.directoryNodes),
-						DirectoryContentsCount:         uint32(counts.directoryContents),
-						MaximumSymlinkEscapementLevels: maximumSymlinkEscapementLevels,
-					},
-				},
-			}
+			return model_filesystem_pb.DirectoryEntry_builder{
+				Parent: model_filesystem_pb.DirectoryEntry_Parent_builder{
+					Reference:                      patcher.AddDecodableReference(capturedObject),
+					FirstName:                      firstName,
+					LeafNodesCount:                 uint32(counts.nodes - counts.directoryNodes),
+					DirectoryNodesCount:            uint32(counts.directoryNodes),
+					DirectoryContentsCount:         uint32(counts.directoryContents),
+					MaximumSymlinkEscapementLevels: maximumSymlinkEscapementLevels,
+				}.Build(),
+			}.Build()
 		}), nil
 	}
 }
@@ -534,11 +525,11 @@ func (cd *CreatedDirectory[TDirectory]) IsEmpty() bool {
 // corresponds to the current directory. The reference should be nil if
 // the directory is empty.
 func (cd *CreatedDirectory[TDirectory]) ToDirectoryReference(reference *model_core_pb.DecodableReference) *model_filesystem_pb.DirectoryReference {
-	return &model_filesystem_pb.DirectoryReference{
+	return model_filesystem_pb.DirectoryReference_builder{
 		Reference:                      reference,
 		DirectoriesCount:               cd.DirectoriesCount,
 		MaximumSymlinkEscapementLevels: cd.MaximumSymlinkEscapementLevels,
-	}
+	}.Build()
 }
 
 // CaptureDirectoryReference stores the top level of the directory's

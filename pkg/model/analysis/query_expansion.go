@@ -2686,12 +2686,8 @@ type QueryExpansionEnvironmentForTesting QueryExpansionEnvironment[model_core.Cr
 // string can be stored inline, regardless of its size.
 func newQueryStringValue(s string) *model_starlark_pb.Value {
 	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{
-			Str: &model_filesystem_pb.MaybeInlineFileContents{
-				Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
-					ContentsInline: []byte(s),
-				},
-			},
-		},
+		Kind: &model_starlark_pb.Value_Str{Str: model_filesystem_pb.MaybeInlineFileContents_builder{
+			ContentsInline: []byte(s),
+		}.Build()},
 	}
 }

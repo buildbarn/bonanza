@@ -30,11 +30,11 @@ func NewFileAccessParametersFromProto(m *model_filesystem_pb.FileAccessParameter
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	chunkEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.ChunkEncoders, maximumObjectSizeBytes)
+	chunkEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.GetChunkEncoders(), maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid chunk encoder")
 	}
-	fileContentsListEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.FileContentsListEncoders, maximumObjectSizeBytes)
+	fileContentsListEncoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.GetFileContentsListEncoders(), maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid file contents list encoder")
 	}

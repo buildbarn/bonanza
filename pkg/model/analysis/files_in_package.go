@@ -55,19 +55,19 @@ func (d *currentPackageLimitingDirectory[TReference, TMetadata]) ReadDir() ([]fi
 	var fileInfos []filesystem.FileInfo
 	var errNodes error
 	for node := range model_filesystem.DirectoryAllNodes(ctx, reader, d.directory, &errNodes) {
-		name, ok := path.NewComponent(node.Message.Name)
+		name, ok := path.NewComponent(node.Message.GetName())
 		if !ok {
-			return nil, fmt.Errorf("invalid name for node %#v", node.Message.Name)
+			return nil, fmt.Errorf("invalid name for node %#v", node.Message.GetName())
 		}
-		switch kind := node.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		switch node.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 			// Only report directories that are not packages.
 			_, childDirectory, ok := nextChild()
 			if !ok {
 				if errChildren != nil {
 					return nil, errChildren
 				}
-				return nil, fmt.Errorf("contents of directory %#v are missing", node.Message.Name)
+				return nil, fmt.Errorf("contents of directory %#v are missing", node.Message.GetName())
 			}
 			isPackage, err := directoryIsPackage(ctx, reader, childDirectory)
 			if err != nil {
@@ -76,12 +76,12 @@ func (d *currentPackageLimitingDirectory[TReference, TMetadata]) ReadDir() ([]fi
 			if !isPackage {
 				fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeDirectory, false))
 			}
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
-			fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeRegularFile, kind.File.GetIsExecutable()))
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
+			fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeRegularFile, node.Message.GetFile().GetIsExecutable()))
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 			fileInfos = append(fileInfos, filesystem.NewFileInfo(name, filesystem.FileTypeSymlink, false))
 		default:
-			return nil, fmt.Errorf("node %#v has an unknown type", node.Message.Name)
+			return nil, fmt.Errorf("node %#v has an unknown type", node.Message.GetName())
 		}
 	}
 	if errNodes != nil {
@@ -99,7 +99,7 @@ func (d *currentPackageLimitingDirectory[TReference, TMetadata]) Readlink(name p
 	if symlink == nil {
 		panic("attempted to read a symbolic link that was not reported by ReadDir()")
 	}
-	return path.UNIXFormat.NewParser(symlink.Target), nil
+	return path.UNIXFormat.NewParser(symlink.GetTarget()), nil
 }
 
 func (d *currentPackageLimitingDirectory[TReference, TMetadata]) EnterCapturableDirectory(name path.Component) (*model_filesystem.CreatedDirectory[TMetadata], model_filesystem.CapturableDirectory[TMetadata, TMetadata], error) {

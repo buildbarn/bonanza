@@ -62,23 +62,23 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 	externalDirectories := map[int]externalDirectory{}
 	directoryNodesSeen, directoryContentsSeen := 0, 0
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_:
-			directoryNodesSeen += int(level.Parent.DirectoryNodesCount)
-			for i := range level.Parent.DirectoryContentsCount {
+		switch entry.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case:
+			directoryNodesSeen += int(entry.GetParent().GetDirectoryNodesCount())
+			for i := range entry.GetParent().GetDirectoryContentsCount() {
 				externalDirectories[directoryContentsSeen] = externalDirectory{
-					parent: level.Parent,
+					parent: entry.GetParent(),
 					index:  i,
 				}
 				directoryContentsSeen++
 			}
-		case *model_filesystem_pb.DirectoryEntry_Node_:
-			if level.Node.GetDirectory() != nil {
+		case model_filesystem_pb.DirectoryEntry_Node_case:
+			if entry.GetNode().GetDirectory() != nil {
 				knownDirectoryNames[directoryNodesSeen] = true
 				directoryNodesSeen++
 			}
-		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
-			inlineDirectories[directoryContentsSeen] = level.DirectoryContents.Entries
+		case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
+			inlineDirectories[directoryContentsSeen] = entry.GetDirectoryContents().GetEntries()
 			directoryContentsSeen++
 		}
 	}
@@ -122,7 +122,7 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 				Concat(
 					getPathPrefix(path),
 					fieldReferenceLink(
-						model_core.Nested(dirMessage, external.parent.Reference),
+						model_core.Nested(dirMessage, external.parent.GetReference()),
 						external.parent, "reference",
 						Text(name+"/"),
 					),
@@ -140,10 +140,10 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 
 	directoryIndex := 0
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_:
+		switch entry.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case:
 			// Nodes stored in another object.
-			if nodesCount := level.Parent.LeafNodesCount + level.Parent.DirectoryNodesCount; nodesCount > 0 {
+			if nodesCount := entry.GetParent().GetLeafNodesCount() + entry.GetParent().GetDirectoryNodesCount(); nodesCount > 0 {
 				rows = append(rows, []Doc{
 					Text(""),
 					Text(""),
@@ -151,19 +151,19 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 					Concat(
 						getPathPrefix(path),
 						fieldReferenceLink(
-							model_core.Nested(dirMessage, level.Parent.Reference),
-							level.Parent, "reference",
-							Text(fmt.Sprintf("%s… (%d entries)", level.Parent.FirstName, nodesCount)),
+							model_core.Nested(dirMessage, entry.GetParent().GetReference()),
+							entry.GetParent(), "reference",
+							Text(fmt.Sprintf("%s… (%d entries)", entry.GetParent().GetFirstName(), nodesCount)),
 						),
 					),
 				})
 			}
-			directoryIndex += int(level.Parent.DirectoryNodesCount)
+			directoryIndex += int(entry.GetParent().GetDirectoryNodesCount())
 
-		case *model_filesystem_pb.DirectoryEntry_Node_:
-			node := level.Node
-			switch kind := node.Kind.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		case model_filesystem_pb.DirectoryEntry_Node_case:
+			node := entry.GetNode()
+			switch node.WhichKind() {
+			case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 				if partial {
 					// The contents of the subdirectory
 					// can't be identified.
@@ -171,41 +171,41 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 						Text("dr-x"),
 						Text(""),
 						Text(""),
-						Concat(getPathPrefix(path), Text(node.Name+"/")),
+						Concat(getPathPrefix(path), Text(node.GetName()+"/")),
 					})
 				} else {
-					renderSubdirectory(node.Name, directoryIndex)
+					renderSubdirectory(node.GetName(), directoryIndex)
 				}
 				directoryIndex++
 
-			case *model_filesystem_pb.DirectoryEntry_Node_File:
+			case model_filesystem_pb.DirectoryEntry_Node_File_case:
 				mode := "-r--"
-				if kind.File.GetIsExecutable() {
+				if node.GetFile().GetIsExecutable() {
 					mode = "-r-x"
 				}
 
-				pathDoc := Text(node.Name)
+				pathDoc := Text(node.GetName())
 				var totalSizeBytes uint64
 				// Empty files are valid text files without
 				// any lines.
 				linesDoc := Text("0")
-				if contents := kind.File.GetContents(); contents != nil {
-					switch reference := contents.Level.(type) {
-					case *model_filesystem_pb.FileContents_ChunkReference:
+				if contents := node.GetFile().GetContents(); contents != nil {
+					switch contents.WhichLevel() {
+					case model_filesystem_pb.FileContents_ChunkReference_case:
 						pathDoc = fieldReferenceLink(
-							model_core.Nested(dirMessage, reference.ChunkReference),
+							model_core.Nested(dirMessage, contents.GetChunkReference()),
 							contents, "chunk_reference",
 							pathDoc,
 						)
-					case *model_filesystem_pb.FileContents_List_:
+					case model_filesystem_pb.FileContents_List_case:
 						pathDoc = fieldReferenceLink(
-							model_core.Nested(dirMessage, reference.List.Reference),
-							reference.List, "reference",
+							model_core.Nested(dirMessage, contents.GetList().GetReference()),
+							contents.GetList(), "reference",
 							pathDoc,
 						)
 					}
-					totalSizeBytes = contents.TotalSizeBytes
-					linesDoc = renderLines(utf8stat.Stat(contents.Utf8Stat))
+					totalSizeBytes = contents.GetTotalSizeBytes()
+					linesDoc = renderLines(utf8stat.Stat(contents.GetUtf8Stat()))
 				}
 				rows = append(rows, []Doc{
 					Text(mode),
@@ -214,14 +214,14 @@ func renderDirectoryRows(dirMessage model_core.Message[[]*model_filesystem_pb.Di
 					Concat(getPathPrefix(path), pathDoc),
 				})
 
-			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+			case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 				rows = append(rows, []Doc{
 					Text("lr-x"),
 					Text(""),
 					Text(""),
 					Concat(
 						getPathPrefix(path),
-						Text(node.Name+" → "+kind.Symlink.Target),
+						Text(node.GetName()+" → "+node.GetSymlink().GetTarget()),
 					),
 				})
 			}

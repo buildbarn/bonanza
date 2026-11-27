@@ -94,7 +94,7 @@ func (icf *objectBackedInitialContentsFetcher) FetchContents(fileReadMonitorFact
 	var errNodes error
 	for node := range model_filesystem.AllDirectoryClusterNodes(options.context, options.directoryClusterReader, &location, 0, &errNodes) {
 		nodeMessage := node.GetNode()
-		name := nodeMessage.Message.Name
+		name := nodeMessage.Message.GetName()
 		component, ok := path.NewComponent(name)
 		if !ok {
 			return nil, status.Errorf(codes.InvalidArgument, "Node %#v has an invalid name", name)
@@ -103,8 +103,8 @@ func (icf *objectBackedInitialContentsFetcher) FetchContents(fileReadMonitorFact
 			return nil, status.Errorf(codes.InvalidArgument, "Directory contains multiple children named %#v", name)
 		}
 
-		switch kind := nodeMessage.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		switch nodeMessage.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 			// Create InitialContentsFetchers for all child
 			// directories. These can yield even more
 			// InitialContentsFetchers for grandchildren.
@@ -122,30 +122,30 @@ func (icf *objectBackedInitialContentsFetcher) FetchContents(fileReadMonitorFact
 					directoryIndex:   childLocation.Index,
 				},
 			)
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
 			// Create storage backed read-only files.
-			properties := kind.File
+			properties := nodeMessage.Message.GetFile()
 			if properties == nil {
 				return nil, status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", name)
 			}
 			fileContents, err := model_filesystem.NewFileContentsEntryFromProto(
-				model_core.Nested(nodeMessage, properties.Contents),
+				model_core.Nested(nodeMessage, properties.GetContents()),
 			)
 			if err != nil {
 				return nil, util.StatusWrapf(err, "Invalid contents for file %#v", name)
 			}
 			leaf, err := options.fileFactory.LookupFile(
 				fileContents,
-				properties.IsExecutable,
+				properties.GetIsExecutable(),
 			)
 			if err != nil {
 				return nil, util.StatusWrapf(err, "Failed to look up file %#v", name)
 			}
 			children[component] = virtual.InitialChild{}.FromLeaf(leaf)
 			leavesToUnlink = append(leavesToUnlink, leaf)
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 			// Create symbolic links.
-			leaf, err := options.symlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(kind.Symlink.Target))
+			leaf, err := options.symlinkFactory.LookupSymlink(path.UNIXFormat.NewParser(nodeMessage.Message.GetSymlink().GetTarget()))
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "Failed to look up symlink named %#v", name)
 			}

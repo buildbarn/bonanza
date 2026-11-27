@@ -26,7 +26,7 @@ func TestMaybeInlineFileContents(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
-		&model_filesystem_pb.FileCreationParameters{
+		model_filesystem_pb.FileCreationParameters_builder{
 			Access: &model_filesystem_pb.FileAccessParameters{},
 			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
@@ -36,7 +36,7 @@ func TestMaybeInlineFileContents(t *testing.T) {
 				MinimumSizeBytes: 1 << 12,
 				HorizonSizeBytes: 8 << 12,
 			}.Build(),
-		},
+		}.Build(),
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
 	)
@@ -71,9 +71,9 @@ func TestMaybeInlineFileContents(t *testing.T) {
 		capturer := NewMockFileMerkleTreeCapturerForTesting(ctrl)
 		contents, err := model_filesystem.CreateMaybeInlineFileContents(ctx, fileCreationParameters, []byte("Hello"), 5, capturer)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{ContentsInline: []byte("Hello")},
-		}, contents.Message)
+		testutil.RequireEqualProto(t, model_filesystem_pb.MaybeInlineFileContents_builder{
+			ContentsInline: []byte("Hello"),
+		}.Build(), contents.Message)
 		require.Equal(t, uint64(5), model_filesystem.GetMaybeInlineFileContentsSizeBytes(contents.Message))
 
 		references, _ := contents.Patcher.SortAndSetReferences()
@@ -110,17 +110,17 @@ func TestMaybeInlineFileContents(t *testing.T) {
 		contents, err := model_filesystem.CreateMaybeInlineFileContents(ctx, fileCreationParameters, []byte("Hello"), 4, capturer)
 		require.NoError(t, err)
 		references, metadata := contents.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsExternal{ContentsExternal: &model_filesystem_pb.FileContents{
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+		testutil.RequireEqualProto(t, model_filesystem_pb.MaybeInlineFileContents_builder{
+			ContentsExternal: model_filesystem_pb.FileContents_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 1,
 					}.Build(),
-				}.Build()},
+				}.Build(),
 				TotalSizeBytes: 5,
 				Utf8Stat:       1,
-			}},
-		}, contents.Message)
+			}.Build(),
+		}.Build(), contents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{chunkReference}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)
 		require.Equal(t, uint64(5), model_filesystem.GetMaybeInlineFileContentsSizeBytes(contents.Message))

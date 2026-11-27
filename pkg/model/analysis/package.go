@@ -69,7 +69,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
+	builtinsModuleNames := allBuiltinsModulesNames.Message.GetBuiltinsModuleNames()
 	valueReaders := &starlarkValueEncoders.Readers
 	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, builtinsModuleNames)
 	if err != nil {
@@ -88,13 +88,14 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 		if !buildFileProperties.IsSet() {
 			return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		if buildFileProperties.Message.Exists == nil {
+		exists := buildFileProperties.Message.GetExists()
+		if exists == nil {
 			continue
 		}
 
 		buildFileLabel := canonicalPackage.AppendTargetName(buildFileName)
 		buildFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-			model_core.Nested(buildFileProperties, buildFileProperties.Message.Exists.Contents),
+			model_core.Nested(buildFileProperties, exists.GetContents()),
 		)
 		if err != nil {
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid contents for file %#v: %w", buildFileLabel.String(), err)
@@ -128,7 +129,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			if !globValue.IsSet() {
 				return nil, evaluation.ErrMissingDependency
 			}
-			return globValue.Message.MatchedPaths, nil
+			return globValue.Message.GetMatchedPaths(), nil
 		})
 		thread.SetLocal(model_starlark.SubpackagesExpanderKey, func(includePatterns, excludePatterns []string) ([]string, error) {
 			nfa, err := glob.NewNFAFromPatterns(includePatterns, excludePatterns)
@@ -143,7 +144,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 				return nil, evaluation.ErrMissingDependency
 			}
 			// Sort results in the same way as glob().
-			packagePaths := slices.Clone(packagesAtAndBelowValue.Message.PackagesBelowBasePackage)
+			packagePaths := slices.Clone(packagesAtAndBelowValue.Message.GetPackagesBelowBasePackage())
 			sort.Strings(packagePaths)
 			return packagePaths, nil
 		})
@@ -153,7 +154,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTopLevelPackageValue(ctx co
 			starlarkValueEncoders.Encoder,
 			c.chunkingParameters.GetInlinedTreeOptions(),
 			e,
-			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.InheritableAttrs),
+			model_core.Nested(repoDefaultAttrsValue, repoDefaultAttrsValue.Message.GetInheritableAttrs()),
 		)
 		defer targetRegistrar.Discard()
 		thread.SetLocal(model_starlark.TargetRegistrarKey, targetRegistrar)

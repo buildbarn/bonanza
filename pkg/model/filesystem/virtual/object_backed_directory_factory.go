@@ -145,7 +145,7 @@ func (df *ObjectBackedDirectoryFactory) resolveHandle(r io.ByteReader) (virtual.
 			},
 			EntryIndex: int(entryIndex - 1),
 		},
-		symlink.Target,
+		symlink.GetTarget(),
 	)
 	if s != virtual.StatusOK {
 		return virtual.DirectoryChild{}, s
@@ -199,20 +199,20 @@ type objectBackedDirectory struct {
 func (d *objectBackedDirectory) lookupFile(node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, object.LocalReference], properties *model_filesystem_pb.FileProperties) (virtual.LinkableLeaf, virtual.Status) {
 	df := d.factory
 	if properties == nil {
-		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", node.Message.Name))
+		df.errorLogger.Log(status.Errorf(codes.InvalidArgument, "File %#v does not have any properties", node.Message.GetName()))
 		return nil, virtual.StatusErrIO
 	}
-	fileContents, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(node, properties.Contents))
+	fileContents, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(node, properties.GetContents()))
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Invalid contents for file %#v", node.Message.Name))
+		df.errorLogger.Log(util.StatusWrapf(err, "Invalid contents for file %#v", node.Message.GetName()))
 		return nil, virtual.StatusErrIO
 	}
 	f, err := df.fileFactory.LookupFile(
 		fileContents,
-		properties.IsExecutable,
+		properties.GetIsExecutable(),
 	)
 	if err != nil {
-		df.errorLogger.Log(util.StatusWrapf(err, "Failed to look up file %#v", node.Message.Name))
+		df.errorLogger.Log(util.StatusWrapf(err, "Failed to look up file %#v", node.Message.GetName()))
 		return nil, virtual.StatusErrIO
 	}
 	return f, virtual.StatusOK
@@ -279,25 +279,25 @@ func (d *objectBackedDirectory) VirtualLookup(ctx context.Context, name path.Com
 	}
 
 	nodeMessage := node.GetNode()
-	switch kind := nodeMessage.Message.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch nodeMessage.Message.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		childLocation, err := model_filesystem.ResolveDirectoryClusterChild(ctx, d.factory.directoryClusterReader, &location, node.DirectoryIndex)
 		if err != nil {
 			d.logError(err, "Failed to resolve subdirectory %#v", name.String())
 			return virtual.DirectoryChild{}, virtual.StatusErrIO
 		}
-		child := d.lookupChildDirectory(childLocation, kind.Directory.DirectoriesCount)
+		child := d.lookupChildDirectory(childLocation, nodeMessage.Message.GetDirectory().GetDirectoriesCount())
 		child.VirtualGetAttributes(ctx, requested, out)
 		return virtual.DirectoryChild{}.FromDirectory(child), virtual.StatusOK
-	case *model_filesystem_pb.DirectoryEntry_Node_File:
-		child, s := d.lookupFile(nodeMessage, kind.File)
+	case model_filesystem_pb.DirectoryEntry_Node_File_case:
+		child, s := d.lookupFile(nodeMessage, nodeMessage.Message.GetFile())
 		if s != virtual.StatusOK {
 			return virtual.DirectoryChild{}, s
 		}
 		child.VirtualGetAttributes(ctx, requested, out)
 		return virtual.DirectoryChild{}.FromLeaf(child), virtual.StatusOK
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-		child, s := d.factory.createSymlink(node, kind.Symlink.Target)
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+		child, s := d.factory.createSymlink(node, nodeMessage.Message.GetSymlink().GetTarget())
 		if s != virtual.StatusOK {
 			return virtual.DirectoryChild{}, s
 		}
@@ -319,20 +319,20 @@ func (d *objectBackedDirectory) VirtualOpenChild(ctx context.Context, name path.
 	}
 
 	nodeMessage := node.GetNode()
-	switch kind := nodeMessage.Message.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch nodeMessage.Message.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		return virtual.ReadOnlyDirectoryOpenChildWrongFileType(existingOptions, virtual.StatusErrIsDir)
-	case *model_filesystem_pb.DirectoryEntry_Node_File:
+	case model_filesystem_pb.DirectoryEntry_Node_File_case:
 		if existingOptions == nil {
 			return nil, 0, virtual.ChangeInfo{}, virtual.StatusErrExist
 		}
-		leaf, s := d.lookupFile(nodeMessage, kind.File)
+		leaf, s := d.lookupFile(nodeMessage, nodeMessage.Message.GetFile())
 		if s != virtual.StatusOK {
 			return nil, 0, virtual.ChangeInfo{}, s
 		}
 		s = leaf.VirtualOpenSelf(ctx, shareAccess, existingOptions, requested, openedFileAttributes)
 		return leaf, existingOptions.ToAttributesMask(), virtual.ChangeInfo{}, s
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 		return virtual.ReadOnlyDirectoryOpenChildWrongFileType(existingOptions, virtual.StatusErrSymlink)
 	default:
 		d.logError(status.Error(codes.InvalidArgument, "Unknown node type"), "Invalid node %#v", name.String())
@@ -364,16 +364,16 @@ func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie 
 	var errNodes error
 	for node := range model_filesystem.AllDirectoryClusterNodes(ctx, df.directoryClusterReader, &location, firstCookie, &errNodes) {
 		nodeMessage := node.GetNode()
-		name, ok := path.NewComponent(nodeMessage.Message.Name)
+		name, ok := path.NewComponent(nodeMessage.Message.GetName())
 		if !ok {
-			d.logError(status.Error(codes.InvalidArgument, "Invalid name"), "Node %#v has an invalid name", nodeMessage.Message.Name)
+			d.logError(status.Error(codes.InvalidArgument, "Invalid name"), "Node %#v has an invalid name", nodeMessage.Message.GetName())
 			return virtual.StatusErrIO
 		}
 
 		var child virtual.DirectoryChild
 		var attributes virtual.Attributes
-		switch kind := nodeMessage.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		switch nodeMessage.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 			if stopChildren == nil {
 				nextChild, stopChildren = iter.Pull(model_filesystem.AllDirectoryClusterChildren(ctx, df.directoryClusterReader, &location, node.DirectoryIndex, &errChildren))
 			}
@@ -385,18 +385,18 @@ func (d *objectBackedDirectory) VirtualReadDir(ctx context.Context, firstCookie 
 				d.logError(errChildren, "Failed to resolve subdirectory %#v", name.String())
 				return virtual.StatusErrIO
 			}
-			childDirectory := d.lookupChildDirectory(childLocation, kind.Directory.DirectoriesCount)
+			childDirectory := d.lookupChildDirectory(childLocation, nodeMessage.Message.GetDirectory().GetDirectoriesCount())
 			childDirectory.VirtualGetAttributes(ctx, requested, &attributes)
 			child = virtual.DirectoryChild{}.FromDirectory(childDirectory)
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
-			leaf, s := d.lookupFile(nodeMessage, kind.File)
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
+			leaf, s := d.lookupFile(nodeMessage, nodeMessage.Message.GetFile())
 			if s != virtual.StatusOK {
 				return s
 			}
 			leaf.VirtualGetAttributes(ctx, requested, &attributes)
 			child = virtual.DirectoryChild{}.FromLeaf(leaf)
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-			leaf, s := df.createSymlink(node, kind.Symlink.Target)
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+			leaf, s := df.createSymlink(node, nodeMessage.Message.GetSymlink().GetTarget())
 			if s != virtual.StatusOK {
 				return s
 			}

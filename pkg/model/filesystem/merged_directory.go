@@ -14,6 +14,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // MergeConflictPolicy determines how CreateMergedDirectory() resolves
@@ -115,11 +116,12 @@ func (d *MergedDirectory[TReference]) addSource(source mergedDirectorySource[TRe
 // MergeDirectoryReference merges the contents of a directory referenced
 // by a DirectoryReference into the directory.
 func (d *MergedDirectory[TReference]) MergeDirectoryReference(directoryReference model_core.Message[*model_filesystem_pb.DirectoryReference, TReference]) error {
-	if directoryReference.Message.Reference == nil {
+	reference := directoryReference.Message.GetReference()
+	if reference == nil {
 		// Empty directory.
 		return nil
 	}
-	flattenedReference, err := model_core.FlattenDecodableReference(model_core.Nested(directoryReference, directoryReference.Message.Reference))
+	flattenedReference, err := model_core.FlattenDecodableReference(model_core.Nested(directoryReference, reference))
 	if err != nil {
 		return err
 	}
@@ -190,12 +192,10 @@ func (d *MergedDirectory[TReference]) AddFile(name path.Component, properties mo
 	d.addSource(mergedDirectorySource[TReference]{
 		kind: mergedDirectorySourceExplicitLeaf,
 		name: name,
-		leaf: model_core.Nested(properties, &model_filesystem_pb.DirectoryEntry_Node{
+		leaf: model_core.Nested(properties, model_filesystem_pb.DirectoryEntry_Node_builder{
 			Name: name.String(),
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_File{
-				File: properties.Message,
-			},
-		}),
+			File: proto.ValueOrDefault(properties.Message),
+		}.Build()),
 	}, nil)
 }
 
@@ -212,14 +212,12 @@ func (d *MergedDirectory[TReference]) AddSymlink(name path.Component, target pat
 	d.addSource(mergedDirectorySource[TReference]{
 		kind: mergedDirectorySourceExplicitLeaf,
 		name: name,
-		leaf: model_core.NewSimpleMessage[TReference](&model_filesystem_pb.DirectoryEntry_Node{
+		leaf: model_core.NewSimpleMessage[TReference](model_filesystem_pb.DirectoryEntry_Node_builder{
 			Name: name.String(),
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-				Symlink: &model_filesystem_pb.SymlinkProperties{
-					Target: targetBuilder.GetUNIXString(),
-				},
-			},
-		}),
+			Symlink: model_filesystem_pb.SymlinkProperties_builder{
+				Target: targetBuilder.GetUNIXString(),
+			}.Build(),
+		}.Build()),
 	}, nil)
 	return nil
 }
@@ -305,8 +303,8 @@ func (c *mergedDirectoryCreator[TReference, TMetadata]) create(d *MergedDirector
 			}
 			return CreatedDirectory[TMetadata]{
 				Message:                        model_core.PatchList(c.capturer, contents),
-				DirectoriesCount:               source.reference.Message.DirectoriesCount,
-				MaximumSymlinkEscapementLevels: source.reference.Message.MaximumSymlinkEscapementLevels,
+				DirectoriesCount:               source.reference.Message.GetDirectoriesCount(),
+				MaximumSymlinkEscapementLevels: source.reference.Message.GetMaximumSymlinkEscapementLevels(),
 			}, nil
 		case mergedDirectorySourceContents, mergedDirectorySourceChild:
 			contents, err := c.loadSource(source)
@@ -340,7 +338,7 @@ func (c *mergedDirectoryCreator[TReference, TMetadata]) create(d *MergedDirector
 					occurrence.childIndex = childIndex
 					childIndex++
 				}
-				occurrences[node.Message.Name] = append(occurrences[node.Message.Name], occurrence)
+				occurrences[node.Message.GetName()] = append(occurrences[node.Message.GetName()], occurrence)
 			}
 			if errIter != nil {
 				return CreatedDirectory[TMetadata]{}, util.StatusWrapf(errIter, "Failed to load directory %#v", dPath.GetUNIXString())

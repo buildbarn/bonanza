@@ -49,15 +49,15 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		// A file contents list should contain at least two
 		// parts. If only a single part were present, the tree
 		// could have been collapsed.
-		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{{
+		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{model_filesystem_pb.FileContents_builder{
 			TotalSizeBytes: 42,
-			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+			ChunkReference: model_core_pb.DecodableReference_builder{
 				Reference: model_core_pb.Reference_builder{
 					Index: 1,
 				}.Build(),
 				DecodingParameters: []byte{1, 2, 3, 4},
-			}.Build()},
-		}})
+			}.Build(),
+		}.Build()})
 		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
 				data,
@@ -75,33 +75,33 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		// Otherwise it could have safely been omitted from the
 		// file contents list.
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
-			{
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 12,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 1,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 0,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 2,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 70,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 3,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
+				}.Build(),
+			}.Build(),
 		})
 		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
@@ -123,28 +123,28 @@ func TestFileContentsListObjectParser(t *testing.T) {
 		// to refer to these parts through a single FileContents
 		// message in the parent.
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
-			{
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 0x8000000000000000,
-				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+				List: model_filesystem_pb.FileContents_List_builder{
 					Reference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{
 							Index: 1,
 						}.Build(),
 						DecodingParameters: []byte{1, 2, 3, 4},
 					}.Build(),
-				}},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 0x8000000000000000,
-				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+				List: model_filesystem_pb.FileContents_List_builder{
 					Reference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{
 							Index: 2,
 						}.Build(),
 						DecodingParameters: []byte{1, 2, 3, 4},
 					}.Build(),
-				}},
-			},
+				}.Build(),
+			}.Build(),
 		})
 		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
@@ -161,24 +161,24 @@ func TestFileContentsListObjectParser(t *testing.T) {
 
 	t.Run("InvalidReferenceIndex", func(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
-			{
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 200,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 7,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 300,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 2,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
+				}.Build(),
+			}.Build(),
 		})
 		_, err := objectParser.ParseObject(
 			model_core.NewMessage(
@@ -195,24 +195,24 @@ func TestFileContentsListObjectParser(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		data := marshalFileContentsList([]*model_filesystem_pb.FileContents{
-			{
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 200,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 1,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 300,
-				Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				ChunkReference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 2,
 					}.Build(),
 					DecodingParameters: []byte{1, 2, 3, 4},
-				}.Build()},
-			},
+				}.Build(),
+			}.Build(),
 		})
 		fileContentsList, err := objectParser.ParseObject(
 			model_core.NewMessage(

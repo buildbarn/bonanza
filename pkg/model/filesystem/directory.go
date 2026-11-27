@@ -25,11 +25,12 @@ func DirectoryDereference[TReference any](
 	reader model_parser.MessageObjectReader[TReference, []*model_filesystem_pb.DirectoryEntry],
 	directoryReference model_core.Message[*model_filesystem_pb.DirectoryReference, TReference],
 ) (model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], error) {
-	if directoryReference.Message.Reference == nil {
+	reference := directoryReference.Message.GetReference()
+	if reference == nil {
 		// Empty directory.
 		return model_core.Nested(directoryReference, []*model_filesystem_pb.DirectoryEntry(nil)), nil
 	}
-	entries, err := model_parser.Dereference(ctx, reader, model_core.Nested(directoryReference, directoryReference.Message.Reference))
+	entries, err := model_parser.Dereference(ctx, reader, model_core.Nested(directoryReference, reference))
 	if err != nil {
 		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, err
 	}
@@ -52,19 +53,19 @@ func (c *directoryEntryCounts) add(other directoryEntryCounts) {
 }
 
 func getDirectoryEntryCounts(entry *model_filesystem_pb.DirectoryEntry) (directoryEntryCounts, error) {
-	switch level := entry.Level.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Parent_:
+	switch entry.WhichLevel() {
+	case model_filesystem_pb.DirectoryEntry_Parent_case:
 		return directoryEntryCounts{
-			nodes:             uint64(level.Parent.LeafNodesCount) + uint64(level.Parent.DirectoryNodesCount),
-			directoryNodes:    uint64(level.Parent.DirectoryNodesCount),
-			directoryContents: uint64(level.Parent.DirectoryContentsCount),
+			nodes:             uint64(entry.GetParent().GetLeafNodesCount()) + uint64(entry.GetParent().GetDirectoryNodesCount()),
+			directoryNodes:    uint64(entry.GetParent().GetDirectoryNodesCount()),
+			directoryContents: uint64(entry.GetParent().GetDirectoryContentsCount()),
 		}, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_:
-		if _, ok := level.Node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_Directory); ok {
+	case model_filesystem_pb.DirectoryEntry_Node_case:
+		if entry.GetNode().GetDirectory() != nil {
 			return directoryEntryCounts{nodes: 1, directoryNodes: 1}, nil
 		}
 		return directoryEntryCounts{nodes: 1}, nil
-	case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+	case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
 		return directoryEntryCounts{directoryContents: 1}, nil
 	default:
 		return directoryEntryCounts{}, status.Error(codes.InvalidArgument, "Invalid directory entry level type")
@@ -124,15 +125,15 @@ func (t *directoryTree[TPage]) lookupNode(ctx context.Context, page TPage, name 
 		rank := directoryRank
 		for i, entry := range t.getEntries(page) {
 			var key string
-			switch level := entry.Level.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Parent_:
-				if level.Parent.LeafNodesCount == 0 && level.Parent.DirectoryNodesCount == 0 {
+			switch entry.WhichLevel() {
+			case model_filesystem_pb.DirectoryEntry_Parent_case:
+				if entry.GetParent().GetLeafNodesCount() == 0 && entry.GetParent().GetDirectoryNodesCount() == 0 {
 					continue
 				}
-				key = level.Parent.FirstName
-			case *model_filesystem_pb.DirectoryEntry_Node_:
-				key = level.Node.Name
-			case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+				key = entry.GetParent().GetFirstName()
+			case model_filesystem_pb.DirectoryEntry_Node_case:
+				key = entry.GetNode().GetName()
+			case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
 				continue
 			default:
 				var badPage TPage
@@ -154,17 +155,17 @@ func (t *directoryTree[TPage]) lookupNode(ctx context.Context, page TPage, name 
 			return badPage, 0, 0, false, nil
 		}
 
-		switch level := t.getEntries(page)[candidateIndex].Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_:
+		switch xmsg := t.getEntries(page)[candidateIndex]; xmsg.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case:
 			var err error
-			page, err = t.descend(ctx, page, level.Parent)
+			page, err = t.descend(ctx, page, xmsg.GetParent())
 			if err != nil {
 				var badPage TPage
 				return badPage, 0, 0, false, err
 			}
 			directoryRank = candidateRank
-		case *model_filesystem_pb.DirectoryEntry_Node_:
-			if level.Node.Name != name {
+		case model_filesystem_pb.DirectoryEntry_Node_case:
+			if xmsg.GetNode().GetName() != name {
 				var badPage TPage
 				return badPage, 0, 0, false, nil
 			}
@@ -189,11 +190,11 @@ func (t *directoryTree[TPage]) getDirectoryContents(ctx context.Context, page TP
 				return badPage, 0, err
 			}
 			if remaining < counts.directoryContents {
-				switch level := entry.Level.(type) {
-				case *model_filesystem_pb.DirectoryEntry_Parent_:
-					parent = level.Parent
+				switch entry.WhichLevel() {
+				case model_filesystem_pb.DirectoryEntry_Parent_case:
+					parent = entry.GetParent()
 					break FindEntry
-				case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+				case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
 					return page, i, nil
 				}
 			}
@@ -238,14 +239,14 @@ func (t *directoryTree[TPage]) walk(ctx context.Context, page TPage, contents bo
 		if contents {
 			n, remainder = counts.directoryContents, counts.nodes
 		}
-		switch level := entry.Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_:
+		switch entry.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case:
 			if n <= state.skip {
 				state.skip -= n
 				state.ordinal += n
 				state.directoryOrdinal += counts.directoryNodes
 			} else {
-				child, err := t.descend(ctx, page, level.Parent)
+				child, err := t.descend(ctx, page, entry.GetParent())
 				if err != nil {
 					return false, err
 				}
@@ -287,7 +288,7 @@ func messageDirectoryTree[TReference any](reader model_parser.MessageObjectReade
 			return page.Message
 		},
 		descend: func(ctx context.Context, page model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], parent *model_filesystem_pb.DirectoryEntry_Parent) (model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], error) {
-			return model_parser.Dereference(ctx, reader, model_core.Nested(page, parent.Reference))
+			return model_parser.Dereference(ctx, reader, model_core.Nested(page, parent.GetReference()))
 		},
 	}
 }
@@ -308,7 +309,7 @@ func DirectoryLookupNode[TReference any](
 	if err != nil || !found {
 		return model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference]{}, 0, err
 	}
-	return model_core.Nested(page, page.Message[index].Level.(*model_filesystem_pb.DirectoryEntry_Node_).Node), directoryIndex, nil
+	return model_core.Nested(page, page.Message[index].GetNode()), directoryIndex, nil
 }
 
 // DirectoryGetChild returns the contents of the subdirectory stored at
@@ -324,7 +325,7 @@ func DirectoryGetChild[TReference any](
 	if err != nil {
 		return model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference]{}, err
 	}
-	return model_core.Nested(page, page.Message[index].Level.(*model_filesystem_pb.DirectoryEntry_DirectoryContents_).DirectoryContents.Entries), nil
+	return model_core.Nested(page, page.Message[index].GetDirectoryContents().GetEntries()), nil
 }
 
 // DirectoryLookupChild returns the contents of the subdirectory having
@@ -361,7 +362,7 @@ func DirectoryAllNodes[TReference any](
 			/* contents = */ false,
 			&state,
 			func(page model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference], index int, state *directoryTreeWalkState) bool {
-				return yield(model_core.Nested(page, page.Message[index].Level.(*model_filesystem_pb.DirectoryEntry_Node_).Node))
+				return yield(model_core.Nested(page, page.Message[index].GetNode()))
 			},
 		); err != nil {
 			*errOut = err
@@ -407,7 +408,7 @@ func DirectoryAllChildren[TReference any](
 					errYield = status.Error(codes.InvalidArgument, "Directory contains more subdirectory contents than subdirectory nodes")
 					return false
 				}
-				return yield(node, model_core.Nested(page, page.Message[index].Level.(*model_filesystem_pb.DirectoryEntry_DirectoryContents_).DirectoryContents.Entries))
+				return yield(node, model_core.Nested(page, page.Message[index].GetDirectoryContents().GetEntries()))
 			},
 		); err != nil {
 			*errOut = err
@@ -462,20 +463,20 @@ func (l *maximumSymlinkEscapementLevels) toProto() *wrapperspb.UInt32Value {
 
 func (l *maximumSymlinkEscapementLevels) raiseEntries(entries []*model_filesystem_pb.DirectoryEntry) error {
 	for _, entry := range entries {
-		switch level := entry.Level.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Parent_:
-			l.raise(level.Parent.MaximumSymlinkEscapementLevels)
-		case *model_filesystem_pb.DirectoryEntry_Node_:
-			if symlink, ok := level.Node.Kind.(*model_filesystem_pb.DirectoryEntry_Node_Symlink); ok {
+		switch entry.WhichLevel() {
+		case model_filesystem_pb.DirectoryEntry_Parent_case:
+			l.raise(entry.GetParent().GetMaximumSymlinkEscapementLevels())
+		case model_filesystem_pb.DirectoryEntry_Node_case:
+			if symlink := entry.GetNode().GetSymlink(); symlink != nil {
 				escapementCounter := NewEscapementCountingScopeWalker()
-				if err := path.Resolve(path.UNIXFormat.NewParser(symlink.Symlink.Target), escapementCounter); err != nil {
-					return util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", level.Node.Name)
+				if err := path.Resolve(path.UNIXFormat.NewParser(symlink.GetTarget()), escapementCounter); err != nil {
+					return util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", entry.GetNode().GetName())
 				}
 				l.raise(escapementCounter.GetLevels())
 			}
-		case *model_filesystem_pb.DirectoryEntry_DirectoryContents_:
+		case model_filesystem_pb.DirectoryEntry_DirectoryContents_case:
 			var child maximumSymlinkEscapementLevels
-			if err := child.raiseEntries(level.DirectoryContents.Entries); err != nil {
+			if err := child.raiseEntries(entry.GetDirectoryContents().GetEntries()); err != nil {
 				return err
 			}
 			l.raiseChild(&child)

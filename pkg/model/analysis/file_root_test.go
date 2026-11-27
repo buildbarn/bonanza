@@ -15,6 +15,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"go.uber.org/mock/gomock"
@@ -50,26 +51,20 @@ var emptyLeaves = &testLeaves{}
 func newTestDirectory(leaves *testLeaves) []*model_filesystem_pb.DirectoryEntry {
 	var entries []*model_filesystem_pb.DirectoryEntry
 	for _, file := range leaves.Files {
-		entries = append(entries, &model_filesystem_pb.DirectoryEntry{
-			Level: &model_filesystem_pb.DirectoryEntry_Node_{
-				Node: &model_filesystem_pb.DirectoryEntry_Node{
-					Name: file.Name,
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: file.Properties},
-				},
-			},
-		})
+		entries = append(entries, model_filesystem_pb.DirectoryEntry_builder{
+			Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+				Name: file.Name,
+				File: proto.ValueOrDefault(file.Properties),
+			}.Build(),
+		}.Build())
 	}
 	for _, symlink := range leaves.Symlinks {
-		entries = append(entries, &model_filesystem_pb.DirectoryEntry{
-			Level: &model_filesystem_pb.DirectoryEntry_Node_{
-				Node: &model_filesystem_pb.DirectoryEntry_Node{
-					Name: symlink.Name,
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-						Symlink: &model_filesystem_pb.SymlinkProperties{Target: symlink.Target},
-					},
-				},
-			},
-		})
+		entries = append(entries, model_filesystem_pb.DirectoryEntry_builder{
+			Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+				Name:    symlink.Name,
+				Symlink: model_filesystem_pb.SymlinkProperties_builder{Target: symlink.Target}.Build(),
+			}.Build(),
+		}.Build())
 	}
 	return sortTestDirectory(entries, nil)
 }
@@ -80,18 +75,16 @@ func newTestDirectory(leaves *testLeaves) []*model_filesystem_pb.DirectoryEntry 
 // subdirectories in the same order.
 func sortTestDirectory(nodes []*model_filesystem_pb.DirectoryEntry, contents map[string][]*model_filesystem_pb.DirectoryEntry) []*model_filesystem_pb.DirectoryEntry {
 	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].GetNode().Name < nodes[j].GetNode().Name
+		return nodes[i].GetNode().GetName() < nodes[j].GetNode().GetName()
 	})
 	var entries []*model_filesystem_pb.DirectoryEntry
 	for _, node := range nodes {
 		if node.GetNode().GetDirectory() != nil {
-			entries = append(entries, &model_filesystem_pb.DirectoryEntry{
-				Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
-					DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{
-						Entries: contents[node.GetNode().Name],
-					},
-				},
-			})
+			entries = append(entries, model_filesystem_pb.DirectoryEntry_builder{
+				DirectoryContents: model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{
+					Entries: contents[node.GetNode().GetName()],
+				}.Build(),
+			}.Build())
 		}
 	}
 	return append(entries, nodes...)
@@ -145,23 +138,19 @@ func withDirectories(directory []*model_filesystem_pb.DirectoryEntry, children .
 	directoryIndex := 0
 	for _, node := range nodes {
 		if node.GetNode().GetDirectory() != nil {
-			contents[node.GetNode().Name] = existingContents[directoryIndex]
+			contents[node.GetNode().GetName()] = existingContents[directoryIndex]
 			directoryIndex++
 		}
 	}
 	for _, child := range children {
-		nodes = append(nodes, &model_filesystem_pb.DirectoryEntry{
-			Level: &model_filesystem_pb.DirectoryEntry_Node_{
-				Node: &model_filesystem_pb.DirectoryEntry_Node{
-					Name: child.name,
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
-						Directory: &model_filesystem_pb.DirectoryProperties{
-							DirectoriesCount: testDirectoryDirectoriesCount(child.directory),
-						},
-					},
-				},
-			},
-		})
+		nodes = append(nodes, model_filesystem_pb.DirectoryEntry_builder{
+			Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+				Name: child.name,
+				Directory: model_filesystem_pb.DirectoryProperties_builder{
+					DirectoriesCount: testDirectoryDirectoriesCount(child.directory),
+				}.Build(),
+			}.Build(),
+		}.Build())
 		contents[child.name] = child.directory
 	}
 	return sortTestDirectory(nodes, contents)
@@ -179,26 +168,18 @@ func TestFileRoot(t *testing.T) {
 
 	exampleConfiguration := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 		return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
-			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
-				Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
-					Label: "@@bazel_tools+//command_line_option:platforms",
-					Value: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_List{
-							List: &model_starlark_pb.List{
-								Elements: []*model_starlark_pb.List_Element{{
-									Level: &model_starlark_pb.List_Element_Leaf{
-										Leaf: &model_starlark_pb.Value{
-											Kind: &model_starlark_pb.Value_Label{
-												Label: "@@platforms+//host",
-											},
-										},
-									},
-								}},
-							},
-						},
-					},
+			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
+				Label: "@@bazel_tools+//command_line_option:platforms",
+				Value: &model_starlark_pb.Value{
+					Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{
+						Elements: []*model_starlark_pb.List_Element{{
+							Level: &model_starlark_pb.List_Element_Leaf{Leaf: &model_starlark_pb.Value{
+								Kind: &model_starlark_pb.Value_Label{Label: "@@platforms+//host"},
+							}},
+						}},
+					}},
 				},
-			},
+			}},
 		}})
 	})
 
@@ -251,7 +232,7 @@ func TestFileRoot(t *testing.T) {
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 				return &model_analysis_pb.Repo_Value{
-					RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
+					RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 						Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 							return testDirectoryMarshaler(newTestDirectory(&testLeaves{
 								Files: []*testFileNode{{
@@ -262,7 +243,7 @@ func TestFileRoot(t *testing.T) {
 						})),
 						DirectoriesCount:               0,
 						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
-					},
+					}.Build(),
 				}
 			}))
 
@@ -296,7 +277,7 @@ func TestFileRoot(t *testing.T) {
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
-						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
+						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
 									Files: []*testFileNode{
@@ -313,7 +294,7 @@ func TestFileRoot(t *testing.T) {
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
-						},
+						}.Build(),
 					}
 				}))
 
@@ -404,7 +385,7 @@ func TestFileRoot(t *testing.T) {
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
-						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
+						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(withDirectories(newTestDirectory(&testLeaves{
 									Files: []*testFileNode{
@@ -443,7 +424,7 @@ func TestFileRoot(t *testing.T) {
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
-						},
+						}.Build(),
 					}
 				}))
 				e.EXPECT().GetRepoValue(
@@ -452,7 +433,7 @@ func TestFileRoot(t *testing.T) {
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 					return &model_analysis_pb.Repo_Value{
-						RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
+						RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(newTestDirectory(&testLeaves{
 									Files: []*testFileNode{
@@ -463,7 +444,7 @@ func TestFileRoot(t *testing.T) {
 							})),
 							DirectoriesCount:               0,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
-						},
+						}.Build(),
 					}
 				}))
 
@@ -586,12 +567,10 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{
-								ActionId: []byte{
-									0x7a, 0xb1, 0x08, 0xae, 0x94, 0x2d, 0x7d, 0xab,
-									0x16, 0x25, 0xd8, 0xbd, 0xc6, 0xd8, 0xdf, 0x27,
-								},
-							},
+							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+								0x7a, 0xb1, 0x08, 0xae, 0x94, 0x2d, 0x7d, 0xab,
+								0x16, 0x25, 0xd8, 0xbd, 0xc6, 0xd8, 0xdf, 0x27,
+							}},
 						},
 					}
 				}))
@@ -627,17 +606,15 @@ func TestFileRoot(t *testing.T) {
 													},
 													{
 														Name: "foo.o",
-														Properties: &model_filesystem_pb.FileProperties{
-															Contents: &model_filesystem_pb.FileContents{
-																Level: &model_filesystem_pb.FileContents_ChunkReference{
-																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																		return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
-																	})),
-																},
+														Properties: model_filesystem_pb.FileProperties_builder{
+															Contents: model_filesystem_pb.FileContents_builder{
+																ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																	return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
+																}))),
 																TotalSizeBytes: 21,
 																Utf8Stat:       1,
-															},
-														},
+															}.Build(),
+														}.Build(),
 													},
 												},
 											}),
@@ -687,17 +664,15 @@ func TestFileRoot(t *testing.T) {
 											newTestDirectory(&testLeaves{
 												Files: []*testFileNode{{
 													Name: "foo.o",
-													Properties: &model_filesystem_pb.FileProperties{
-														Contents: &model_filesystem_pb.FileContents{
-															Level: &model_filesystem_pb.FileContents_ChunkReference{
-																ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																	return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
-																})),
-															},
+													Properties: model_filesystem_pb.FileProperties_builder{
+														Contents: model_filesystem_pb.FileContents_builder{
+															ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
+															}))),
 															TotalSizeBytes: 21,
 															Utf8Stat:       1,
-														},
-													},
+														}.Build(),
+													}.Build(),
 												}},
 											}),
 										),
@@ -720,17 +695,15 @@ func TestFileRoot(t *testing.T) {
 								Files: []*testFileNode{
 									{
 										Name: "foo.o",
-										Properties: &model_filesystem_pb.FileProperties{
-											Contents: &model_filesystem_pb.FileContents{
-												Level: &model_filesystem_pb.FileContents_ChunkReference{
-													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-														return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
-													})),
-												},
+										Properties: model_filesystem_pb.FileProperties_builder{
+											Contents: model_filesystem_pb.FileContents_builder{
+												ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+													return model_format.Raw{}.NewMarshaler([]byte("File contents go here"))
+												}))),
 												TotalSizeBytes: 21,
 												Utf8Stat:       1,
-											},
-										},
+											}.Build(),
+										}.Build(),
 									},
 								},
 							}),
@@ -762,12 +735,10 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{
-								ActionId: []byte{
-									0x50, 0x6f, 0x44, 0xb5, 0x80, 0xf9, 0xc0, 0xcc,
-									0x53, 0xd4, 0x08, 0xe0, 0x6a, 0x32, 0xde, 0x87,
-								},
-							},
+							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+								0x50, 0x6f, 0x44, 0xb5, 0x80, 0xf9, 0xc0, 0xcc,
+								0x53, 0xd4, 0x08, 0xe0, 0x6a, 0x32, 0xde, 0x87,
+							}},
 						},
 					}
 				}))
@@ -919,12 +890,10 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{
-								ActionId: []byte{
-									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
-									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
-								},
-							},
+							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+								0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
+								0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
+							}},
 						},
 					}
 				}))
@@ -1072,12 +1041,10 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{
-								ActionId: []byte{
-									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
-									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
-								},
-							},
+							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+								0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
+								0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
+							}},
 						},
 					}
 				}))
@@ -1133,7 +1100,7 @@ func TestFileRoot(t *testing.T) {
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetActionInputRoot_Value {
 					return &model_analysis_pb.TargetActionInputRoot_Value{
-						InputRootReference: &model_filesystem_pb.DirectoryReference{
+						InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 							Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 								return testDirectoryMarshaler(singleChildDirectoryContents(
 									"bazel-out",
@@ -1161,7 +1128,7 @@ func TestFileRoot(t *testing.T) {
 							})),
 							DirectoriesCount:               1,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
-						},
+						}.Build(),
 					}
 				}))
 
@@ -1267,12 +1234,10 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{
-								ActionId: []byte{
-									0xe6, 0x95, 0x9c, 0xa9, 0xe5, 0x33, 0x68, 0xff,
-									0x95, 0xbd, 0x21, 0x56, 0xdb, 0xcc, 0xfd, 0x9a,
-								},
-							},
+							Source: &model_analysis_pb.TargetOutputDefinition_ActionId{ActionId: []byte{
+								0xe6, 0x95, 0x9c, 0xa9, 0xe5, 0x33, 0x68, 0xff,
+								0x95, 0xbd, 0x21, 0x56, 0xdb, 0xcc, 0xfd, 0x9a,
+							}},
 						},
 					}
 				}))
@@ -1467,18 +1432,16 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{
-								ExpandTemplate: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate{
-									Template: &model_starlark_pb.File{
-										Label: "@@myrepo+//:template",
-									},
-									IsExecutable: true,
-									Substitutions: []*model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
-										{Needle: []byte("{{first_name}}"), Replacement: []byte("Albert")},
-										{Needle: []byte("{{last_name}}"), Replacement: []byte("Einstein")},
-									},
+							Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{ExpandTemplate: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate{
+								Template: &model_starlark_pb.File{
+									Label: "@@myrepo+//:template",
 								},
-							},
+								IsExecutable: true,
+								Substitutions: []*model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
+									{Needle: []byte("{{first_name}}"), Replacement: []byte("Albert")},
+									{Needle: []byte("{{last_name}}"), Replacement: []byte("Einstein")},
+								},
+							}},
 						},
 					}
 				}))
@@ -1501,17 +1464,15 @@ func TestFileRoot(t *testing.T) {
 									Files: []*testFileNode{
 										{
 											Name: "template",
-											Properties: &model_filesystem_pb.FileProperties{
-												Contents: &model_filesystem_pb.FileContents{
-													Level: &model_filesystem_pb.FileContents_ChunkReference{
-														ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-															return model_format.Raw{}.NewMarshaler([]byte("{{first_name}} {{last_name}}"))
-														})),
-													},
+											Properties: model_filesystem_pb.FileProperties_builder{
+												Contents: model_filesystem_pb.FileContents_builder{
+													ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+														return model_format.Raw{}.NewMarshaler([]byte("{{first_name}} {{last_name}}"))
+													}))),
 													TotalSizeBytes: 28,
 													Utf8Stat:       1,
-												},
-											},
+												}.Build(),
+											}.Build(),
 										},
 									},
 								}),
@@ -1560,18 +1521,16 @@ func TestFileRoot(t *testing.T) {
 												Files: []*testFileNode{
 													{
 														Name: "output",
-														Properties: &model_filesystem_pb.FileProperties{
-															Contents: &model_filesystem_pb.FileContents{
-																Level: &model_filesystem_pb.FileContents_ChunkReference{
-																	ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-																		return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
-																	})),
-																},
+														Properties: model_filesystem_pb.FileProperties_builder{
+															Contents: model_filesystem_pb.FileContents_builder{
+																ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+																	return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
+																}))),
 																TotalSizeBytes: 15,
 																Utf8Stat:       1,
-															},
+															}.Build(),
 															IsExecutable: true,
-														},
+														}.Build(),
 													},
 												},
 											}),
@@ -1595,18 +1554,16 @@ func TestFileRoot(t *testing.T) {
 								Files: []*testFileNode{
 									{
 										Name: "output",
-										Properties: &model_filesystem_pb.FileProperties{
-											Contents: &model_filesystem_pb.FileContents{
-												Level: &model_filesystem_pb.FileContents_ChunkReference{
-													ChunkReference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-														return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
-													})),
-												},
+										Properties: model_filesystem_pb.FileProperties_builder{
+											Contents: model_filesystem_pb.FileContents_builder{
+												ChunkReference: proto.ValueOrDefault(attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+													return model_format.Raw{}.NewMarshaler([]byte("Albert Einstein"))
+												}))),
 												TotalSizeBytes: 15,
 												Utf8Stat:       1,
-											},
+											}.Build(),
 											IsExecutable: true,
-										},
+										}.Build(),
 									},
 								},
 							}),
@@ -1644,18 +1601,16 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{
-								StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
-									Entries: newTestDirectory(&testLeaves{
-										Symlinks: []*testSymlinkNode{
-											{
-												Name:   "passwd",
-												Target: "/etc/passwd",
-											},
+							Source: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory_{StaticPackageDirectory: &model_analysis_pb.TargetOutputDefinition_StaticPackageDirectory{
+								Entries: newTestDirectory(&testLeaves{
+									Symlinks: []*testSymlinkNode{
+										{
+											Name:   "passwd",
+											Target: "/etc/passwd",
 										},
-									}),
-								},
-							},
+									},
+								}),
+							}},
 						},
 					}
 				}))
@@ -1757,13 +1712,11 @@ func TestFileRoot(t *testing.T) {
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{
-							Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-								Target: &model_starlark_pb.File{
-									Label: "@@myrepo+//:a",
-								},
+						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+							Target: &model_starlark_pb.File{
+								Label: "@@myrepo+//:a",
 							},
-						},
+						}},
 					},
 				}
 			}))
@@ -1834,13 +1787,11 @@ func TestFileRoot(t *testing.T) {
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{
-							Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-								Target: &model_starlark_pb.File{
-									Label: "@@myrepo+//:a",
-								},
+						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+							Target: &model_starlark_pb.File{
+								Label: "@@myrepo+//:a",
 							},
-						},
+						}},
 					},
 				}
 			}))
@@ -1907,14 +1858,12 @@ func TestFileRoot(t *testing.T) {
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
-						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{
-							Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-								Target: &model_starlark_pb.File{
-									Label: "@@myrepo+//:a",
-								},
-								IsExecutable: true,
+						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+							Target: &model_starlark_pb.File{
+								Label: "@@myrepo+//:a",
 							},
-						},
+							IsExecutable: true,
+						}},
 					},
 				}
 			}))
@@ -1990,13 +1939,11 @@ func TestFileRoot(t *testing.T) {
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Value {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
-							Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{
-								Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-									Target: &model_starlark_pb.File{
-										Label: "@@myrepo+//:a",
-									},
+							Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
+								Target: &model_starlark_pb.File{
+									Label: "@@myrepo+//:a",
 								},
-							},
+							}},
 						},
 					}
 				}))

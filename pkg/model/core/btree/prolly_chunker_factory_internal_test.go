@@ -110,15 +110,15 @@ func TestProllyChunkerFactoryTiny(t *testing.T) {
 		expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata], 0, 10)
 		for i := 1000; i < 1010; i++ {
 			node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_filesystem_pb.FileContents {
-				return &model_filesystem_pb.FileContents{
+				return model_filesystem_pb.FileContents_builder{
 					TotalSizeBytes: uint64(i),
-					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					ChunkReference: model_core_pb.DecodableReference_builder{
 						Reference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
 							LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
 							Metadata:       model_core.NoopReferenceMetadata{},
 						}),
-					}.Build()},
-				}
+					}.Build(),
+				}.Build()
 			})
 			require.NoError(t, chunker.PushSingle(node))
 			expectedNodes = append(expectedNodes, node)
@@ -144,9 +144,9 @@ func TestProllyChunkerFactoryTiny(t *testing.T) {
 		expectedNodes := make(model_core.PatchedMessageList[*model_filesystem_pb.FileContents, model_core.NoopReferenceMetadata], 0, 10)
 		for i := 1000; i < 1010; i++ {
 			node := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_filesystem_pb.FileContents {
-				return &model_filesystem_pb.FileContents{
+				return model_filesystem_pb.FileContents_builder{
 					TotalSizeBytes: uint64(i),
-					Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+					List: model_filesystem_pb.FileContents_List_builder{
 						Reference: model_core_pb.DecodableReference_builder{
 							Reference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
 								LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i), 0, 0, 0),
@@ -154,8 +154,8 @@ func TestProllyChunkerFactoryTiny(t *testing.T) {
 							}),
 						}.Build(),
 						Sparse: false,
-					}},
-				}
+					}.Build(),
+				}.Build()
 			})
 			require.NoError(t, chunker.PushSingle(node))
 			expectedNodes = append(expectedNodes, node)

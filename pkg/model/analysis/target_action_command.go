@@ -109,14 +109,14 @@ func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurr
 		currentDirectory,
 		&errIter,
 	) {
-		name, ok := path.NewComponent(node.Message.Name)
+		name, ok := path.NewComponent(node.Message.GetName())
 		if !ok {
-			return false, fmt.Errorf("invalid name %#v for node under directory %#v", node.Message.Name, trace.GetUNIXString())
+			return false, fmt.Errorf("invalid name %#v for node under directory %#v", node.Message.GetName(), trace.GetUNIXString())
 		}
 		childTrace := trace.Append(name)
 
-		switch kind := node.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		switch node.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 			_, childDirectory, ok := nextChild()
 			if !ok {
 				if errChildren != nil {
@@ -131,12 +131,12 @@ func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurr
 			}
 			r.directoriesStack = r.directoriesStack[:len(r.directoriesStack)-1]
 
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
 			if !r.yield(r.directoryFile.WithTreeRelativePath(childTrace)) {
 				return false, nil
 			}
 
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 			// To be consistent with how Bazel works, only
 			// report symlinks if they refer to files. If
 			// they refer to directories, we don't recurse
@@ -151,7 +151,7 @@ func (r *filesUnderDirectoryReporter[TReference, TMetadata]) yieldFilesUnderCurr
 				append([]model_core.Message[[]*model_filesystem_pb.DirectoryEntry, TReference](nil), r.directoriesStack...),
 			)
 			if err := path.Resolve(
-				path.UNIXFormat.NewParser(kind.Symlink.Target),
+				path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget()),
 				path.NewRelativeScopeWalker(directoryComponentWalker),
 			); err != nil {
 				return false, fmt.Errorf("failed to resolve symlink %#v: %w", childTrace.GetUNIXString(), err)

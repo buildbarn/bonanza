@@ -34,13 +34,14 @@ func (*baseComputer[TReference, TMetadata]) parseLocalModuleInstanceModuleDotBaz
 	if !moduleFileProperties.IsSet() {
 		return evaluation.ErrMissingDependency
 	}
-	if moduleFileProperties.Message.Exists == nil {
+	exists := moduleFileProperties.Message.GetExists()
+	if exists == nil {
 		return fmt.Errorf("file %#v does not exist", dotbazel.ModuleTargetName.String())
 	}
 
 	return parseModuleDotBazel(
 		ctx,
-		model_core.Nested(moduleFileProperties, moduleFileProperties.Message.Exists.Contents),
+		model_core.Nested(moduleFileProperties, exists.GetContents()),
 		moduleInstance,
 		e,
 		handler,
@@ -220,7 +221,7 @@ func (c *baseComputer[TReference, TMetadata]) visitModuleDotBazelFilesBreadthFir
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ctx context.Context, key *model_analysis_pb.ModuleDotBazelContents_Key, e ModuleDotBazelContentsEnvironment[TReference, TMetadata]) (PatchedModuleDotBazelContentsValue[TMetadata], error) {
-	moduleInstance, err := label.NewModuleInstance(key.ModuleInstance)
+	moduleInstance, err := label.NewModuleInstance(key.GetModuleInstance())
 	if err != nil {
 		return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid module instance: %w", err)
 	}
@@ -236,11 +237,11 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	overrideList := moduleOverrides.Message.OverridesList
+	overrideList := moduleOverrides.Message.GetOverridesList()
 	if _, found := sort.Find(
 		len(overrideList),
 		func(i int) int {
-			return strings.Compare(expectedNameStr, overrideList[i].Name)
+			return strings.Compare(expectedNameStr, overrideList[i].GetName())
 		},
 	); found { // Override found.
 		// Access the MODULE.bazel file that is part of the module's sources.
@@ -251,7 +252,7 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		if !filePropertiesValue.IsSet() {
 			return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		fileContents := model_core.Patch(e, model_core.Nested(filePropertiesValue, filePropertiesValue.Message.Exists.Contents))
+		fileContents := model_core.Patch(e, model_core.Nested(filePropertiesValue, filePropertiesValue.Message.GetExists().GetContents()))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.ModuleDotBazelContents_Value{
 				Contents: fileContents.Message,
@@ -271,16 +272,16 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	buildList := finalBuildListValue.Message.BuildList
+	buildList := finalBuildListValue.Message.GetBuildList()
 	if i, ok := sort.Find(
 		len(buildList),
 		func(i int) int {
 			module := buildList[i]
-			if cmp := strings.Compare(expectedNameStr, module.Name); cmp != 0 {
+			if cmp := strings.Compare(expectedNameStr, module.GetName()); cmp != 0 {
 				return cmp
 			}
 			if hasVersion {
-				if version, err := label.NewModuleVersion(module.Definition.GetVersion()); err == nil {
+				if version, err := label.NewModuleVersion(module.GetDefinition().GetVersion()); err == nil {
 					if cmp := expectedVersion.Compare(version); cmp != 0 {
 						return cmp
 					}
@@ -290,14 +291,14 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 		},
 	); ok {
 		foundModule := buildList[i]
-		foundVersion, err := label.NewModuleVersion(foundModule.Definition.GetVersion())
+		foundVersion, err := label.NewModuleVersion(foundModule.GetDefinition().GetVersion())
 		if err != nil {
-			return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.Definition.GetVersion(), foundModule.Name, err)
+			return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("invalid version %#v for module %#v: %w", foundModule.GetDefinition().GetVersion(), foundModule.GetName(), err)
 		}
 		if !hasVersion || expectedVersion.Compare(foundVersion) == 0 {
-			moduleFileURL, err := getModuleDotBazelURL(foundModule.Definition.GetRegistryUrl(), expectedName, foundVersion)
+			moduleFileURL, err := getModuleDotBazelURL(foundModule.GetDefinition().GetRegistryUrl(), expectedName, foundVersion)
 			if err != nil {
-				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", foundModule.Name, foundModule.Definition.GetVersion(), foundModule.Definition.GetRegistryUrl(), err)
+				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", foundModule.GetName(), foundModule.GetDefinition().GetVersion(), foundModule.GetDefinition().GetRegistryUrl(), err)
 			}
 
 			fileContentsValue := e.GetHTTPFileContentsValue(
@@ -312,10 +313,11 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 			if !fileContentsValue.IsSet() {
 				return PatchedModuleDotBazelContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
-			if fileContentsValue.Message.Exists == nil {
+			fileContentsValueExists := fileContentsValue.Message.GetExists()
+			if fileContentsValueExists == nil {
 				return PatchedModuleDotBazelContentsValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", moduleFileURL)
 			}
-			fileContents := model_core.Patch(e, model_core.Nested(fileContentsValue, fileContentsValue.Message.Exists.Contents))
+			fileContents := model_core.Patch(e, model_core.Nested(fileContentsValue, fileContentsValueExists.GetContents()))
 			return model_core.NewPatchedMessage(
 				&model_analysis_pb.ModuleDotBazelContents_Value{
 					Contents: fileContents.Message,

@@ -132,9 +132,9 @@ func (pec *packageExistenceChecker[TReference]) findPackagesBelow(d model_core.M
 	var errIter error
 MatchDirectories:
 	for node, childDirectory := range model_filesystem.DirectoryAllChildren(pec.context, pec.directoryReaders.DirectoryEntries, d, &errIter) {
-		name, ok := path.NewComponent(node.Message.Name)
+		name, ok := path.NewComponent(node.Message.GetName())
 		if !ok {
-			return fmt.Errorf("invalid directory name %#v in directory %#v", node.Message.Name, dTrace.GetUNIXString())
+			return fmt.Errorf("invalid directory name %#v in directory %#v", node.Message.GetName(), dTrace.GetUNIXString())
 		}
 		childMatcher.CopyFrom(dMatcher)
 		for _, r := range name.String() {

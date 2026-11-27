@@ -86,15 +86,15 @@ func TestProllyChunkerFactory(t *testing.T) {
 				newNode := func(i int) model_core.PatchedMessage[*model_filesystem_pb.FileContents, *MockReferenceMetadata] {
 					i = symbols[i]
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[*MockReferenceMetadata]) *model_filesystem_pb.FileContents {
-						return &model_filesystem_pb.FileContents{
+						return model_filesystem_pb.FileContents_builder{
 							TotalSizeBytes: totalSizesBytes[i],
-							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							ChunkReference: model_core_pb.DecodableReference_builder{
 								Reference: patcher.AddReference(model_core.MetadataEntry[*MockReferenceMetadata]{
 									LocalReference: object.MustNewSHA256V1LocalReference("5b2484693d5051be0fae63f4f862ce606cdc30ffbcd8a8a44b5b1b226b459262", uint32(i+1), 0, 0, 0),
 									Metadata:       NewMockReferenceMetadata(ctrl),
 								}),
-							}.Build()},
-						}
+							}.Build(),
+						}.Build()
 					})
 				}
 

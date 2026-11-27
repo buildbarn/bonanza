@@ -65,9 +65,7 @@ func TestAllListLeafElements(t *testing.T) {
 func newStringValue(s string) *model_starlark_pb.Value {
 	contents := &model_filesystem_pb.MaybeInlineFileContents{}
 	if s != "" {
-		contents.Level = &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
-			ContentsInline: []byte(s),
-		}
+		contents.SetContentsInline([]byte(s))
 	}
 	return &model_starlark_pb.Value{
 		Kind: &model_starlark_pb.Value_Str{Str: contents},

@@ -37,15 +37,15 @@ func TestDirectoryClusterObjectParser(t *testing.T) {
 				directoryContentsEntry(),
 				directoryNodeEntry("b", 0),
 			),
-			directoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
-				Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+			directoryContentsEntry(model_filesystem_pb.DirectoryEntry_builder{
+				Parent: model_filesystem_pb.DirectoryEntry_Parent_builder{
 					Reference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 					}.Build(),
 					FirstName:      "x",
 					LeafNodesCount: 100,
-				}},
-			}),
+				}.Build(),
+			}.Build()),
 			directoryNodeEntry("a", 1),
 			directoryNodeEntry("c", 0),
 		}

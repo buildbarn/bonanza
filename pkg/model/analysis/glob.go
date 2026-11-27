@@ -54,16 +54,16 @@ func (r *globPathResolver[TReference, TMetadata]) OnDirectory(name path.Componen
 	if err != nil {
 		return nil, err
 	}
-	switch kind := node.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch node.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		return path.GotDirectory{
 			Child:        r,
 			IsReversible: true,
 		}, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 		return path.GotSymlink{
 			Parent: path.NewRelativeScopeWalker(r),
-			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
+			Target: path.UNIXFormat.NewParser(node.GetSymlink().GetTarget()),
 		}, nil
 	default:
 		return nil, errors.New("path resolves to a regular file, while a directory was expected")
@@ -75,13 +75,13 @@ func (r *globPathResolver[TReference, TMetadata]) OnTerminal(name path.Component
 	if err != nil {
 		return nil, err
 	}
-	switch kind := node.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch node.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		return nil, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 		return &path.GotSymlink{
 			Parent: path.NewRelativeScopeWalker(r),
-			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
+			Target: path.UNIXFormat.NewParser(node.GetSymlink().GetTarget()),
 		}, nil
 	default:
 		r.gotFile = true
@@ -124,14 +124,14 @@ func (w *globDirectoryWalker[TReference, TMetadata]) walkDirectory(dStack util.N
 	directoryIndex := uint64(0)
 MatchNodes:
 	for node := range model_filesystem.DirectoryAllNodes(w.context, w.directoryReaders.DirectoryEntries, d, &errIter) {
-		name, ok := path.NewComponent(node.Message.Name)
+		name, ok := path.NewComponent(node.Message.GetName())
 		if !ok {
-			return fmt.Errorf("invalid name for node %#v in directory %#v", node.Message.Name, dPath.GetUNIXString())
+			return fmt.Errorf("invalid name for node %#v in directory %#v", node.Message.GetName(), dPath.GetUNIXString())
 		}
 		childMatcher.CopyFrom(dMatcher)
 		childMatches := globMatcherWriteString(&childMatcher, name.String())
-		switch kind := node.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+		switch node.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 			childDirectoryIndex := directoryIndex
 			directoryIndex++
 			if !childMatches {
@@ -166,12 +166,12 @@ MatchNodes:
 				}
 			}
 
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
 			if childMatches && childMatcher.IsMatch() {
 				w.matchedPaths = append(w.matchedPaths, dPath.Append(name).GetUNIXString())
 			}
 
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 			if !childMatches {
 				continue MatchNodes
 			}
@@ -189,7 +189,7 @@ MatchNodes:
 				}
 				childPath := dPath.Append(name)
 				if err := path.Resolve(
-					path.UNIXFormat.NewParser(kind.Symlink.Target),
+					path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget()),
 					path.NewLoopDetectingScopeWalker(path.NewRelativeScopeWalker(&r)),
 				); err != nil {
 					return fmt.Errorf("failed to resolve target of symbolic link %#v: %w", childPath.GetUNIXString(), err)

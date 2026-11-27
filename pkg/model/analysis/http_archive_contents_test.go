@@ -170,7 +170,7 @@ func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t
 // links map to "symlink:", followed by their target.
 func (bct *baseComputerTester) readHTTPArchiveContents(ctx context.Context, t *testing.T, value model_analysis.PatchedHTTPArchiveContentsValue[model_core.CreatedObjectTree]) map[string]string {
 	m := model_core.Unpatch(createdObjectTreeCapturer{}, value).Decay()
-	require.NotNil(t, m.Message.Exists)
+	require.NotNil(t, m.Message.GetExists())
 
 	directoryReader := model_parser.LookupParsedObjectReader(
 		bct.parsedObjectPoolIngester,
@@ -183,22 +183,22 @@ func (bct *baseComputerTester) readHTTPArchiveContents(ctx context.Context, t *t
 	walk = func(prefix string, directory model_core.Message[[]*model_filesystem_pb.DirectoryEntry, model_core.CreatedObjectTree]) {
 		var errIter error
 		for node := range model_filesystem.DirectoryAllNodes(ctx, directoryReader, directory, &errIter) {
-			name := prefix + node.Message.Name
-			switch kind := node.Message.Kind.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			name := prefix + node.Message.GetName()
+			switch node.Message.WhichKind() {
+			case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 				contents[name+"/"] = "directory"
-			case *model_filesystem_pb.DirectoryEntry_Node_File:
-				entry, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(node, kind.File.Contents))
+			case model_filesystem_pb.DirectoryEntry_Node_File_case:
+				entry, err := model_filesystem.NewFileContentsEntryFromProto(model_core.Nested(node, node.Message.GetFile().GetContents()))
 				require.NoError(t, err)
 				data, err := fileReader.FileReadAll(ctx, entry, 1<<30)
 				require.NoError(t, err)
-				if kind.File.IsExecutable {
+				if node.Message.GetFile().GetIsExecutable() {
 					contents[name] = "executable:" + string(data)
 				} else {
 					contents[name] = "file:" + string(data)
 				}
-			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-				contents[name] = "symlink:" + kind.Symlink.Target
+			case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+				contents[name] = "symlink:" + node.Message.GetSymlink().GetTarget()
 			default:
 				t.Fatalf("Unknown kind of node %#v", name)
 			}
@@ -206,12 +206,12 @@ func (bct *baseComputerTester) readHTTPArchiveContents(ctx context.Context, t *t
 		require.NoError(t, errIter)
 
 		for node, childDirectory := range model_filesystem.DirectoryAllChildren(ctx, directoryReader, directory, &errIter) {
-			walk(prefix+node.Message.Name+"/", childDirectory)
+			walk(prefix+node.Message.GetName()+"/", childDirectory)
 		}
 		require.NoError(t, errIter)
 	}
 
-	rootDirectory, err := model_filesystem.DirectoryDereference(ctx, directoryReader, model_core.Nested(m, m.Message.Exists.Contents))
+	rootDirectory, err := model_filesystem.DirectoryDereference(ctx, directoryReader, model_core.Nested(m, m.Message.GetExists().GetContents()))
 	require.NoError(t, err)
 	walk("", rootDirectory)
 	return contents

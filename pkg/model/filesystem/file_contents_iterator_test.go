@@ -26,12 +26,12 @@ func TestFileContentsIterator(t *testing.T) {
 			util.Must(
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
-						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+						model_filesystem_pb.FileContents_builder{
+							ChunkReference: model_core_pb.DecodableReference_builder{
 								Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
-							}.Build()},
+							}.Build(),
 							TotalSizeBytes: 21,
-						},
+						}.Build(),
 						object.OutgoingReferencesList[object.LocalReference]{
 							object.MustNewSHA256V1LocalReference("d10d524d6144f4b0b0ffed862d43c19181b133bb149a560b2f86e3dc10f155b0", 21, 0, 0, 0),
 						},
@@ -57,14 +57,14 @@ func TestFileContentsIterator(t *testing.T) {
 			util.Must(
 				model_filesystem.NewFileContentsEntryFromProto(
 					model_core.NewMessage(
-						&model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+						model_filesystem_pb.FileContents_builder{
+							List: model_filesystem_pb.FileContents_List_builder{
 								Reference: model_core_pb.DecodableReference_builder{
 									Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 								}.Build(),
-							}},
+							}.Build(),
 							TotalSizeBytes: 593838,
-						},
+						}.Build(),
 						object.OutgoingReferencesList[object.LocalReference]{
 							object.MustNewSHA256V1LocalReference("d10d524d6144f4b0b0ffed862d43c19181b133bb149a560b2f86e3dc10f155b0", 200, 2, 4, 250),
 						},
@@ -84,38 +84,38 @@ func TestFileContentsIterator(t *testing.T) {
 				model_filesystem.NewFileContentsListFromProto(
 					model_core.NewMessage(
 						[]*model_filesystem_pb.FileContents{
-							{
-								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+							model_filesystem_pb.FileContents_builder{
+								List: model_filesystem_pb.FileContents_List_builder{
 									Reference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 									}.Build(),
-								}},
+								}.Build(),
 								TotalSizeBytes: 200322,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								List: model_filesystem_pb.FileContents_List_builder{
 									Reference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
 									}.Build(),
-								}},
+								}.Build(),
 								TotalSizeBytes: 129020,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								List: model_filesystem_pb.FileContents_List_builder{
 									Reference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
 									}.Build(),
-								}},
+								}.Build(),
 								TotalSizeBytes: 128107,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								List: model_filesystem_pb.FileContents_List_builder{
 									Reference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
 									}.Build(),
-								}},
+								}.Build(),
 								TotalSizeBytes: 136389,
-							},
+							}.Build(),
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
 							object.MustNewSHA256V1LocalReference("519306c1f517f34986b2ec1e74fd425bc39ac3742f68904d849079ae39b64bac", 200, 1, 4, 0),
@@ -138,30 +138,30 @@ func TestFileContentsIterator(t *testing.T) {
 				model_filesystem.NewFileContentsListFromProto(
 					model_core.NewMessage(
 						[]*model_filesystem_pb.FileContents{
-							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							model_filesystem_pb.FileContents_builder{
+								ChunkReference: model_core_pb.DecodableReference_builder{
 									Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
-								}.Build()},
+								}.Build(),
 								TotalSizeBytes: 31037,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								ChunkReference: model_core_pb.DecodableReference_builder{
 									Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
-								}.Build()},
+								}.Build(),
 								TotalSizeBytes: 33244,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								ChunkReference: model_core_pb.DecodableReference_builder{
 									Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
-								}.Build()},
+								}.Build(),
 								TotalSizeBytes: 30762,
-							},
-							{
-								Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+							}.Build(),
+							model_filesystem_pb.FileContents_builder{
+								ChunkReference: model_core_pb.DecodableReference_builder{
 									Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
-								}.Build()},
+								}.Build(),
 								TotalSizeBytes: 33977,
-							},
+							}.Build(),
 						},
 						object.OutgoingReferencesList[object.LocalReference]{
 							object.MustNewSHA256V1LocalReference("05ad148274f34ec28b730098f55dce0edccdec8b03afa9b0e3c45a7f894290b1", 30762, 0, 0, 0),
@@ -199,30 +199,30 @@ func TestFileContentsIterator(t *testing.T) {
 					model_filesystem.NewFileContentsListFromProto(
 						model_core.NewMessage(
 							[]*model_filesystem_pb.FileContents{
-								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								model_filesystem_pb.FileContents_builder{
+									ChunkReference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 4}.Build(),
-									}.Build()},
+									}.Build(),
 									TotalSizeBytes: 31841,
-								},
-								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								}.Build(),
+								model_filesystem_pb.FileContents_builder{
+									ChunkReference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 3}.Build(),
-									}.Build()},
+									}.Build(),
 									TotalSizeBytes: 28542,
-								},
-								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								}.Build(),
+								model_filesystem_pb.FileContents_builder{
+									ChunkReference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 2}.Build(),
-									}.Build()},
+									}.Build(),
 									TotalSizeBytes: 22708,
-								},
-								{
-									Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+								}.Build(),
+								model_filesystem_pb.FileContents_builder{
+									ChunkReference: model_core_pb.DecodableReference_builder{
 										Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
-									}.Build()},
+									}.Build(),
 									TotalSizeBytes: 36492,
-								},
+								}.Build(),
 							},
 							object.OutgoingReferencesList[object.LocalReference]{
 								object.MustNewSHA256V1LocalReference("2bb05077513a3162196a872c334fd6d0ae1ce25b21ae17a57cb2be7a7bbab012", 31841, 0, 0, 0),

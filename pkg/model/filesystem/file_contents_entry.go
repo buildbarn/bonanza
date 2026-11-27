@@ -61,29 +61,29 @@ func NewFileContentsEntryFromProto[TReference object.BasicReference](fileContent
 		}, nil
 	}
 
-	if fileContents.Message.TotalSizeBytes < 1 {
+	if fileContents.Message.GetTotalSizeBytes() < 1 {
 		return FileContentsEntry[TReference]{}, status.Error(codes.InvalidArgument, "File contents does not have any data")
 	}
 	var reference model_core.Decodable[TReference]
 	var contiguousCount int
-	switch level := fileContents.Message.Level.(type) {
-	case *model_filesystem_pb.FileContents_List_:
+	switch fileContents.Message.WhichLevel() {
+	case model_filesystem_pb.FileContents_List_case:
 		var err error
-		reference, err = model_core.FlattenDecodableReference(model_core.Nested(fileContents, level.List.GetReference()))
+		reference, err = model_core.FlattenDecodableReference(model_core.Nested(fileContents, fileContents.Message.GetList().GetReference()))
 		if err != nil {
 			return FileContentsEntry[TReference]{}, err
 		}
 		if reference.Value.GetHeight() == 0 {
 			return FileContentsEntry[TReference]{}, status.Error(codes.InvalidArgument, "File contents list reference cannot have height 0")
 		}
-		if level.List.Sparse {
+		if fileContents.Message.GetList().GetSparse() {
 			contiguousCount = 0
 		} else {
 			contiguousCount = 1
 		}
-	case *model_filesystem_pb.FileContents_ChunkReference:
+	case model_filesystem_pb.FileContents_ChunkReference_case:
 		var err error
-		reference, err = model_core.FlattenDecodableReference(model_core.Nested(fileContents, level.ChunkReference))
+		reference, err = model_core.FlattenDecodableReference(model_core.Nested(fileContents, fileContents.Message.GetChunkReference()))
 		if err != nil {
 			return FileContentsEntry[TReference]{}, err
 		}
@@ -91,16 +91,16 @@ func NewFileContentsEntryFromProto[TReference object.BasicReference](fileContent
 			return FileContentsEntry[TReference]{}, status.Error(codes.InvalidArgument, "Chunk reference must have height 0")
 		}
 		contiguousCount = 1
-	case *model_filesystem_pb.FileContents_Hole:
+	case model_filesystem_pb.FileContents_Hole_case:
 		contiguousCount = -1
 	default:
 		return FileContentsEntry[TReference]{}, status.Error(codes.InvalidArgument, "Unknown file contents level")
 	}
 	return FileContentsEntry[TReference]{
-		endBytes:        fileContents.Message.TotalSizeBytes,
+		endBytes:        fileContents.Message.GetTotalSizeBytes(),
 		contiguousCount: contiguousCount,
 		reference:       reference,
-		utf8Stat:        utf8stat.Stat(fileContents.Message.Utf8Stat),
+		utf8Stat:        utf8stat.Stat(fileContents.Message.GetUtf8Stat()),
 	}, nil
 }
 
@@ -249,17 +249,17 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 
 	if entry.contiguousCount < 0 {
 		// Hole.
-		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](&model_filesystem_pb.FileContents{
-			Level:          &model_filesystem_pb.FileContents_Hole{Hole: &emptypb.Empty{}},
+		return model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](model_filesystem_pb.FileContents_builder{
+			Hole:           &emptypb.Empty{},
 			TotalSizeBytes: entry.endBytes,
-		})
+		}.Build())
 	}
 
 	if entry.reference.Value.GetHeight() > 0 {
 		// Large file.
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
-			return &model_filesystem_pb.FileContents{
-				Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+			return model_filesystem_pb.FileContents_builder{
+				List: model_filesystem_pb.FileContents_List_builder{
 					Reference: model_core_pb.DecodableReference_builder{
 						Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
 							LocalReference: entry.reference.Value.GetLocalReference(),
@@ -268,25 +268,25 @@ func FileContentsEntryToProto[TReference object.BasicReference](
 						DecodingParameters: entry.reference.GetDecodingParameters(),
 					}.Build(),
 					Sparse: entry.contiguousCount == 0,
-				}},
+				}.Build(),
 				TotalSizeBytes: entry.endBytes,
 				Utf8Stat:       uint64(entry.utf8Stat),
-			}
+			}.Build()
 		})
 	}
 
 	// Small file.
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[dag.ObjectContentsWalker]) *model_filesystem_pb.FileContents {
-		return &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+		return model_filesystem_pb.FileContents_builder{
+			ChunkReference: model_core_pb.DecodableReference_builder{
 				Reference: patcher.AddReference(model_core.MetadataEntry[dag.ObjectContentsWalker]{
 					LocalReference: entry.reference.Value.GetLocalReference(),
 					Metadata:       dag.ExistingObjectContentsWalker,
 				}),
 				DecodingParameters: entry.reference.GetDecodingParameters(),
-			}.Build()},
+			}.Build(),
 			TotalSizeBytes: entry.endBytes,
 			Utf8Stat:       uint64(entry.utf8Stat),
-		}
+		}.Build()
 	})
 }

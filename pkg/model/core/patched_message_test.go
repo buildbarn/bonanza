@@ -46,19 +46,19 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 		metadataCreator.EXPECT().Call(1).Return(metadata1)
 		m1 := model_core.NewPatchedMessageFromExisting(
 			model_core.NewMessage(
-				&model_filesystem_pb.DirectoryEntry_Node{
+				model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: "a",
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
-						Contents: &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					File: model_filesystem_pb.FileProperties_builder{
+						Contents: model_filesystem_pb.FileContents_builder{
+							ChunkReference: model_core_pb.DecodableReference_builder{
 								Reference: model_core_pb.Reference_builder{
 									Index: 2,
 								}.Build(),
-							}.Build()},
+							}.Build(),
 							TotalSizeBytes: 23,
-						},
-					}},
-				},
+						}.Build(),
+					}.Build(),
+				}.Build(),
 				object.OutgoingReferencesList[object.LocalReference]{
 					object.MustNewSHA256V1LocalReference("31233528b0ccc08d56724b2f132154967a89c4fb79de65fc65e3eeb42d9f89e4", 4828, 0, 0, 0),
 					object.MustNewSHA256V1LocalReference("46d71098267fa33992257c061ba8fc48017e2bcac8f9ac3be8853c8337ec896e", 58511, 0, 0, 0),
@@ -74,19 +74,19 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 		}, references)
 		require.Equal(t, []model_core.ReferenceMetadata{metadata1}, metadata)
 
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
+		testutil.RequireEqualProto(t, model_filesystem_pb.DirectoryEntry_Node_builder{
 			Name: "a",
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
-				Contents: &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+			File: model_filesystem_pb.FileProperties_builder{
+				Contents: model_filesystem_pb.FileContents_builder{
+					ChunkReference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{
 							Index: 1,
 						}.Build(),
-					}.Build()},
+					}.Build(),
 					TotalSizeBytes: 23,
-				},
-			}},
-		}, m1.Message)
+				}.Build(),
+			}.Build(),
+		}.Build(), m1.Message)
 	})
 
 	t.Run("InvalidReference", func(t *testing.T) {
@@ -97,19 +97,19 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 		metadataCreator := NewMockReferenceMetadataCreatorForTesting(ctrl)
 		m1 := model_core.NewPatchedMessageFromExisting(
 			model_core.NewMessage(
-				&model_filesystem_pb.DirectoryEntry_Node{
+				model_filesystem_pb.DirectoryEntry_Node_builder{
 					Name: "hello",
-					Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
-						Contents: &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+					File: model_filesystem_pb.FileProperties_builder{
+						Contents: model_filesystem_pb.FileContents_builder{
+							ChunkReference: model_core_pb.DecodableReference_builder{
 								Reference: model_core_pb.Reference_builder{
 									Index: 42,
 								}.Build(),
-							}.Build()},
+							}.Build(),
 							TotalSizeBytes: 583,
-						},
-					}},
-				},
+						}.Build(),
+					}.Build(),
+				}.Build(),
 				object.OutgoingReferencesList[object.LocalReference]{
 					object.MustNewSHA256V1LocalReference("31233528b0ccc08d56724b2f132154967a89c4fb79de65fc65e3eeb42d9f89e4", 4828, 0, 0, 0),
 				},
@@ -121,19 +121,19 @@ func TestNewPatchedMessageFromExisting(t *testing.T) {
 		require.Empty(t, references)
 		require.Empty(t, metadata)
 
-		testutil.RequireEqualProto(t, &model_filesystem_pb.DirectoryEntry_Node{
+		testutil.RequireEqualProto(t, model_filesystem_pb.DirectoryEntry_Node_builder{
 			Name: "hello",
-			Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: &model_filesystem_pb.FileProperties{
-				Contents: &model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+			File: model_filesystem_pb.FileProperties_builder{
+				Contents: model_filesystem_pb.FileContents_builder{
+					ChunkReference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{
 							Index: math.MaxUint32,
 						}.Build(),
-					}.Build()},
+					}.Build(),
 					TotalSizeBytes: 583,
-				},
-			}},
-		}, m1.Message)
+				}.Build(),
+			}.Build(),
+		}.Build(), m1.Message)
 	})
 }
 
@@ -148,14 +148,14 @@ func TestMarshalOpaque(t *testing.T) {
 		metadataCreator.EXPECT().Call(2).Return(metadata1)
 		m1 := model_core.NewPatchedMessageFromExisting(
 			model_core.NewMessage(
-				&model_filesystem_pb.FileContents{
-					Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+				model_filesystem_pb.FileContents_builder{
+					ChunkReference: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{
 							Index: 3,
 						}.Build(),
-					}.Build()},
+					}.Build(),
 					TotalSizeBytes: 23,
-				},
+				}.Build(),
 				object.OutgoingReferencesList[object.LocalReference]{
 					object.MustNewSHA256V1LocalReference("31233528b0ccc08d56724b2f132154967a89c4fb79de65fc65e3eeb42d9f89e4", 4828, 0, 0, 0),
 					object.MustNewSHA256V1LocalReference("46d71098267fa33992257c061ba8fc48017e2bcac8f9ac3be8853c8337ec896e", 58511, 0, 0, 0),
@@ -186,14 +186,14 @@ func TestMarshalOpaque(t *testing.T) {
 			model_format.NewProto[model_filesystem_pb.FileContents](),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+		testutil.RequireEqualProto(t, model_filesystem_pb.FileContents_builder{
+			ChunkReference: model_core_pb.DecodableReference_builder{
 				Reference: model_core_pb.Reference_builder{
 					Index: 1,
 				}.Build(),
-			}.Build()},
+			}.Build(),
 			TotalSizeBytes: 23,
-		}, m3.Message)
+		}.Build(), m3.Message)
 		require.Equal(t, 1, m3.OutgoingReferences.GetDegree())
 		require.Equal(
 			t,

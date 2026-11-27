@@ -41,8 +41,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 	// Construct a command that simply invokes "pwd" inside of the
 	// stable input root path.
 	environment := map[string]string{}
-	for _, environmentVariable := range repoPlatform.Message.RepositoryOsEnviron {
-		environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range repoPlatform.Message.GetRepositoryOsEnviron() {
+		environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 	}
 	referenceFormat := c.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
@@ -61,13 +61,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		model_core.NewPatchedMessage(
 			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{{
-					Level: &model_command_pb.ArgumentList_Element_Leaf{
-						Leaf: "pwd",
-					},
+					Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "pwd"},
 				}},
 				EnvironmentVariables:        environmentVariableList.Message,
-				DirectoryCreationParameters: directoryCreationParametersValue.Message.DirectoryCreationParameters,
-				FileCreationParameters:      fileCreationParametersValue.Message.FileCreationParameters,
+				DirectoryCreationParameters: directoryCreationParametersValue.Message.GetDirectoryCreationParameters(),
+				FileCreationParameters:      fileCreationParametersValue.Message.GetFileCreationParameters(),
 				WorkingDirectory:            path.EmptyBuilder.GetUNIXString(),
 				StableInputRootPathUuid:     repoRuleStableInputRootPathUUID,
 			}),
@@ -89,9 +87,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.
-			InputRootReference: &model_filesystem_pb.DirectoryReference{
+			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
-			},
+			}.Build(),
 		}), nil
 	})
 	if err != nil {
@@ -110,7 +108,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		}
 		return &model_analysis_pb.SuccessfulActionResult_Key{
 			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-				PlatformPkixPublicKey: repoPlatform.Message.ExecPkixPublicKey,
+				PlatformPkixPublicKey: repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
 			},
@@ -126,7 +124,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 
 	// Capture the standard output of "pwd" and trim the trailing
 	// newline character that it adds.
-	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(ctx, directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}
@@ -136,11 +134,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 		return PatchedStableInputRootPathValue[TMetadata]{}, fmt.Errorf("failed to read standard output: %w", err)
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.StableInputRootPath_Value{
-			InputRootPath: strings.TrimSuffix(string(stdout), "\n"),
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.StableInputRootPath_Value{
+		InputRootPath: strings.TrimSuffix(string(stdout), "\n"),
+	}), nil
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeStableInputRootPathObject(stableInputRootPath model_core.Message[*model_analysis_pb.StableInputRootPath_Value, TReference]) (*model_starlark.BarePath, error) {

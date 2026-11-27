@@ -130,18 +130,18 @@ func (*StarlarkRenderer) renderReference(reference model_core.Message[*model_cor
 // Values that are stored externally are rendered as a link to the
 // object containing their contents.
 func (sr *StarlarkRenderer) renderMaybeInlineFileContents(contents model_core.Message[*model_filesystem_pb.MaybeInlineFileContents, object.LocalReference], prefix, description string) Doc {
-	switch level := contents.Message.GetLevel().(type) {
-	case nil:
+	switch contents.Message.WhichLevel() {
+	case 0:
 		return starlarkLiteral(prefix + syntax.Quote(""))
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		return starlarkLiteral(prefix + syntax.Quote(string(level.ContentsInline)))
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
-		description = fmt.Sprintf("%s of %d bytes", description, level.ContentsExternal.GetTotalSizeBytes())
-		switch fileContentsLevel := level.ContentsExternal.GetLevel().(type) {
-		case *model_filesystem_pb.FileContents_ChunkReference:
-			return fieldReferenceLink(model_core.Nested(contents, fileContentsLevel.ChunkReference), level.ContentsExternal, "chunk_reference", Styled(RoleDim, "<"+description+">"))
-		case *model_filesystem_pb.FileContents_List_:
-			return sr.renderReference(model_core.Nested(contents, fileContentsLevel.List.GetReference()), fileContentsLevel.List, description)
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		return starlarkLiteral(prefix + syntax.Quote(string(contents.Message.GetContentsInline())))
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
+		description = fmt.Sprintf("%s of %d bytes", description, contents.Message.GetContentsExternal().GetTotalSizeBytes())
+		switch contents.Message.GetContentsExternal().WhichLevel() {
+		case model_filesystem_pb.FileContents_ChunkReference_case:
+			return fieldReferenceLink(model_core.Nested(contents, contents.Message.GetContentsExternal().GetChunkReference()), contents.Message.GetContentsExternal(), "chunk_reference", Styled(RoleDim, "<"+description+">"))
+		case model_filesystem_pb.FileContents_List_case:
+			return sr.renderReference(model_core.Nested(contents, contents.Message.GetContentsExternal().GetList().GetReference()), contents.Message.GetContentsExternal().GetList(), description)
 		default:
 			return starlarkOpaque(description)
 		}

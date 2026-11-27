@@ -15,7 +15,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -27,11 +26,11 @@ const (
 )
 
 type FileProperties struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Contents      *FileContents          `protobuf:"bytes,1,opt,name=contents,proto3" json:"contents,omitempty"`
-	IsExecutable  bool                   `protobuf:"varint,2,opt,name=is_executable,json=isExecutable,proto3" json:"is_executable,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Contents     *FileContents          `protobuf:"bytes,1,opt,name=contents"`
+	xxx_hidden_IsExecutable bool                   `protobuf:"varint,2,opt,name=is_executable,json=isExecutable"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *FileProperties) Reset() {
@@ -59,30 +58,60 @@ func (x *FileProperties) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FileProperties.ProtoReflect.Descriptor instead.
-func (*FileProperties) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *FileProperties) GetContents() *FileContents {
 	if x != nil {
-		return x.Contents
+		return x.xxx_hidden_Contents
 	}
 	return nil
 }
 
 func (x *FileProperties) GetIsExecutable() bool {
 	if x != nil {
-		return x.IsExecutable
+		return x.xxx_hidden_IsExecutable
 	}
 	return false
 }
 
+func (x *FileProperties) SetContents(v *FileContents) {
+	x.xxx_hidden_Contents = v
+}
+
+func (x *FileProperties) SetIsExecutable(v bool) {
+	x.xxx_hidden_IsExecutable = v
+}
+
+func (x *FileProperties) HasContents() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Contents != nil
+}
+
+func (x *FileProperties) ClearContents() {
+	x.xxx_hidden_Contents = nil
+}
+
+type FileProperties_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Contents     *FileContents
+	IsExecutable bool
+}
+
+func (b0 FileProperties_builder) Build() *FileProperties {
+	m0 := &FileProperties{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Contents = b.Contents
+	x.xxx_hidden_IsExecutable = b.IsExecutable
+	return m0
+}
+
 type SymlinkProperties struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Target        string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Target string                 `protobuf:"bytes,1,opt,name=target"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SymlinkProperties) Reset() {
@@ -110,23 +139,36 @@ func (x *SymlinkProperties) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SymlinkProperties.ProtoReflect.Descriptor instead.
-func (*SymlinkProperties) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *SymlinkProperties) GetTarget() string {
 	if x != nil {
-		return x.Target
+		return x.xxx_hidden_Target
 	}
 	return ""
 }
 
+func (x *SymlinkProperties) SetTarget(v string) {
+	x.xxx_hidden_Target = v
+}
+
+type SymlinkProperties_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Target string
+}
+
+func (b0 SymlinkProperties_builder) Build() *SymlinkProperties {
+	m0 := &SymlinkProperties{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Target = b.Target
+	return m0
+}
+
 type DirectoryProperties struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	DirectoriesCount uint32                 `protobuf:"varint,1,opt,name=directories_count,json=directoriesCount,proto3" json:"directories_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DirectoriesCount uint32                 `protobuf:"varint,1,opt,name=directories_count,json=directoriesCount"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *DirectoryProperties) Reset() {
@@ -154,28 +196,36 @@ func (x *DirectoryProperties) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryProperties.ProtoReflect.Descriptor instead.
-func (*DirectoryProperties) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *DirectoryProperties) GetDirectoriesCount() uint32 {
 	if x != nil {
-		return x.DirectoriesCount
+		return x.xxx_hidden_DirectoriesCount
 	}
 	return 0
 }
 
+func (x *DirectoryProperties) SetDirectoriesCount(v uint32) {
+	x.xxx_hidden_DirectoriesCount = v
+}
+
+type DirectoryProperties_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DirectoriesCount uint32
+}
+
+func (b0 DirectoryProperties_builder) Build() *DirectoryProperties {
+	m0 := &DirectoryProperties{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DirectoriesCount = b.DirectoriesCount
+	return m0
+}
+
 type DirectoryEntry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*DirectoryEntry_Parent_
-	//	*DirectoryEntry_Node_
-	//	*DirectoryEntry_DirectoryContents_
-	Level         isDirectoryEntry_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isDirectoryEntry_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *DirectoryEntry) Reset() {
@@ -203,21 +253,9 @@ func (x *DirectoryEntry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryEntry.ProtoReflect.Descriptor instead.
-func (*DirectoryEntry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *DirectoryEntry) GetLevel() isDirectoryEntry_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *DirectoryEntry) GetParent() *DirectoryEntry_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*DirectoryEntry_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*directoryEntry_Parent_); ok {
 			return x.Parent
 		}
 	}
@@ -226,7 +264,7 @@ func (x *DirectoryEntry) GetParent() *DirectoryEntry_Parent {
 
 func (x *DirectoryEntry) GetNode() *DirectoryEntry_Node {
 	if x != nil {
-		if x, ok := x.Level.(*DirectoryEntry_Node_); ok {
+		if x, ok := x.xxx_hidden_Level.(*directoryEntry_Node_); ok {
 			return x.Node
 		}
 	}
@@ -235,42 +273,176 @@ func (x *DirectoryEntry) GetNode() *DirectoryEntry_Node {
 
 func (x *DirectoryEntry) GetDirectoryContents() *DirectoryEntry_DirectoryContents {
 	if x != nil {
-		if x, ok := x.Level.(*DirectoryEntry_DirectoryContents_); ok {
+		if x, ok := x.xxx_hidden_Level.(*directoryEntry_DirectoryContents_); ok {
 			return x.DirectoryContents
 		}
 	}
 	return nil
 }
 
+func (x *DirectoryEntry) SetParent(v *DirectoryEntry_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &directoryEntry_Parent_{v}
+}
+
+func (x *DirectoryEntry) SetNode(v *DirectoryEntry_Node) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &directoryEntry_Node_{v}
+}
+
+func (x *DirectoryEntry) SetDirectoryContents(v *DirectoryEntry_DirectoryContents) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &directoryEntry_DirectoryContents_{v}
+}
+
+func (x *DirectoryEntry) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *DirectoryEntry) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*directoryEntry_Parent_)
+	return ok
+}
+
+func (x *DirectoryEntry) HasNode() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*directoryEntry_Node_)
+	return ok
+}
+
+func (x *DirectoryEntry) HasDirectoryContents() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*directoryEntry_DirectoryContents_)
+	return ok
+}
+
+func (x *DirectoryEntry) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *DirectoryEntry) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*directoryEntry_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *DirectoryEntry) ClearNode() {
+	if _, ok := x.xxx_hidden_Level.(*directoryEntry_Node_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *DirectoryEntry) ClearDirectoryContents() {
+	if _, ok := x.xxx_hidden_Level.(*directoryEntry_DirectoryContents_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const DirectoryEntry_Level_not_set_case case_DirectoryEntry_Level = 0
+const DirectoryEntry_Parent_case case_DirectoryEntry_Level = 1
+const DirectoryEntry_Node_case case_DirectoryEntry_Level = 2
+const DirectoryEntry_DirectoryContents_case case_DirectoryEntry_Level = 3
+
+func (x *DirectoryEntry) WhichLevel() case_DirectoryEntry_Level {
+	if x == nil {
+		return DirectoryEntry_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *directoryEntry_Parent_:
+		return DirectoryEntry_Parent_case
+	case *directoryEntry_Node_:
+		return DirectoryEntry_Node_case
+	case *directoryEntry_DirectoryContents_:
+		return DirectoryEntry_DirectoryContents_case
+	default:
+		return DirectoryEntry_Level_not_set_case
+	}
+}
+
+type DirectoryEntry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Parent            *DirectoryEntry_Parent
+	Node              *DirectoryEntry_Node
+	DirectoryContents *DirectoryEntry_DirectoryContents
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 DirectoryEntry_builder) Build() *DirectoryEntry {
+	m0 := &DirectoryEntry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &directoryEntry_Parent_{b.Parent}
+	}
+	if b.Node != nil {
+		x.xxx_hidden_Level = &directoryEntry_Node_{b.Node}
+	}
+	if b.DirectoryContents != nil {
+		x.xxx_hidden_Level = &directoryEntry_DirectoryContents_{b.DirectoryContents}
+	}
+	return m0
+}
+
+type case_DirectoryEntry_Level protoreflect.FieldNumber
+
+func (x case_DirectoryEntry_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isDirectoryEntry_Level interface {
 	isDirectoryEntry_Level()
 }
 
-type DirectoryEntry_Parent_ struct {
-	Parent *DirectoryEntry_Parent `protobuf:"bytes,1,opt,name=parent,proto3,oneof"`
+type directoryEntry_Parent_ struct {
+	Parent *DirectoryEntry_Parent `protobuf:"bytes,1,opt,name=parent,oneof"`
 }
 
-type DirectoryEntry_Node_ struct {
-	Node *DirectoryEntry_Node `protobuf:"bytes,2,opt,name=node,proto3,oneof"`
+type directoryEntry_Node_ struct {
+	Node *DirectoryEntry_Node `protobuf:"bytes,2,opt,name=node,oneof"`
 }
 
-type DirectoryEntry_DirectoryContents_ struct {
-	DirectoryContents *DirectoryEntry_DirectoryContents `protobuf:"bytes,3,opt,name=directory_contents,json=directoryContents,proto3,oneof"`
+type directoryEntry_DirectoryContents_ struct {
+	DirectoryContents *DirectoryEntry_DirectoryContents `protobuf:"bytes,3,opt,name=directory_contents,json=directoryContents,oneof"`
 }
 
-func (*DirectoryEntry_Parent_) isDirectoryEntry_Level() {}
+func (*directoryEntry_Parent_) isDirectoryEntry_Level() {}
 
-func (*DirectoryEntry_Node_) isDirectoryEntry_Level() {}
+func (*directoryEntry_Node_) isDirectoryEntry_Level() {}
 
-func (*DirectoryEntry_DirectoryContents_) isDirectoryEntry_Level() {}
+func (*directoryEntry_DirectoryContents_) isDirectoryEntry_Level() {}
 
 type DirectoryReference struct {
-	state                          protoimpl.MessageState   `protogen:"open.v1"`
-	Reference                      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	DirectoriesCount               uint32                   `protobuf:"varint,2,opt,name=directories_count,json=directoriesCount,proto3" json:"directories_count,omitempty"`
-	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,3,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels,proto3" json:"maximum_symlink_escapement_levels,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference                      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_DirectoriesCount               uint32                   `protobuf:"varint,2,opt,name=directories_count,json=directoriesCount"`
+	xxx_hidden_MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,3,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *DirectoryReference) Reset() {
@@ -298,44 +470,86 @@ func (x *DirectoryReference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryReference.ProtoReflect.Descriptor instead.
-func (*DirectoryReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *DirectoryReference) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *DirectoryReference) GetDirectoriesCount() uint32 {
 	if x != nil {
-		return x.DirectoriesCount
+		return x.xxx_hidden_DirectoriesCount
 	}
 	return 0
 }
 
 func (x *DirectoryReference) GetMaximumSymlinkEscapementLevels() *wrapperspb.UInt32Value {
 	if x != nil {
-		return x.MaximumSymlinkEscapementLevels
+		return x.xxx_hidden_MaximumSymlinkEscapementLevels
 	}
 	return nil
 }
 
+func (x *DirectoryReference) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *DirectoryReference) SetDirectoriesCount(v uint32) {
+	x.xxx_hidden_DirectoriesCount = v
+}
+
+func (x *DirectoryReference) SetMaximumSymlinkEscapementLevels(v *wrapperspb.UInt32Value) {
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = v
+}
+
+func (x *DirectoryReference) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *DirectoryReference) HasMaximumSymlinkEscapementLevels() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumSymlinkEscapementLevels != nil
+}
+
+func (x *DirectoryReference) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+func (x *DirectoryReference) ClearMaximumSymlinkEscapementLevels() {
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = nil
+}
+
+type DirectoryReference_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference                      *core.DecodableReference
+	DirectoriesCount               uint32
+	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value
+}
+
+func (b0 DirectoryReference_builder) Build() *DirectoryReference {
+	m0 := &DirectoryReference{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_DirectoriesCount = b.DirectoriesCount
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = b.MaximumSymlinkEscapementLevels
+	return m0
+}
+
 type FileContents struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*FileContents_List_
-	//	*FileContents_ChunkReference
-	//	*FileContents_Hole
-	Level          isFileContents_Level `protobuf_oneof:"level"`
-	TotalSizeBytes uint64               `protobuf:"varint,4,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	Utf8Stat       uint64               `protobuf:"varint,5,opt,name=utf8_stat,json=utf8Stat,proto3" json:"utf8_stat,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level          isFileContents_Level   `protobuf_oneof:"level"`
+	xxx_hidden_TotalSizeBytes uint64                 `protobuf:"varint,4,opt,name=total_size_bytes,json=totalSizeBytes"`
+	xxx_hidden_Utf8Stat       uint64                 `protobuf:"varint,5,opt,name=utf8_stat,json=utf8Stat"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *FileContents) Reset() {
@@ -363,21 +577,9 @@ func (x *FileContents) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FileContents.ProtoReflect.Descriptor instead.
-func (*FileContents) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *FileContents) GetLevel() isFileContents_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *FileContents) GetList() *FileContents_List {
 	if x != nil {
-		if x, ok := x.Level.(*FileContents_List_); ok {
+		if x, ok := x.xxx_hidden_Level.(*fileContents_List_); ok {
 			return x.List
 		}
 	}
@@ -386,7 +588,7 @@ func (x *FileContents) GetList() *FileContents_List {
 
 func (x *FileContents) GetChunkReference() *core.DecodableReference {
 	if x != nil {
-		if x, ok := x.Level.(*FileContents_ChunkReference); ok {
+		if x, ok := x.xxx_hidden_Level.(*fileContents_ChunkReference); ok {
 			return x.ChunkReference
 		}
 	}
@@ -395,7 +597,7 @@ func (x *FileContents) GetChunkReference() *core.DecodableReference {
 
 func (x *FileContents) GetHole() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Level.(*FileContents_Hole); ok {
+		if x, ok := x.xxx_hidden_Level.(*fileContents_Hole); ok {
 			return x.Hole
 		}
 	}
@@ -404,49 +606,191 @@ func (x *FileContents) GetHole() *emptypb.Empty {
 
 func (x *FileContents) GetTotalSizeBytes() uint64 {
 	if x != nil {
-		return x.TotalSizeBytes
+		return x.xxx_hidden_TotalSizeBytes
 	}
 	return 0
 }
 
 func (x *FileContents) GetUtf8Stat() uint64 {
 	if x != nil {
-		return x.Utf8Stat
+		return x.xxx_hidden_Utf8Stat
 	}
 	return 0
+}
+
+func (x *FileContents) SetList(v *FileContents_List) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &fileContents_List_{v}
+}
+
+func (x *FileContents) SetChunkReference(v *core.DecodableReference) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &fileContents_ChunkReference{v}
+}
+
+func (x *FileContents) SetHole(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &fileContents_Hole{v}
+}
+
+func (x *FileContents) SetTotalSizeBytes(v uint64) {
+	x.xxx_hidden_TotalSizeBytes = v
+}
+
+func (x *FileContents) SetUtf8Stat(v uint64) {
+	x.xxx_hidden_Utf8Stat = v
+}
+
+func (x *FileContents) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *FileContents) HasList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*fileContents_List_)
+	return ok
+}
+
+func (x *FileContents) HasChunkReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*fileContents_ChunkReference)
+	return ok
+}
+
+func (x *FileContents) HasHole() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*fileContents_Hole)
+	return ok
+}
+
+func (x *FileContents) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *FileContents) ClearList() {
+	if _, ok := x.xxx_hidden_Level.(*fileContents_List_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *FileContents) ClearChunkReference() {
+	if _, ok := x.xxx_hidden_Level.(*fileContents_ChunkReference); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *FileContents) ClearHole() {
+	if _, ok := x.xxx_hidden_Level.(*fileContents_Hole); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const FileContents_Level_not_set_case case_FileContents_Level = 0
+const FileContents_List_case case_FileContents_Level = 1
+const FileContents_ChunkReference_case case_FileContents_Level = 2
+const FileContents_Hole_case case_FileContents_Level = 3
+
+func (x *FileContents) WhichLevel() case_FileContents_Level {
+	if x == nil {
+		return FileContents_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *fileContents_List_:
+		return FileContents_List_case
+	case *fileContents_ChunkReference:
+		return FileContents_ChunkReference_case
+	case *fileContents_Hole:
+		return FileContents_Hole_case
+	default:
+		return FileContents_Level_not_set_case
+	}
+}
+
+type FileContents_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	List           *FileContents_List
+	ChunkReference *core.DecodableReference
+	Hole           *emptypb.Empty
+	// -- end of xxx_hidden_Level
+	TotalSizeBytes uint64
+	Utf8Stat       uint64
+}
+
+func (b0 FileContents_builder) Build() *FileContents {
+	m0 := &FileContents{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.List != nil {
+		x.xxx_hidden_Level = &fileContents_List_{b.List}
+	}
+	if b.ChunkReference != nil {
+		x.xxx_hidden_Level = &fileContents_ChunkReference{b.ChunkReference}
+	}
+	if b.Hole != nil {
+		x.xxx_hidden_Level = &fileContents_Hole{b.Hole}
+	}
+	x.xxx_hidden_TotalSizeBytes = b.TotalSizeBytes
+	x.xxx_hidden_Utf8Stat = b.Utf8Stat
+	return m0
+}
+
+type case_FileContents_Level protoreflect.FieldNumber
+
+func (x case_FileContents_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
 }
 
 type isFileContents_Level interface {
 	isFileContents_Level()
 }
 
-type FileContents_List_ struct {
-	List *FileContents_List `protobuf:"bytes,1,opt,name=list,proto3,oneof"`
+type fileContents_List_ struct {
+	List *FileContents_List `protobuf:"bytes,1,opt,name=list,oneof"`
 }
 
-type FileContents_ChunkReference struct {
-	ChunkReference *core.DecodableReference `protobuf:"bytes,2,opt,name=chunk_reference,json=chunkReference,proto3,oneof"`
+type fileContents_ChunkReference struct {
+	ChunkReference *core.DecodableReference `protobuf:"bytes,2,opt,name=chunk_reference,json=chunkReference,oneof"`
 }
 
-type FileContents_Hole struct {
-	Hole *emptypb.Empty `protobuf:"bytes,3,opt,name=hole,proto3,oneof"`
+type fileContents_Hole struct {
+	Hole *emptypb.Empty `protobuf:"bytes,3,opt,name=hole,oneof"`
 }
 
-func (*FileContents_List_) isFileContents_Level() {}
+func (*fileContents_List_) isFileContents_Level() {}
 
-func (*FileContents_ChunkReference) isFileContents_Level() {}
+func (*fileContents_ChunkReference) isFileContents_Level() {}
 
-func (*FileContents_Hole) isFileContents_Level() {}
+func (*fileContents_Hole) isFileContents_Level() {}
 
 type MaybeInlineFileContents struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*MaybeInlineFileContents_ContentsInline
-	//	*MaybeInlineFileContents_ContentsExternal
-	Level         isMaybeInlineFileContents_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState          `protogen:"opaque.v1"`
+	xxx_hidden_Level isMaybeInlineFileContents_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MaybeInlineFileContents) Reset() {
@@ -474,21 +818,9 @@ func (x *MaybeInlineFileContents) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MaybeInlineFileContents.ProtoReflect.Descriptor instead.
-func (*MaybeInlineFileContents) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *MaybeInlineFileContents) GetLevel() isMaybeInlineFileContents_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *MaybeInlineFileContents) GetContentsInline() []byte {
 	if x != nil {
-		if x, ok := x.Level.(*MaybeInlineFileContents_ContentsInline); ok {
+		if x, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsInline); ok {
 			return x.ContentsInline
 		}
 	}
@@ -497,34 +829,138 @@ func (x *MaybeInlineFileContents) GetContentsInline() []byte {
 
 func (x *MaybeInlineFileContents) GetContentsExternal() *FileContents {
 	if x != nil {
-		if x, ok := x.Level.(*MaybeInlineFileContents_ContentsExternal); ok {
+		if x, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsExternal); ok {
 			return x.ContentsExternal
 		}
 	}
 	return nil
 }
 
+func (x *MaybeInlineFileContents) SetContentsInline(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Level = &maybeInlineFileContents_ContentsInline{v}
+}
+
+func (x *MaybeInlineFileContents) SetContentsExternal(v *FileContents) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &maybeInlineFileContents_ContentsExternal{v}
+}
+
+func (x *MaybeInlineFileContents) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *MaybeInlineFileContents) HasContentsInline() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsInline)
+	return ok
+}
+
+func (x *MaybeInlineFileContents) HasContentsExternal() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsExternal)
+	return ok
+}
+
+func (x *MaybeInlineFileContents) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *MaybeInlineFileContents) ClearContentsInline() {
+	if _, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsInline); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *MaybeInlineFileContents) ClearContentsExternal() {
+	if _, ok := x.xxx_hidden_Level.(*maybeInlineFileContents_ContentsExternal); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const MaybeInlineFileContents_Level_not_set_case case_MaybeInlineFileContents_Level = 0
+const MaybeInlineFileContents_ContentsInline_case case_MaybeInlineFileContents_Level = 1
+const MaybeInlineFileContents_ContentsExternal_case case_MaybeInlineFileContents_Level = 2
+
+func (x *MaybeInlineFileContents) WhichLevel() case_MaybeInlineFileContents_Level {
+	if x == nil {
+		return MaybeInlineFileContents_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *maybeInlineFileContents_ContentsInline:
+		return MaybeInlineFileContents_ContentsInline_case
+	case *maybeInlineFileContents_ContentsExternal:
+		return MaybeInlineFileContents_ContentsExternal_case
+	default:
+		return MaybeInlineFileContents_Level_not_set_case
+	}
+}
+
+type MaybeInlineFileContents_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	ContentsInline   []byte
+	ContentsExternal *FileContents
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 MaybeInlineFileContents_builder) Build() *MaybeInlineFileContents {
+	m0 := &MaybeInlineFileContents{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ContentsInline != nil {
+		x.xxx_hidden_Level = &maybeInlineFileContents_ContentsInline{b.ContentsInline}
+	}
+	if b.ContentsExternal != nil {
+		x.xxx_hidden_Level = &maybeInlineFileContents_ContentsExternal{b.ContentsExternal}
+	}
+	return m0
+}
+
+type case_MaybeInlineFileContents_Level protoreflect.FieldNumber
+
+func (x case_MaybeInlineFileContents_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isMaybeInlineFileContents_Level interface {
 	isMaybeInlineFileContents_Level()
 }
 
-type MaybeInlineFileContents_ContentsInline struct {
-	ContentsInline []byte `protobuf:"bytes,1,opt,name=contents_inline,json=contentsInline,proto3,oneof"`
+type maybeInlineFileContents_ContentsInline struct {
+	ContentsInline []byte `protobuf:"bytes,1,opt,name=contents_inline,json=contentsInline,oneof"`
 }
 
-type MaybeInlineFileContents_ContentsExternal struct {
-	ContentsExternal *FileContents `protobuf:"bytes,2,opt,name=contents_external,json=contentsExternal,proto3,oneof"`
+type maybeInlineFileContents_ContentsExternal struct {
+	ContentsExternal *FileContents `protobuf:"bytes,2,opt,name=contents_external,json=contentsExternal,oneof"`
 }
 
-func (*MaybeInlineFileContents_ContentsInline) isMaybeInlineFileContents_Level() {}
+func (*maybeInlineFileContents_ContentsInline) isMaybeInlineFileContents_Level() {}
 
-func (*MaybeInlineFileContents_ContentsExternal) isMaybeInlineFileContents_Level() {}
+func (*maybeInlineFileContents_ContentsExternal) isMaybeInlineFileContents_Level() {}
 
 type DirectoryAccessParameters struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Encoders      []*encoding.BinaryEncoder `protobuf:"bytes,1,rep,name=encoders,proto3" json:"encoders,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Encoders *[]*encoding.BinaryEncoder `protobuf:"bytes,1,rep,name=encoders"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *DirectoryAccessParameters) Reset() {
@@ -552,24 +988,39 @@ func (x *DirectoryAccessParameters) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryAccessParameters.ProtoReflect.Descriptor instead.
-func (*DirectoryAccessParameters) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *DirectoryAccessParameters) GetEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.Encoders
+		if x.xxx_hidden_Encoders != nil {
+			return *x.xxx_hidden_Encoders
+		}
 	}
 	return nil
 }
 
+func (x *DirectoryAccessParameters) SetEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_Encoders = &v
+}
+
+type DirectoryAccessParameters_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Encoders []*encoding.BinaryEncoder
+}
+
+func (b0 DirectoryAccessParameters_builder) Build() *DirectoryAccessParameters {
+	m0 := &DirectoryAccessParameters{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Encoders = &b.Encoders
+	return m0
+}
+
 type DirectoryCreationParameters struct {
-	state                 protoimpl.MessageState     `protogen:"open.v1"`
-	Access                *DirectoryAccessParameters `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
-	DirectoriesParameters *chunking.Parameters       `protobuf:"bytes,2,opt,name=directories_parameters,json=directoriesParameters,proto3" json:"directories_parameters,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Access                *DirectoryAccessParameters `protobuf:"bytes,1,opt,name=access"`
+	xxx_hidden_DirectoriesParameters *chunking.Parameters       `protobuf:"bytes,2,opt,name=directories_parameters,json=directoriesParameters"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *DirectoryCreationParameters) Reset() {
@@ -597,31 +1048,72 @@ func (x *DirectoryCreationParameters) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryCreationParameters.ProtoReflect.Descriptor instead.
-func (*DirectoryCreationParameters) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *DirectoryCreationParameters) GetAccess() *DirectoryAccessParameters {
 	if x != nil {
-		return x.Access
+		return x.xxx_hidden_Access
 	}
 	return nil
 }
 
 func (x *DirectoryCreationParameters) GetDirectoriesParameters() *chunking.Parameters {
 	if x != nil {
-		return x.DirectoriesParameters
+		return x.xxx_hidden_DirectoriesParameters
 	}
 	return nil
 }
 
+func (x *DirectoryCreationParameters) SetAccess(v *DirectoryAccessParameters) {
+	x.xxx_hidden_Access = v
+}
+
+func (x *DirectoryCreationParameters) SetDirectoriesParameters(v *chunking.Parameters) {
+	x.xxx_hidden_DirectoriesParameters = v
+}
+
+func (x *DirectoryCreationParameters) HasAccess() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Access != nil
+}
+
+func (x *DirectoryCreationParameters) HasDirectoriesParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DirectoriesParameters != nil
+}
+
+func (x *DirectoryCreationParameters) ClearAccess() {
+	x.xxx_hidden_Access = nil
+}
+
+func (x *DirectoryCreationParameters) ClearDirectoriesParameters() {
+	x.xxx_hidden_DirectoriesParameters = nil
+}
+
+type DirectoryCreationParameters_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Access                *DirectoryAccessParameters
+	DirectoriesParameters *chunking.Parameters
+}
+
+func (b0 DirectoryCreationParameters_builder) Build() *DirectoryCreationParameters {
+	m0 := &DirectoryCreationParameters{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Access = b.Access
+	x.xxx_hidden_DirectoriesParameters = b.DirectoriesParameters
+	return m0
+}
+
 type FileAccessParameters struct {
-	state                    protoimpl.MessageState    `protogen:"open.v1"`
-	ChunkEncoders            []*encoding.BinaryEncoder `protobuf:"bytes,1,rep,name=chunk_encoders,json=chunkEncoders,proto3" json:"chunk_encoders,omitempty"`
-	FileContentsListEncoders []*encoding.BinaryEncoder `protobuf:"bytes,2,rep,name=file_contents_list_encoders,json=fileContentsListEncoders,proto3" json:"file_contents_list_encoders,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_ChunkEncoders            *[]*encoding.BinaryEncoder `protobuf:"bytes,1,rep,name=chunk_encoders,json=chunkEncoders"`
+	xxx_hidden_FileContentsListEncoders *[]*encoding.BinaryEncoder `protobuf:"bytes,2,rep,name=file_contents_list_encoders,json=fileContentsListEncoders"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *FileAccessParameters) Reset() {
@@ -649,33 +1141,56 @@ func (x *FileAccessParameters) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FileAccessParameters.ProtoReflect.Descriptor instead.
-func (*FileAccessParameters) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *FileAccessParameters) GetChunkEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.ChunkEncoders
+		if x.xxx_hidden_ChunkEncoders != nil {
+			return *x.xxx_hidden_ChunkEncoders
+		}
 	}
 	return nil
 }
 
 func (x *FileAccessParameters) GetFileContentsListEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.FileContentsListEncoders
+		if x.xxx_hidden_FileContentsListEncoders != nil {
+			return *x.xxx_hidden_FileContentsListEncoders
+		}
 	}
 	return nil
 }
 
+func (x *FileAccessParameters) SetChunkEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_ChunkEncoders = &v
+}
+
+func (x *FileAccessParameters) SetFileContentsListEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_FileContentsListEncoders = &v
+}
+
+type FileAccessParameters_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChunkEncoders            []*encoding.BinaryEncoder
+	FileContentsListEncoders []*encoding.BinaryEncoder
+}
+
+func (b0 FileAccessParameters_builder) Build() *FileAccessParameters {
+	m0 := &FileAccessParameters{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ChunkEncoders = &b.ChunkEncoders
+	x.xxx_hidden_FileContentsListEncoders = &b.FileContentsListEncoders
+	return m0
+}
+
 type FileCreationParameters struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	Access                     *FileAccessParameters  `protobuf:"bytes,1,opt,name=access,proto3" json:"access,omitempty"`
-	ChunkParameters            *chunking.Parameters   `protobuf:"bytes,2,opt,name=chunk_parameters,json=chunkParameters,proto3" json:"chunk_parameters,omitempty"`
-	ChunkGearTableSeed         []byte                 `protobuf:"bytes,3,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed,proto3" json:"chunk_gear_table_seed,omitempty"`
-	FileContentsListParameters *chunking.Parameters   `protobuf:"bytes,4,opt,name=file_contents_list_parameters,json=fileContentsListParameters,proto3" json:"file_contents_list_parameters,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Access                     *FileAccessParameters  `protobuf:"bytes,1,opt,name=access"`
+	xxx_hidden_ChunkParameters            *chunking.Parameters   `protobuf:"bytes,2,opt,name=chunk_parameters,json=chunkParameters"`
+	xxx_hidden_ChunkGearTableSeed         []byte                 `protobuf:"bytes,3,opt,name=chunk_gear_table_seed,json=chunkGearTableSeed"`
+	xxx_hidden_FileContentsListParameters *chunking.Parameters   `protobuf:"bytes,4,opt,name=file_contents_list_parameters,json=fileContentsListParameters"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *FileCreationParameters) Reset() {
@@ -703,44 +1218,111 @@ func (x *FileCreationParameters) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FileCreationParameters.ProtoReflect.Descriptor instead.
-func (*FileCreationParameters) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *FileCreationParameters) GetAccess() *FileAccessParameters {
 	if x != nil {
-		return x.Access
+		return x.xxx_hidden_Access
 	}
 	return nil
 }
 
 func (x *FileCreationParameters) GetChunkParameters() *chunking.Parameters {
 	if x != nil {
-		return x.ChunkParameters
+		return x.xxx_hidden_ChunkParameters
 	}
 	return nil
 }
 
 func (x *FileCreationParameters) GetChunkGearTableSeed() []byte {
 	if x != nil {
-		return x.ChunkGearTableSeed
+		return x.xxx_hidden_ChunkGearTableSeed
 	}
 	return nil
 }
 
 func (x *FileCreationParameters) GetFileContentsListParameters() *chunking.Parameters {
 	if x != nil {
-		return x.FileContentsListParameters
+		return x.xxx_hidden_FileContentsListParameters
 	}
 	return nil
 }
 
+func (x *FileCreationParameters) SetAccess(v *FileAccessParameters) {
+	x.xxx_hidden_Access = v
+}
+
+func (x *FileCreationParameters) SetChunkParameters(v *chunking.Parameters) {
+	x.xxx_hidden_ChunkParameters = v
+}
+
+func (x *FileCreationParameters) SetChunkGearTableSeed(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_ChunkGearTableSeed = v
+}
+
+func (x *FileCreationParameters) SetFileContentsListParameters(v *chunking.Parameters) {
+	x.xxx_hidden_FileContentsListParameters = v
+}
+
+func (x *FileCreationParameters) HasAccess() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Access != nil
+}
+
+func (x *FileCreationParameters) HasChunkParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ChunkParameters != nil
+}
+
+func (x *FileCreationParameters) HasFileContentsListParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FileContentsListParameters != nil
+}
+
+func (x *FileCreationParameters) ClearAccess() {
+	x.xxx_hidden_Access = nil
+}
+
+func (x *FileCreationParameters) ClearChunkParameters() {
+	x.xxx_hidden_ChunkParameters = nil
+}
+
+func (x *FileCreationParameters) ClearFileContentsListParameters() {
+	x.xxx_hidden_FileContentsListParameters = nil
+}
+
+type FileCreationParameters_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Access                     *FileAccessParameters
+	ChunkParameters            *chunking.Parameters
+	ChunkGearTableSeed         []byte
+	FileContentsListParameters *chunking.Parameters
+}
+
+func (b0 FileCreationParameters_builder) Build() *FileCreationParameters {
+	m0 := &FileCreationParameters{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Access = b.Access
+	x.xxx_hidden_ChunkParameters = b.ChunkParameters
+	x.xxx_hidden_ChunkGearTableSeed = b.ChunkGearTableSeed
+	x.xxx_hidden_FileContentsListParameters = b.FileContentsListParameters
+	return m0
+}
+
 type DirectoryEntry_DirectoryContents struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*DirectoryEntry      `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Entries *[]*DirectoryEntry     `protobuf:"bytes,1,rep,name=entries"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *DirectoryEntry_DirectoryContents) Reset() {
@@ -768,28 +1350,43 @@ func (x *DirectoryEntry_DirectoryContents) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryEntry_DirectoryContents.ProtoReflect.Descriptor instead.
-func (*DirectoryEntry_DirectoryContents) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3, 0}
-}
-
 func (x *DirectoryEntry_DirectoryContents) GetEntries() []*DirectoryEntry {
 	if x != nil {
-		return x.Entries
+		if x.xxx_hidden_Entries != nil {
+			return *x.xxx_hidden_Entries
+		}
 	}
 	return nil
 }
 
+func (x *DirectoryEntry_DirectoryContents) SetEntries(v []*DirectoryEntry) {
+	x.xxx_hidden_Entries = &v
+}
+
+type DirectoryEntry_DirectoryContents_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Entries []*DirectoryEntry
+}
+
+func (b0 DirectoryEntry_DirectoryContents_builder) Build() *DirectoryEntry_DirectoryContents {
+	m0 := &DirectoryEntry_DirectoryContents{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Entries = &b.Entries
+	return m0
+}
+
 type DirectoryEntry_Parent struct {
-	state                          protoimpl.MessageState   `protogen:"open.v1"`
-	Reference                      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	FirstName                      string                   `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
-	LeafNodesCount                 uint32                   `protobuf:"varint,3,opt,name=leaf_nodes_count,json=leafNodesCount,proto3" json:"leaf_nodes_count,omitempty"`
-	DirectoryNodesCount            uint32                   `protobuf:"varint,4,opt,name=directory_nodes_count,json=directoryNodesCount,proto3" json:"directory_nodes_count,omitempty"`
-	DirectoryContentsCount         uint32                   `protobuf:"varint,5,opt,name=directory_contents_count,json=directoryContentsCount,proto3" json:"directory_contents_count,omitempty"`
-	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,6,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels,proto3" json:"maximum_symlink_escapement_levels,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference                      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_FirstName                      string                   `protobuf:"bytes,2,opt,name=first_name,json=firstName"`
+	xxx_hidden_LeafNodesCount                 uint32                   `protobuf:"varint,3,opt,name=leaf_nodes_count,json=leafNodesCount"`
+	xxx_hidden_DirectoryNodesCount            uint32                   `protobuf:"varint,4,opt,name=directory_nodes_count,json=directoryNodesCount"`
+	xxx_hidden_DirectoryContentsCount         uint32                   `protobuf:"varint,5,opt,name=directory_contents_count,json=directoryContentsCount"`
+	xxx_hidden_MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,6,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *DirectoryEntry_Parent) Reset() {
@@ -817,64 +1414,124 @@ func (x *DirectoryEntry_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryEntry_Parent.ProtoReflect.Descriptor instead.
-func (*DirectoryEntry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3, 1}
-}
-
 func (x *DirectoryEntry_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *DirectoryEntry_Parent) GetFirstName() string {
 	if x != nil {
-		return x.FirstName
+		return x.xxx_hidden_FirstName
 	}
 	return ""
 }
 
 func (x *DirectoryEntry_Parent) GetLeafNodesCount() uint32 {
 	if x != nil {
-		return x.LeafNodesCount
+		return x.xxx_hidden_LeafNodesCount
 	}
 	return 0
 }
 
 func (x *DirectoryEntry_Parent) GetDirectoryNodesCount() uint32 {
 	if x != nil {
-		return x.DirectoryNodesCount
+		return x.xxx_hidden_DirectoryNodesCount
 	}
 	return 0
 }
 
 func (x *DirectoryEntry_Parent) GetDirectoryContentsCount() uint32 {
 	if x != nil {
-		return x.DirectoryContentsCount
+		return x.xxx_hidden_DirectoryContentsCount
 	}
 	return 0
 }
 
 func (x *DirectoryEntry_Parent) GetMaximumSymlinkEscapementLevels() *wrapperspb.UInt32Value {
 	if x != nil {
-		return x.MaximumSymlinkEscapementLevels
+		return x.xxx_hidden_MaximumSymlinkEscapementLevels
 	}
 	return nil
 }
 
+func (x *DirectoryEntry_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *DirectoryEntry_Parent) SetFirstName(v string) {
+	x.xxx_hidden_FirstName = v
+}
+
+func (x *DirectoryEntry_Parent) SetLeafNodesCount(v uint32) {
+	x.xxx_hidden_LeafNodesCount = v
+}
+
+func (x *DirectoryEntry_Parent) SetDirectoryNodesCount(v uint32) {
+	x.xxx_hidden_DirectoryNodesCount = v
+}
+
+func (x *DirectoryEntry_Parent) SetDirectoryContentsCount(v uint32) {
+	x.xxx_hidden_DirectoryContentsCount = v
+}
+
+func (x *DirectoryEntry_Parent) SetMaximumSymlinkEscapementLevels(v *wrapperspb.UInt32Value) {
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = v
+}
+
+func (x *DirectoryEntry_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *DirectoryEntry_Parent) HasMaximumSymlinkEscapementLevels() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumSymlinkEscapementLevels != nil
+}
+
+func (x *DirectoryEntry_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+func (x *DirectoryEntry_Parent) ClearMaximumSymlinkEscapementLevels() {
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = nil
+}
+
+type DirectoryEntry_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference                      *core.DecodableReference
+	FirstName                      string
+	LeafNodesCount                 uint32
+	DirectoryNodesCount            uint32
+	DirectoryContentsCount         uint32
+	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value
+}
+
+func (b0 DirectoryEntry_Parent_builder) Build() *DirectoryEntry_Parent {
+	m0 := &DirectoryEntry_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_FirstName = b.FirstName
+	x.xxx_hidden_LeafNodesCount = b.LeafNodesCount
+	x.xxx_hidden_DirectoryNodesCount = b.DirectoryNodesCount
+	x.xxx_hidden_DirectoryContentsCount = b.DirectoryContentsCount
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = b.MaximumSymlinkEscapementLevels
+	return m0
+}
+
 type DirectoryEntry_Node struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*DirectoryEntry_Node_File
-	//	*DirectoryEntry_Node_Symlink
-	//	*DirectoryEntry_Node_Directory
-	Kind          isDirectoryEntry_Node_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Name string                     `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Kind isDirectoryEntry_Node_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DirectoryEntry_Node) Reset() {
@@ -902,28 +1559,16 @@ func (x *DirectoryEntry_Node) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DirectoryEntry_Node.ProtoReflect.Descriptor instead.
-func (*DirectoryEntry_Node) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{3, 2}
-}
-
 func (x *DirectoryEntry_Node) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
-func (x *DirectoryEntry_Node) GetKind() isDirectoryEntry_Node_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *DirectoryEntry_Node) GetFile() *FileProperties {
 	if x != nil {
-		if x, ok := x.Kind.(*DirectoryEntry_Node_File); ok {
+		if x, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_File); ok {
 			return x.File
 		}
 	}
@@ -932,7 +1577,7 @@ func (x *DirectoryEntry_Node) GetFile() *FileProperties {
 
 func (x *DirectoryEntry_Node) GetSymlink() *SymlinkProperties {
 	if x != nil {
-		if x, ok := x.Kind.(*DirectoryEntry_Node_Symlink); ok {
+		if x, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Symlink); ok {
 			return x.Symlink
 		}
 	}
@@ -941,41 +1586,181 @@ func (x *DirectoryEntry_Node) GetSymlink() *SymlinkProperties {
 
 func (x *DirectoryEntry_Node) GetDirectory() *DirectoryProperties {
 	if x != nil {
-		if x, ok := x.Kind.(*DirectoryEntry_Node_Directory); ok {
+		if x, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Directory); ok {
 			return x.Directory
 		}
 	}
 	return nil
 }
 
+func (x *DirectoryEntry_Node) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *DirectoryEntry_Node) SetFile(v *FileProperties) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &directoryEntry_Node_File{v}
+}
+
+func (x *DirectoryEntry_Node) SetSymlink(v *SymlinkProperties) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &directoryEntry_Node_Symlink{v}
+}
+
+func (x *DirectoryEntry_Node) SetDirectory(v *DirectoryProperties) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &directoryEntry_Node_Directory{v}
+}
+
+func (x *DirectoryEntry_Node) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *DirectoryEntry_Node) HasFile() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_File)
+	return ok
+}
+
+func (x *DirectoryEntry_Node) HasSymlink() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Symlink)
+	return ok
+}
+
+func (x *DirectoryEntry_Node) HasDirectory() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Directory)
+	return ok
+}
+
+func (x *DirectoryEntry_Node) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *DirectoryEntry_Node) ClearFile() {
+	if _, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_File); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *DirectoryEntry_Node) ClearSymlink() {
+	if _, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Symlink); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *DirectoryEntry_Node) ClearDirectory() {
+	if _, ok := x.xxx_hidden_Kind.(*directoryEntry_Node_Directory); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const DirectoryEntry_Node_Kind_not_set_case case_DirectoryEntry_Node_Kind = 0
+const DirectoryEntry_Node_File_case case_DirectoryEntry_Node_Kind = 2
+const DirectoryEntry_Node_Symlink_case case_DirectoryEntry_Node_Kind = 3
+const DirectoryEntry_Node_Directory_case case_DirectoryEntry_Node_Kind = 4
+
+func (x *DirectoryEntry_Node) WhichKind() case_DirectoryEntry_Node_Kind {
+	if x == nil {
+		return DirectoryEntry_Node_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *directoryEntry_Node_File:
+		return DirectoryEntry_Node_File_case
+	case *directoryEntry_Node_Symlink:
+		return DirectoryEntry_Node_Symlink_case
+	case *directoryEntry_Node_Directory:
+		return DirectoryEntry_Node_Directory_case
+	default:
+		return DirectoryEntry_Node_Kind_not_set_case
+	}
+}
+
+type DirectoryEntry_Node_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name string
+	// Fields of oneof xxx_hidden_Kind:
+	File      *FileProperties
+	Symlink   *SymlinkProperties
+	Directory *DirectoryProperties
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 DirectoryEntry_Node_builder) Build() *DirectoryEntry_Node {
+	m0 := &DirectoryEntry_Node{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	if b.File != nil {
+		x.xxx_hidden_Kind = &directoryEntry_Node_File{b.File}
+	}
+	if b.Symlink != nil {
+		x.xxx_hidden_Kind = &directoryEntry_Node_Symlink{b.Symlink}
+	}
+	if b.Directory != nil {
+		x.xxx_hidden_Kind = &directoryEntry_Node_Directory{b.Directory}
+	}
+	return m0
+}
+
+type case_DirectoryEntry_Node_Kind protoreflect.FieldNumber
+
+func (x case_DirectoryEntry_Node_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isDirectoryEntry_Node_Kind interface {
 	isDirectoryEntry_Node_Kind()
 }
 
-type DirectoryEntry_Node_File struct {
-	File *FileProperties `protobuf:"bytes,2,opt,name=file,proto3,oneof"`
+type directoryEntry_Node_File struct {
+	File *FileProperties `protobuf:"bytes,2,opt,name=file,oneof"`
 }
 
-type DirectoryEntry_Node_Symlink struct {
-	Symlink *SymlinkProperties `protobuf:"bytes,3,opt,name=symlink,proto3,oneof"`
+type directoryEntry_Node_Symlink struct {
+	Symlink *SymlinkProperties `protobuf:"bytes,3,opt,name=symlink,oneof"`
 }
 
-type DirectoryEntry_Node_Directory struct {
-	Directory *DirectoryProperties `protobuf:"bytes,4,opt,name=directory,proto3,oneof"`
+type directoryEntry_Node_Directory struct {
+	Directory *DirectoryProperties `protobuf:"bytes,4,opt,name=directory,oneof"`
 }
 
-func (*DirectoryEntry_Node_File) isDirectoryEntry_Node_Kind() {}
+func (*directoryEntry_Node_File) isDirectoryEntry_Node_Kind() {}
 
-func (*DirectoryEntry_Node_Symlink) isDirectoryEntry_Node_Kind() {}
+func (*directoryEntry_Node_Symlink) isDirectoryEntry_Node_Kind() {}
 
-func (*DirectoryEntry_Node_Directory) isDirectoryEntry_Node_Kind() {}
+func (*directoryEntry_Node_Directory) isDirectoryEntry_Node_Kind() {}
 
 type FileContents_List struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	Sparse        bool                     `protobuf:"varint,2,opt,name=sparse,proto3" json:"sparse,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_Sparse    bool                     `protobuf:"varint,2,opt,name=sparse"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *FileContents_List) Reset() {
@@ -1003,23 +1788,53 @@ func (x *FileContents_List) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FileContents_List.ProtoReflect.Descriptor instead.
-func (*FileContents_List) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP(), []int{5, 0}
-}
-
 func (x *FileContents_List) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *FileContents_List) GetSparse() bool {
 	if x != nil {
-		return x.Sparse
+		return x.xxx_hidden_Sparse
 	}
 	return false
+}
+
+func (x *FileContents_List) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *FileContents_List) SetSparse(v bool) {
+	x.xxx_hidden_Sparse = v
+}
+
+func (x *FileContents_List) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *FileContents_List) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type FileContents_List_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+	Sparse    bool
+}
+
+func (b0 FileContents_List_builder) Build() *FileContents_List {
+	m0 := &FileContents_List{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_Sparse = b.Sparse
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto protoreflect.FileDescriptor
@@ -1086,19 +1901,7 @@ const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "
 	"\x06access\x18\x01 \x01(\v2..bonanza.model.filesystem.FileAccessParametersR\x06access\x12M\n" +
 	"\x10chunk_parameters\x18\x02 \x01(\v2\".bonanza.model.chunking.ParametersR\x0fchunkParameters\x121\n" +
 	"\x15chunk_gear_table_seed\x18\x03 \x01(\fR\x12chunkGearTableSeed\x12e\n" +
-	"\x1dfile_contents_list_parameters\x18\x04 \x01(\v2\".bonanza.model.chunking.ParametersR\x1afileContentsListParametersB*Z(bonanza.build/pkg/proto/model/filesystemb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDescData
-}
+	"\x1dfile_contents_list_parameters\x18\x04 \x01(\v2\".bonanza.model.chunking.ParametersR\x1afileContentsListParametersB/Z(bonanza.build/pkg/proto/model/filesystem\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes = []any{
@@ -1162,23 +1965,23 @@ func file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[3].OneofWrappers = []any{
-		(*DirectoryEntry_Parent_)(nil),
-		(*DirectoryEntry_Node_)(nil),
-		(*DirectoryEntry_DirectoryContents_)(nil),
+		(*directoryEntry_Parent_)(nil),
+		(*directoryEntry_Node_)(nil),
+		(*directoryEntry_DirectoryContents_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[5].OneofWrappers = []any{
-		(*FileContents_List_)(nil),
-		(*FileContents_ChunkReference)(nil),
-		(*FileContents_Hole)(nil),
+		(*fileContents_List_)(nil),
+		(*fileContents_ChunkReference)(nil),
+		(*fileContents_Hole)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[6].OneofWrappers = []any{
-		(*MaybeInlineFileContents_ContentsInline)(nil),
-		(*MaybeInlineFileContents_ContentsExternal)(nil),
+		(*maybeInlineFileContents_ContentsInline)(nil),
+		(*maybeInlineFileContents_ContentsExternal)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_msgTypes[13].OneofWrappers = []any{
-		(*DirectoryEntry_Node_File)(nil),
-		(*DirectoryEntry_Node_Symlink)(nil),
-		(*DirectoryEntry_Node_Directory)(nil),
+		(*directoryEntry_Node_File)(nil),
+		(*directoryEntry_Node_Symlink)(nil),
+		(*directoryEntry_Node_Directory)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -99,18 +99,18 @@ func (cw *DirectoryComponentWalker[TReference]) OnDirectory(name path.Component)
 	if err != nil {
 		return nil, err
 	}
-	switch kind := node.Message.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch node.Message.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		return path.GotDirectory{
 			Child:        cw,
 			IsReversible: true,
 		}, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_File:
+	case model_filesystem_pb.DirectoryEntry_Node_File_case:
 		return nil, status.Error(codes.InvalidArgument, "Path resolves to a regular file, while a directory was expected")
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 		return path.GotSymlink{
 			Parent: path.NewRelativeScopeWalker(cw),
-			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
+			Target: path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget()),
 		}, nil
 	default:
 		return nil, status.Error(codes.InvalidArgument, "Path resolves to a node of an unknown type")
@@ -124,19 +124,19 @@ func (cw *DirectoryComponentWalker[TReference]) OnTerminal(name path.Component) 
 	if err != nil {
 		return nil, err
 	}
-	switch kind := node.Message.Kind.(type) {
-	case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+	switch node.Message.WhichKind() {
+	case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 		return nil, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_File:
-		if kind.File == nil {
+	case model_filesystem_pb.DirectoryEntry_Node_File_case:
+		if node.Message.GetFile() == nil {
 			return nil, status.Error(codes.InvalidArgument, "Path resolves to file that does not have any properties")
 		}
-		cw.fileProperties = model_core.Nested(node, kind.File)
+		cw.fileProperties = model_core.Nested(node, node.Message.GetFile())
 		return nil, nil
-	case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
+	case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
 		return &path.GotSymlink{
 			Parent: path.NewRelativeScopeWalker(cw),
-			Target: path.UNIXFormat.NewParser(kind.Symlink.Target),
+			Target: path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget()),
 		}, nil
 	default:
 		return nil, status.Error(codes.InvalidArgument, "Path resolves to a node of an unknown type")

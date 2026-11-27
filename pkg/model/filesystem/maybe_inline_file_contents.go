@@ -11,6 +11,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // CreateMaybeInlineFileContents creates a MaybeInlineFileContents
@@ -33,11 +34,9 @@ func CreateMaybeInlineFileContents[T model_core.ReferenceMetadata](
 		return model_core.NewSimplePatchedMessage[T](&model_filesystem_pb.MaybeInlineFileContents{}), nil
 	}
 	if len(data) <= maximumInlineSizeBytes {
-		return model_core.NewSimplePatchedMessage[T](&model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
-				ContentsInline: data,
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[T](model_filesystem_pb.MaybeInlineFileContents_builder{
+			ContentsInline: proto.ValueOrDefaultBytes(data),
+		}.Build()), nil
 	}
 
 	fileContents, err := CreateFileMerkleTree(ctx, parameters, cdc.NewBytesPeeker(data), capturer)
@@ -45,11 +44,9 @@ func CreateMaybeInlineFileContents[T model_core.ReferenceMetadata](
 		return model_core.PatchedMessage[*model_filesystem_pb.MaybeInlineFileContents, T]{}, err
 	}
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[T]) (*model_filesystem_pb.MaybeInlineFileContents, error) {
-		return &model_filesystem_pb.MaybeInlineFileContents{
-			Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsExternal{
-				ContentsExternal: fileContents.Merge(patcher),
-			},
-		}, nil
+		return model_filesystem_pb.MaybeInlineFileContents_builder{
+			ContentsExternal: proto.ValueOrDefault(fileContents.Merge(patcher)),
+		}.Build(), nil
 	})
 }
 
@@ -57,37 +54,38 @@ func CreateMaybeInlineFileContents[T model_core.ReferenceMetadata](
 // that is stored in a MaybeInlineFileContents message, without reading
 // any objects.
 func GetMaybeInlineFileContentsSizeBytes(m *model_filesystem_pb.MaybeInlineFileContents) uint64 {
-	switch level := m.GetLevel().(type) {
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		return uint64(len(level.ContentsInline))
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
-		return level.ContentsExternal.GetTotalSizeBytes()
+	switch m.WhichLevel() {
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		return uint64(len(m.GetContentsInline()))
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
+		return m.GetContentsExternal().GetTotalSizeBytes()
 	default:
 		return 0
 	}
 }
 
 func getExternalFileContentsEntry[TReference object.BasicReference](m model_core.Message[*model_filesystem_pb.MaybeInlineFileContents, TReference]) (FileContentsEntry[TReference], error) {
-	external, ok := m.Message.GetLevel().(*model_filesystem_pb.MaybeInlineFileContents_ContentsExternal)
-	if !ok {
+	external := m.Message.GetContentsExternal()
+	if external == nil {
 		panic("data is not stored externally")
 	}
-	if external.ContentsExternal == nil {
+	if external == nil {
 		return FileContentsEntry[TReference]{}, status.Error(codes.InvalidArgument, "External file contents not set")
 	}
-	return NewFileContentsEntryFromProto(model_core.Nested(m, external.ContentsExternal))
+	return NewFileContentsEntryFromProto(model_core.Nested(m, external))
 }
 
 // MaybeInlineFileContentsReadAll returns all data that is stored in a
 // MaybeInlineFileContents message.
 func (fr *FileReader[TReference]) MaybeInlineFileContentsReadAll(ctx context.Context, m model_core.Message[*model_filesystem_pb.MaybeInlineFileContents, TReference], maximumSizeBytes uint64) ([]byte, error) {
-	switch level := m.Message.GetLevel().(type) {
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		if sizeBytes := uint64(len(level.ContentsInline)); sizeBytes > maximumSizeBytes {
+	switch m.Message.WhichLevel() {
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		contentsInline := m.Message.GetContentsInline()
+		if sizeBytes := uint64(len(contentsInline)); sizeBytes > maximumSizeBytes {
 			return nil, status.Errorf(codes.InvalidArgument, "Data is %d bytes in size, which exceeds the permitted maximum of %d bytes", sizeBytes, maximumSizeBytes)
 		}
-		return level.ContentsInline, nil
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
+		return contentsInline, nil
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
 		fileContents, err := getExternalFileContentsEntry(m)
 		if err != nil {
 			return nil, err
@@ -105,17 +103,18 @@ func (fr *FileReader[TReference]) MaybeInlineFileContentsReadAt(ctx context.Cont
 	if len(p) == 0 {
 		return 0, nil
 	}
-	switch level := m.Message.GetLevel().(type) {
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		if offsetBytes > uint64(len(level.ContentsInline)) {
+	switch m.Message.WhichLevel() {
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		contentsInline := m.Message.GetContentsInline()
+		if offsetBytes > uint64(len(contentsInline)) {
 			return 0, status.Error(codes.InvalidArgument, "Offset exceeds size of data")
 		}
-		n := copy(p, level.ContentsInline[offsetBytes:])
+		n := copy(p, contentsInline[offsetBytes:])
 		if n != len(p) {
 			return n, status.Error(codes.InvalidArgument, "Read exceeds size of data")
 		}
 		return n, nil
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
 		fileContents, err := getExternalFileContentsEntry(m)
 		if err != nil {
 			return 0, err

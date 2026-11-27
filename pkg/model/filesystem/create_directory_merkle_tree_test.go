@@ -17,46 +17,36 @@ import (
 
 // symlinkEntry creates a DirectoryEntry for a symbolic link.
 func symlinkEntry(name, target string) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-					Symlink: &model_filesystem_pb.SymlinkProperties{
-						Target: target,
-					},
-				},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name: name,
+			Symlink: model_filesystem_pb.SymlinkProperties_builder{
+				Target: target,
+			}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // directoryNodeEntry creates a DirectoryEntry for a subdirectory node.
 func directoryNodeEntry(name string, directoriesCount uint32) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
-					Directory: &model_filesystem_pb.DirectoryProperties{
-						DirectoriesCount: directoriesCount,
-					},
-				},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name: name,
+			Directory: model_filesystem_pb.DirectoryProperties_builder{
+				DirectoriesCount: directoriesCount,
+			}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // directoryContentsEntry creates a DirectoryEntry containing the
 // contents of a subdirectory.
 func directoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
-			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{
-				Entries: entries,
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		DirectoryContents: model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{
+			Entries: entries,
+		}.Build(),
+	}.Build()
 }
 
 func TestNewCreatedDirectoryBare(t *testing.T) {
@@ -123,8 +113,8 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 		// relative to the directory itself.
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
-				[]*model_filesystem_pb.DirectoryEntry{{
-					Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+				[]*model_filesystem_pb.DirectoryEntry{model_filesystem_pb.DirectoryEntry_builder{
+					Parent: model_filesystem_pb.DirectoryEntry_Parent_builder{
 						Reference: model_core_pb.DecodableReference_builder{
 							Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 						}.Build(),
@@ -132,8 +122,8 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 						DirectoryNodesCount:            1,
 						DirectoryContentsCount:         1,
 						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
-					}},
-				}},
+					}.Build(),
+				}.Build()},
 			),
 		)
 		require.NoError(t, err)
@@ -151,16 +141,16 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 		cd, err := model_filesystem.NewCreatedDirectoryBare(
 			model_core.NewSimplePatchedMessage[dag.ObjectContentsWalker](
 				[]*model_filesystem_pb.DirectoryEntry{
-					directoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
-						Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: &model_filesystem_pb.DirectoryEntry_Parent{
+					directoryContentsEntry(model_filesystem_pb.DirectoryEntry_builder{
+						Parent: model_filesystem_pb.DirectoryEntry_Parent_builder{
 							Reference: model_core_pb.DecodableReference_builder{
 								Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
 							}.Build(),
 							FirstName:                      "a",
 							LeafNodesCount:                 100,
 							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
-						}},
-					}),
+						}.Build(),
+					}.Build()),
 					directoryNodeEntry("hello", 0),
 				},
 			),

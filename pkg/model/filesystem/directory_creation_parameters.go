@@ -30,12 +30,12 @@ func NewDirectoryCreationParametersFromProto(m *model_filesystem_pb.DirectoryCre
 		return nil, status.Error(codes.InvalidArgument, "No directory creation parameters provided")
 	}
 
-	accessParameters, err := NewDirectoryAccessParametersFromProto(m.Access, referenceFormat, binaryEncoderFactory)
+	accessParameters, err := NewDirectoryAccessParametersFromProto(m.GetAccess(), referenceFormat, binaryEncoderFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	directoriesParameters, err := chunking.NewParametersFromProto(m.DirectoriesParameters, referenceFormat)
+	directoriesParameters, err := chunking.NewParametersFromProto(m.GetDirectoriesParameters(), referenceFormat)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid directories parameters")
 	}

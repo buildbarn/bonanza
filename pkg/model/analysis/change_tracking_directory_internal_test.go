@@ -15,6 +15,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type testChangeTrackingDirectory = changeTrackingDirectory[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
@@ -48,16 +50,14 @@ func newTestMessage[TMessage any](builder func(*model_core.ReferenceMessagePatch
 // newTestFileProperties creates the properties of a file containing
 // the provided data. Empty files have no contents.
 func newTestFileProperties(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], data string, isExecutable bool) *model_filesystem_pb.FileProperties {
-	properties := &model_filesystem_pb.FileProperties{
+	properties := model_filesystem_pb.FileProperties_builder{
 		IsExecutable: isExecutable,
-	}
+	}.Build()
 	if data != "" {
-		properties.Contents = &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{
-				ChunkReference: newTestChunkReference(patcher, data),
-			},
+		properties.SetContents(model_filesystem_pb.FileContents_builder{
+			ChunkReference: proto.ValueOrDefault(newTestChunkReference(patcher, data)),
 			TotalSizeBytes: uint64(len(data)),
-		}
+		}.Build())
 	}
 	return properties
 }
@@ -231,28 +231,22 @@ func TestChangeTrackingDirectoryMergeDirectory(t *testing.T) {
 // testDirectoryNodeEntry creates a DirectoryEntry for a subdirectory
 // node.
 func testDirectoryNodeEntry(name string, directoriesCount uint32) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
-					Directory: &model_filesystem_pb.DirectoryProperties{
-						DirectoriesCount: directoriesCount,
-					},
-				},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name: name,
+			Directory: model_filesystem_pb.DirectoryProperties_builder{
+				DirectoriesCount: directoriesCount,
+			}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // testDirectoryContentsEntry creates a DirectoryEntry containing the
 // contents of a subdirectory.
 func testDirectoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
-			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{Entries: entries},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		DirectoryContents: model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{Entries: entries}.Build(),
+	}.Build()
 }
 
 func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
@@ -266,16 +260,12 @@ func TestChangeTrackingDirectoryMergeContents(t *testing.T) {
 		return newTestMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_filesystem_pb.DirectoryEntry {
 			return []*model_filesystem_pb.DirectoryEntry{
 				testDirectoryContentsEntry(
-					testDirectoryContentsEntry(&model_filesystem_pb.DirectoryEntry{
-						Level: &model_filesystem_pb.DirectoryEntry_Node_{
-							Node: &model_filesystem_pb.DirectoryEntry_Node{
-								Name: "a",
-								Kind: &model_filesystem_pb.DirectoryEntry_Node_File{
-									File: newTestFileProperties(patcher, data, isExecutable),
-								},
-							},
-						},
-					}),
+					testDirectoryContentsEntry(model_filesystem_pb.DirectoryEntry_builder{
+						Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+							Name: "a",
+							File: proto.ValueOrDefault(newTestFileProperties(patcher, data, isExecutable)),
+						}.Build(),
+					}.Build()),
 					testDirectoryNodeEntry("sub", 0),
 				),
 				testDirectoryNodeEntry("dir", 1),

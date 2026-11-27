@@ -29,7 +29,7 @@ func NewDirectoryAccessParametersFromProto(m *model_filesystem_pb.DirectoryAcces
 	}
 
 	maximumObjectSizeBytes := uint32(referenceFormat.GetMaximumObjectSizeBytes())
-	encoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.Encoders, maximumObjectSizeBytes)
+	encoder, err := binaryEncoderFactory.NewDeterministicBinaryEncoderFromProto(m.GetEncoders(), maximumObjectSizeBytes)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid encoder")
 	}

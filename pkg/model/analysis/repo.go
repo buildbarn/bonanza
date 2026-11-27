@@ -147,19 +147,19 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) setContents(contents mo
 		options.directoryEntriesReader,
 		contents,
 		func(name path.Component, node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference], directoryIndex int) error {
-			switch kind := node.Message.Kind.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			switch node.Message.WhichKind() {
+			case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 				d.setDirectorySimple(name, &changeTrackingDirectory[TReference, TMetadata]{
 					unmodifiedDirectory: newUnmodifiedDirectoryFromChild(contents, directoryIndex),
 				})
-			case *model_filesystem_pb.DirectoryEntry_Node_File:
-				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, kind.File))
+			case model_filesystem_pb.DirectoryEntry_Node_File_case:
+				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, node.Message.GetFile()))
 				if err != nil {
 					return fmt.Errorf("file %#v: %w", name.String(), err)
 				}
 				d.files[name] = f
-			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-				d.symlinks[name] = path.UNIXFormat.NewParser(kind.Symlink.Target)
+			case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+				d.symlinks[name] = path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget())
 			default:
 				return fmt.Errorf("node %#v has an unknown type", name.String())
 			}
@@ -181,9 +181,9 @@ func forEachDirectoryNode[TReference any](
 	var errIter error
 	directoryIndex := 0
 	for node := range model_filesystem.DirectoryAllNodes(ctx, directoryEntriesReader, contents, &errIter) {
-		name, ok := path.NewComponent(node.Message.Name)
+		name, ok := path.NewComponent(node.Message.GetName())
 		if !ok {
-			return fmt.Errorf("node %#v has an invalid name", node.Message.Name)
+			return fmt.Errorf("node %#v has an invalid name", node.Message.GetName())
 		}
 		currentDirectoryIndex := -1
 		if node.Message.GetDirectory() != nil {
@@ -231,8 +231,8 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContentsAtPath(dPa
 		contents,
 		func(name path.Component, node model_core.Message[*model_filesystem_pb.DirectoryEntry_Node, TReference], directoryIndex int) error {
 			childPath := dPath.Append(name)
-			switch kind := node.Message.Kind.(type) {
-			case *model_filesystem_pb.DirectoryEntry_Node_Directory:
+			switch node.Message.WhichKind() {
+			case model_filesystem_pb.DirectoryEntry_Node_Directory_case:
 				newDirectory := newUnmodifiedDirectoryFromChild(contents, directoryIndex)
 				if _, ok := d.files[name]; ok {
 					return fmt.Errorf("directory %#v conflicts with an existing file", childPath.GetUNIXString())
@@ -247,14 +247,14 @@ func (d *changeTrackingDirectory[TReference, TMetadata]) mergeContentsAtPath(dPa
 					unmodifiedDirectory: newDirectory,
 				})
 				return nil
-			case *model_filesystem_pb.DirectoryEntry_Node_File:
-				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, kind.File))
+			case model_filesystem_pb.DirectoryEntry_Node_File_case:
+				f, err := newChangeTrackingFileFromFileProperties[TReference, TMetadata](model_core.Nested(node, node.Message.GetFile()))
 				if err != nil {
 					return fmt.Errorf("file %#v: %w", childPath.GetUNIXString(), err)
 				}
 				return d.mergeFile(dPath, name, f)
-			case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-				return d.mergeSymlink(dPath, name, path.UNIXFormat.NewParser(kind.Symlink.Target))
+			case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+				return d.mergeSymlink(dPath, name, path.UNIXFormat.NewParser(node.Message.GetSymlink().GetTarget()))
 			default:
 				return fmt.Errorf("node %#v has an unknown type", childPath.GetUNIXString())
 			}
@@ -475,9 +475,9 @@ func newChangeTrackingFileFromFileProperties[TReference object.BasicReference, T
 		return nil, errors.New("file has no properties")
 	}
 	return &changeTrackingFile[TReference, TMetadata]{
-		isExecutable: m.Message.IsExecutable,
+		isExecutable: m.Message.GetIsExecutable(),
 		contents: unmodifiedFileContents[TReference, TMetadata]{
-			contents: model_core.Nested(m, m.Message.Contents),
+			contents: model_core.Nested(m, m.Message.GetContents()),
 		},
 	}, nil
 }
@@ -979,14 +979,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	}
 
 	sourceJSONURL, err := url.JoinPath(
-		moduleDefinition.RegistryUrl,
+		moduleDefinition.GetRegistryUrl(),
 		"modules",
 		moduleName,
-		moduleDefinition.Version,
+		moduleDefinition.GetVersion(),
 		"source.json",
 	)
 	if err != nil {
-		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
+		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for module %s with version %s in registry %#v: %w", moduleName, moduleDefinition.GetVersion(), moduleDefinition.GetRegistryUrl(), err)
 	}
 
 	sourceJSONContentsValue := e.GetHTTPFileContentsValue(
@@ -1001,11 +1001,12 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	if !sourceJSONContentsValue.IsSet() {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if sourceJSONContentsValue.Message.Exists == nil {
+	sourceJSONContentsValueExists := sourceJSONContentsValue.Message.GetExists()
+	if sourceJSONContentsValueExists == nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", sourceJSONURL)
 	}
 	sourceJSONContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(sourceJSONContentsValue, sourceJSONContentsValue.Message.Exists.Contents),
+		model_core.Nested(sourceJSONContentsValue, sourceJSONContentsValueExists.GetContents()),
 	)
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
@@ -1053,15 +1054,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	overlayFiles := make([]overlayFile[TReference], 0, len(sourceJSON.Overlay)+1)
 	for _, overlayEntry := range sourceJSON.Overlay {
 		overlayURL, err := url.JoinPath(
-			moduleDefinition.RegistryUrl,
+			moduleDefinition.GetRegistryUrl(),
 			"modules",
 			moduleName,
-			moduleDefinition.Version,
+			moduleDefinition.GetVersion(),
 			"overlay",
 			overlayEntry.key,
 		)
 		if err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for overlay file %s of module %s with version %s in registry %#v: %w", overlayEntry.key, moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for overlay file %s of module %s with version %s in registry %#v: %w", overlayEntry.key, moduleName, moduleDefinition.GetVersion(), moduleDefinition.GetRegistryUrl(), err)
 		}
 
 		integrity, err := parseSubresourceIntegrity(overlayEntry.value)
@@ -1081,13 +1082,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			missingDependencies = true
 			continue
 		}
-		if overlayContentsValue.Message.Exists == nil {
+		overlayContentsValueExists := overlayContentsValue.Message.GetExists()
+		if overlayContentsValueExists == nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("overlay file at URL %#v does not exist", overlayURL)
 		}
 
 		overlayFiles = append(overlayFiles, overlayFile[TReference]{
 			filename: overlayEntry.key,
-			contents: model_core.Nested(overlayContentsValue, overlayContentsValue.Message.Exists.Contents),
+			contents: model_core.Nested(overlayContentsValue, overlayContentsValueExists.GetContents()),
 		})
 	}
 
@@ -1105,15 +1107,15 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	patchesToApply := make([]patchToApply[TReference], 0, len(sourceJSON.Patches)+len(singleVersionOverridePatchLabels))
 	for _, patchEntry := range sourceJSON.Patches {
 		patchURL, err := url.JoinPath(
-			moduleDefinition.RegistryUrl,
+			moduleDefinition.GetRegistryUrl(),
 			"modules",
 			moduleName,
-			moduleDefinition.Version,
+			moduleDefinition.GetVersion(),
 			"patches",
 			patchEntry.key,
 		)
 		if err != nil {
-			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, moduleName, moduleDefinition.Version, moduleDefinition.RegistryUrl, err)
+			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("failed to construct URL for patch %s of module %s with version %s in registry %#v: %w", patchEntry.key, moduleName, moduleDefinition.GetVersion(), moduleDefinition.GetRegistryUrl(), err)
 		}
 
 		integrity, err := parseSubresourceIntegrity(patchEntry.value)
@@ -1133,12 +1135,13 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			missingDependencies = true
 			continue
 		}
-		if patchContentsValue.Message.Exists == nil {
+		patchContentsValueExists := patchContentsValue.Message.GetExists()
+		if patchContentsValueExists == nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch at URL %#v does not exist", patchEntry.key)
 		}
 
 		patchContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-			model_core.Nested(patchContentsValue, patchContentsValue.Message.Exists.Contents),
+			model_core.Nested(patchContentsValue, patchContentsValueExists.GetContents()),
 		)
 		if err != nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents for patch %#v: %w", patchEntry.key, err)
@@ -1166,12 +1169,13 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 			missingDependencies = true
 			continue
 		}
-		if patchPropertiesValue.Message.Exists == nil {
+		patchPropertiesValueExists := patchPropertiesValue.Message.GetExists()
+		if patchPropertiesValueExists == nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("patch %#v does not exist", patchLabelStr)
 		}
 
 		patchContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-			model_core.Nested(patchPropertiesValue, patchPropertiesValue.Message.Exists.Contents),
+			model_core.Nested(patchPropertiesValue, patchPropertiesValueExists.GetContents()),
 		)
 		if err != nil {
 			return PatchedRepoValue[TMetadata]{}, fmt.Errorf("invalid file contents for patch %#v: %s", patchLabelStr, err)
@@ -1187,7 +1191,8 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	if missingDependencies {
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if archiveContentsValue.Message.Exists == nil {
+	archiveContentsValueExists := archiveContentsValue.Message.GetExists()
+	if archiveContentsValueExists == nil {
 		return PatchedRepoValue[TMetadata]{}, fmt.Errorf("file at URL %#v does not exist", sourceJSON.URL)
 	}
 
@@ -1197,7 +1202,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	// to what was used to perform module resolution.
 	overlayFiles = append(overlayFiles, overlayFile[TReference]{
 		filename: dotbazel.ModuleFilename,
-		contents: model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.Contents),
+		contents: model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.GetContents()),
 	})
 
 	// TODO: Process singleVersionOverridePatchCommands!
@@ -1205,7 +1210,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	return c.applyPatches(
 		ctx,
 		e,
-		model_core.Nested(archiveContentsValue, archiveContentsValue.Message.Exists.Contents),
+		model_core.Nested(archiveContentsValue, archiveContentsValueExists.GetContents()),
 		sourceJSON.StripPrefix,
 		overlayFiles,
 		patchesToApply,
@@ -2679,8 +2684,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 	}
 
 	environment := map[string]string{}
-	for _, environmentVariable := range mrc.repoPlatform.Message.RepositoryOsEnviron {
-		environment[environmentVariable.Name] = environmentVariable.Value
+	for _, environmentVariable := range mrc.repoPlatform.Message.GetRepositoryOsEnviron() {
+		environment[environmentVariable.GetName()] = environmentVariable.GetValue()
 	}
 	referenceFormat := mrc.computer.referenceFormat
 	environmentVariableList, _, err := convertDictToEnvironmentVariableList(
@@ -2700,19 +2705,13 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 			model_format.NewProto[model_command_pb.Command]().NewMarshaler(&model_command_pb.Command{
 				Arguments: []*model_command_pb.ArgumentList_Element{
 					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: "sh",
-						},
+						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "sh"},
 					},
 					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: "-c",
-						},
+						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: "-c"},
 					},
 					{
-						Level: &model_command_pb.ArgumentList_Element_Leaf{
-							Leaf: shellquote.Join("command", "-v", "--", program),
-						},
+						Level: &model_command_pb.ArgumentList_Element_Leaf{Leaf: shellquote.Join("command", "-v", "--", program)},
 					},
 				},
 				EnvironmentVariables:        environmentVariableList.Message,
@@ -2738,9 +2737,9 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 			CommandReference: commandReference,
 			// The input root is empty, meaning it is not
 			// backed by an object.
-			InputRootReference: &model_filesystem_pb.DirectoryReference{
+			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
 				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
-			},
+			}.Build(),
 		}), nil
 	})
 	if err != nil {
@@ -2759,7 +2758,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		}
 		return &model_analysis_pb.ActionResult_Key{
 			ExecuteRequest: &model_analysis_pb.ExecuteRequest{
-				PlatformPkixPublicKey: mrc.repoPlatform.Message.ExecPkixPublicKey,
+				PlatformPkixPublicKey: mrc.repoPlatform.Message.GetExecPkixPublicKey(),
 				ActionReference:       actionReference,
 				ExecutionTimeout:      &durationpb.Duration{Seconds: 60},
 			},
@@ -2773,7 +2772,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 		return nil, evaluation.ErrMissingDependency
 	}
 
-	if actionResult.Message.ExitCode != 0 {
+	if actionResult.Message.GetExitCode() != 0 {
 		// A non-zero exit code indicates that the utility could
 		// not be found.
 		//
@@ -2783,7 +2782,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 
 	// Capture the standard output of "command -v" and trim the
 	// trailing newline character that it adds.
-	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.OutputsReference))
+	outputs, err := model_parser.MaybeDereference(mrc.context, mrc.directoryReaders.CommandOutputs, model_core.Nested(actionResult, actionResult.Message.GetOutputsReference()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain outputs from action result: %w", err)
 	}

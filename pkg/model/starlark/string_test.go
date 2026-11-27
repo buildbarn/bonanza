@@ -36,7 +36,7 @@ func TestStringStorage(t *testing.T) {
 	encoder := model_encoding.NewChainedDeterministicBinaryEncoder(nil)
 	store := &inMemoryObjectStore{objects: map[object.LocalReference]*object.Contents{}}
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
-		&model_filesystem_pb.FileCreationParameters{
+		model_filesystem_pb.FileCreationParameters_builder{
 			Access: &model_filesystem_pb.FileAccessParameters{},
 			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 12,
@@ -46,7 +46,7 @@ func TestStringStorage(t *testing.T) {
 				MinimumSizeBytes: 1 << 10,
 				HorizonSizeBytes: 8 << 10,
 			}.Build(),
-		},
+		}.Build(),
 		referenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
 	)
@@ -182,7 +182,7 @@ func TestStringStorage(t *testing.T) {
 		decoded, message := roundTrip(t, thread, eval.String(data))
 		largeString, ok := decoded.(*eval.LargeString)
 		require.True(t, ok)
-		require.IsType(t, &model_filesystem_pb.FileContents_List_{}, message.Message.GetStr().GetContentsExternal().GetLevel())
+		require.Equal(t, model_filesystem_pb.FileContents_List_case, message.Message.GetStr().GetContentsExternal().WhichLevel())
 
 		// The large string should behave identically to the
 		// original.

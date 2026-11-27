@@ -74,23 +74,23 @@ func encodeLargeString[TReference any, TMetadata model_core.ReferenceMetadata](t
 // This function can be used by code that inspects encoded values
 // directly. If the message does not contain a string, ok is false.
 func GetString[TReference any](ctx context.Context, reader MaybeInlineFileContentsReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference], maximumSizeBytes uint64) (s string, ok bool, err error) {
-	str, ok := value.Message.GetKind().(*model_starlark_pb.Value_Str)
-	if !ok {
+	str := value.Message.GetStr()
+	if str == nil {
 		return "", false, nil
 	}
 	var contents []byte
-	switch level := str.Str.GetLevel().(type) {
-	case nil:
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		if uint64(len(level.ContentsInline)) > maximumSizeBytes {
-			return "", true, fmt.Errorf("string is %d bytes in size, which exceeds the permitted maximum of %d bytes", len(level.ContentsInline), maximumSizeBytes)
+	switch str.WhichLevel() {
+	case 0:
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		contents = str.GetContentsInline()
+		if uint64(len(contents)) > maximumSizeBytes {
+			return "", true, fmt.Errorf("string is %d bytes in size, which exceeds the permitted maximum of %d bytes", len(contents), maximumSizeBytes)
 		}
-		contents = level.ContentsInline
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
 		if reader == nil {
 			return "", true, errors.New("strings that are too large to be stored inline cannot be read from within this context")
 		}
-		contents, err = reader.MaybeInlineFileContentsReadAll(ctx, model_core.Nested(value, str.Str), maximumSizeBytes)
+		contents, err = reader.MaybeInlineFileContentsReadAll(ctx, model_core.Nested(value, str), maximumSizeBytes)
 		if err != nil {
 			return "", true, err
 		}
@@ -108,13 +108,13 @@ func GetString[TReference any](ctx context.Context, reader MaybeInlineFileConten
 // eval.String. Larger strings are returned as eval.LargeString, whose
 // contents are only read when needed.
 func decodeString[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](value model_core.Message[*model_starlark_pb.Value, TReference], contents *model_filesystem_pb.MaybeInlineFileContents) (eval.Value, error) {
-	switch level := contents.GetLevel().(type) {
-	case nil:
+	switch contents.WhichLevel() {
+	case 0:
 		return eval.String(""), nil
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsInline:
-		return eval.String(level.ContentsInline), nil
-	case *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal:
-		sizeBytes := level.ContentsExternal.GetTotalSizeBytes()
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsInline_case:
+		return eval.String(contents.GetContentsInline()), nil
+	case model_filesystem_pb.MaybeInlineFileContents_ContentsExternal_case:
+		sizeBytes := contents.GetContentsExternal().GetTotalSizeBytes()
 		if sizeBytes == 0 || sizeBytes > uint64(int(^uint(0)>>1)) {
 			return nil, errors.New("invalid string size")
 		}
@@ -180,10 +180,10 @@ func NewStoredStringFileContentsUnpackerInto[TReference object.BasicReference, T
 	return storedStringFileContentsUnpackerInto[TReference, TMetadata]{}
 }
 
-func (storedStringFileContentsUnpackerInto[TReference, TMetadata]) getSource(v eval.Value) (*storedStringSource[TReference, TMetadata], *model_filesystem_pb.MaybeInlineFileContents_ContentsExternal, error) {
+func (storedStringFileContentsUnpackerInto[TReference, TMetadata]) getSource(v eval.Value) (*storedStringSource[TReference, TMetadata], *model_filesystem_pb.FileContents, error) {
 	if s, ok := v.(*eval.LargeString); ok {
 		if source, ok := s.Source().(*storedStringSource[TReference, TMetadata]); ok {
-			if external, ok := source.contents.Message.Level.(*model_filesystem_pb.MaybeInlineFileContents_ContentsExternal); ok {
+			if external := source.contents.Message.GetContentsExternal(); external != nil {
 				return source, external, nil
 			}
 		}
@@ -196,7 +196,7 @@ func (ui storedStringFileContentsUnpackerInto[TReference, TMetadata]) UnpackInto
 	if err != nil {
 		return err
 	}
-	*dst = model_core.Nested(source.contents, external.ContentsExternal)
+	*dst = model_core.Nested(source.contents, external)
 	return nil
 }
 
@@ -214,16 +214,16 @@ func (storedStringFileContentsUnpackerInto[TReference, TMetadata]) GetConcatenat
 // getRootReference returns the reference of the object at the root of
 // the Merkle tree containing the contents of the string.
 func (s *storedStringSource[TReference, TMetadata]) getRootReference() (model_core.Decodable[object.LocalReference], bool) {
-	external, ok := s.contents.Message.Level.(*model_filesystem_pb.MaybeInlineFileContents_ContentsExternal)
-	if !ok {
+	external := s.contents.Message.GetContentsExternal()
+	if external == nil {
 		return model_core.Decodable[object.LocalReference]{}, false
 	}
 	var root *model_core_pb.DecodableReference
-	switch level := external.ContentsExternal.GetLevel().(type) {
-	case *model_filesystem_pb.FileContents_ChunkReference:
-		root = level.ChunkReference
-	case *model_filesystem_pb.FileContents_List_:
-		root = level.List.GetReference()
+	switch external.WhichLevel() {
+	case model_filesystem_pb.FileContents_ChunkReference_case:
+		root = external.GetChunkReference()
+	case model_filesystem_pb.FileContents_List_case:
+		root = external.GetList().GetReference()
 	default:
 		return model_core.Decodable[object.LocalReference]{}, false
 	}

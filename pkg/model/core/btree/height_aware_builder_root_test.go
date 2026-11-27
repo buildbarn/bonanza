@@ -45,8 +45,8 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 						totalSizeBytes += childNode.GetTotalSizeBytes()
 					}
 					return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_filesystem_pb.FileContents {
-						return &model_filesystem_pb.FileContents{
-							Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+						return model_filesystem_pb.FileContents_builder{
+							List: model_filesystem_pb.FileContents_List_builder{
 								Reference: patcher.AddDecodableReference(
 									model_core.CopyDecodable(
 										createdObject,
@@ -56,9 +56,9 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 										},
 									),
 								),
-							}},
+							}.Build(),
 							TotalSizeBytes: totalSizeBytes,
-						}
+						}.Build()
 					}), nil
 				},
 			),
@@ -71,10 +71,10 @@ func TestHeightAwareBuilderRootSize(t *testing.T) {
 		defer builder.Discard()
 		for i := range nodesCount {
 			require.NoError(t, builder.PushChild(model_core.NewSimplePatchedMessage[model_core.CreatedObjectTree](
-				&model_filesystem_pb.FileContents{
-					Level:          &model_filesystem_pb.FileContents_Hole{Hole: &emptypb.Empty{}},
+				model_filesystem_pb.FileContents_builder{
+					Hole:           &emptypb.Empty{},
 					TotalSizeBytes: uint64(i*7919%1000 + 1),
-				},
+				}.Build(),
 			)))
 		}
 		root, err := builder.FinalizeList()

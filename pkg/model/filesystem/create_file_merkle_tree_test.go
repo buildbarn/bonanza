@@ -29,7 +29,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 	ctrl, ctx := gomock.WithContext(context.Background(), t)
 
 	fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(
-		&model_filesystem_pb.FileCreationParameters{
+		model_filesystem_pb.FileCreationParameters_builder{
 			Access: &model_filesystem_pb.FileAccessParameters{},
 			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
@@ -39,7 +39,7 @@ func TestCreateFileMerkleTree(t *testing.T) {
 				MinimumSizeBytes: 1 << 12,
 				HorizonSizeBytes: 8 << 12,
 			}.Build(),
-		},
+		}.Build(),
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
 	)
@@ -83,15 +83,15 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		require.NoError(t, err)
 
 		references, metadata := rootFileContents.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_ChunkReference{ChunkReference: model_core_pb.DecodableReference_builder{
+		testutil.RequireEqualProto(t, model_filesystem_pb.FileContents_builder{
+			ChunkReference: model_core_pb.DecodableReference_builder{
 				Reference: model_core_pb.Reference_builder{
 					Index: 1,
 				}.Build(),
-			}.Build()},
+			}.Build(),
 			TotalSizeBytes: 5,
 			Utf8Stat:       1,
-		}, rootFileContents.Message)
+		}.Build(), rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
 			object.MustNewSHA256V1LocalReference("185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969", 5, 0, 0, 0),
 		}, references)
@@ -154,17 +154,17 @@ func TestCreateFileMerkleTree(t *testing.T) {
 		require.NoError(t, err)
 
 		references, _ := rootFileContents.Patcher.SortAndSetReferences()
-		testutil.RequireEqualProto(t, &model_filesystem_pb.FileContents{
-			Level: &model_filesystem_pb.FileContents_List_{List: &model_filesystem_pb.FileContents_List{
+		testutil.RequireEqualProto(t, model_filesystem_pb.FileContents_builder{
+			List: model_filesystem_pb.FileContents_List_builder{
 				Reference: model_core_pb.DecodableReference_builder{
 					Reference: model_core_pb.Reference_builder{
 						Index: 1,
 					}.Build(),
 				}.Build(),
 				Sparse: false,
-			}},
+			}.Build(),
 			TotalSizeBytes: 1 << 30,
-		}, rootFileContents.Message)
+		}.Build(), rootFileContents.Message)
 		require.Equal(t, object.OutgoingReferencesList[object.LocalReference]{
 			object.MustNewSHA256V1LocalReference("fe7615d5abef587dc4fc97a76155c7c7ddee0f2664104f08246e945567b0e0a5", 6726, 2, 118, 8154),
 		}, references)

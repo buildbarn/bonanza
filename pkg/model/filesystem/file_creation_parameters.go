@@ -36,16 +36,16 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		return nil, status.Error(codes.InvalidArgument, "No file creation parameters provided")
 	}
 
-	accessParameters, err := NewFileAccessParametersFromProto(m.Access, referenceFormat, binaryEncoderFactory)
+	accessParameters, err := NewFileAccessParametersFromProto(m.GetAccess(), referenceFormat, binaryEncoderFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	chunkParameters, err := chunking.NewParametersFromProto(m.ChunkParameters, referenceFormat)
+	chunkParameters, err := chunking.NewParametersFromProto(m.GetChunkParameters(), referenceFormat)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid chunk parameters")
 	}
-	fileContentsListParameters, err := chunking.NewParametersFromProto(m.FileContentsListParameters, referenceFormat)
+	fileContentsListParameters, err := chunking.NewParametersFromProto(m.GetFileContentsListParameters(), referenceFormat)
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid file contents list parameters")
 	}
@@ -54,7 +54,7 @@ func NewFileCreationParametersFromProto(m *model_filesystem_pb.FileCreationParam
 		FileAccessParameters: accessParameters,
 		referenceFormat:      referenceFormat,
 		contentDefinedChunker: cdc.NewRepMaxContentDefinedChunker(
-			cdc.NewSeededGearTable(m.ChunkGearTableSeed),
+			cdc.NewSeededGearTable(m.GetChunkGearTableSeed()),
 			chunkParameters.GetMinimumSizeBytes(),
 			chunkParameters.GetHorizonSizeBytes(),
 		),

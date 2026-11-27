@@ -68,9 +68,9 @@ func TestRendererStarlarkValues(t *testing.T) {
 		},
 		{
 			name: "Bytes",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: &model_filesystem_pb.MaybeInlineFileContents{
-				Level: &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{ContentsInline: []byte("\x00ab")},
-			}}},
+			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: model_filesystem_pb.MaybeInlineFileContents_builder{
+				ContentsInline: []byte("\x00ab"),
+			}.Build()}},
 			expected: `b"\000ab"`,
 		},
 		{
@@ -464,63 +464,51 @@ func TestRendererOpaque(t *testing.T) {
 
 // fileEntry creates a DirectoryEntry for a regular file.
 func fileEntry(name string, properties *model_filesystem_pb.FileProperties) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_File{File: properties},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name: name,
+			File: proto.ValueOrDefault(properties),
+		}.Build(),
+	}.Build()
 }
 
 // symlinkEntry creates a DirectoryEntry for a symbolic link.
 func symlinkEntry(name, target string) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-					Symlink: &model_filesystem_pb.SymlinkProperties{Target: target},
-				},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name:    name,
+			Symlink: model_filesystem_pb.SymlinkProperties_builder{Target: target}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // directoryNodeEntry creates a DirectoryEntry for a subdirectory node.
 func directoryNodeEntry(name string) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Node_{
-			Node: &model_filesystem_pb.DirectoryEntry_Node{
-				Name: name,
-				Kind: &model_filesystem_pb.DirectoryEntry_Node_Directory{
-					Directory: &model_filesystem_pb.DirectoryProperties{},
-				},
-			},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Node: model_filesystem_pb.DirectoryEntry_Node_builder{
+			Name:      name,
+			Directory: &model_filesystem_pb.DirectoryProperties{},
+		}.Build(),
+	}.Build()
 }
 
 // directoryContentsEntry creates a DirectoryEntry containing the
 // contents of a subdirectory.
 func directoryContentsEntry(entries ...*model_filesystem_pb.DirectoryEntry) *model_filesystem_pb.DirectoryEntry {
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_DirectoryContents_{
-			DirectoryContents: &model_filesystem_pb.DirectoryEntry_DirectoryContents{Entries: entries},
-		},
-	}
+	return model_filesystem_pb.DirectoryEntry_builder{
+		DirectoryContents: model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{Entries: entries}.Build(),
+	}.Build()
 }
 
 // parentEntry creates a DirectoryEntry referring to entries stored in
 // another object.
 func parentEntry(parent *model_filesystem_pb.DirectoryEntry_Parent) *model_filesystem_pb.DirectoryEntry {
-	parent.Reference = model_core_pb.DecodableReference_builder{
+	parent.SetReference(model_core_pb.DecodableReference_builder{
 		Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
+	}.Build())
+	return model_filesystem_pb.DirectoryEntry_builder{
+		Parent: proto.ValueOrDefault(parent),
 	}.Build()
-	return &model_filesystem_pb.DirectoryEntry{
-		Level: &model_filesystem_pb.DirectoryEntry_Parent_{Parent: parent},
-	}
 }
 
 // directoryEntriesToProtoReflect converts a list of directory entries
@@ -537,17 +525,17 @@ func TestRendererDirectory(t *testing.T) {
 	directory := []*model_filesystem_pb.DirectoryEntry{
 		directoryContentsEntry(symlinkEntry("link", "../file")),
 		fileEntry("empty", &model_filesystem_pb.FileProperties{}),
-		fileEntry("file", &model_filesystem_pb.FileProperties{
+		fileEntry("file", model_filesystem_pb.FileProperties_builder{
 			IsExecutable: true,
-			Contents:     &model_filesystem_pb.FileContents{TotalSizeBytes: 1843200},
-		}),
-		fileEntry("small", &model_filesystem_pb.FileProperties{
-			Contents: &model_filesystem_pb.FileContents{
+			Contents:     model_filesystem_pb.FileContents_builder{TotalSizeBytes: 1843200}.Build(),
+		}.Build()),
+		fileEntry("small", model_filesystem_pb.FileProperties_builder{
+			Contents: model_filesystem_pb.FileContents_builder{
 				TotalSizeBytes: 412,
 				// 1,233 line breaks, ending with a newline.
 				Utf8Stat: 1233<<2 | 1<<1 | 1,
-			},
-		}),
+			}.Build(),
+		}.Build()),
 		directoryNodeEntry("sub"),
 	}
 
@@ -581,11 +569,11 @@ func TestRendererDirectory(t *testing.T) {
 func TestRendererDirectoryEntriesField(t *testing.T) {
 	// Fields of type repeated DirectoryEntry should be rendered as
 	// a directory, as opposed to a JSON list.
-	contents := &model_filesystem_pb.DirectoryEntry_DirectoryContents{
+	contents := model_filesystem_pb.DirectoryEntry_DirectoryContents_builder{
 		Entries: []*model_filesystem_pb.DirectoryEntry{
 			symlinkEntry("link", "target"),
 		},
-	}
+	}.Build()
 
 	r := render.Renderer{Pretty: true}
 	blocks := render.Layout(
@@ -605,9 +593,9 @@ func TestRendererDirectoryExternalChildren(t *testing.T) {
 	// same object.
 	directory := []*model_filesystem_pb.DirectoryEntry{
 		directoryContentsEntry(),
-		parentEntry(&model_filesystem_pb.DirectoryEntry_Parent{
+		parentEntry(model_filesystem_pb.DirectoryEntry_Parent_builder{
 			DirectoryContentsCount: 2,
-		}),
+		}.Build()),
 		directoryNodeEntry("a"),
 		directoryNodeEntry("b"),
 		directoryNodeEntry("c"),
@@ -655,11 +643,11 @@ func TestRendererDirectoryExternalNodes(t *testing.T) {
 	// stored inline. The name of the subdirectory is unknown.
 	directory := []*model_filesystem_pb.DirectoryEntry{
 		directoryContentsEntry(symlinkEntry("link", "target")),
-		parentEntry(&model_filesystem_pb.DirectoryEntry_Parent{
+		parentEntry(model_filesystem_pb.DirectoryEntry_Parent_builder{
 			FirstName:           "a",
 			LeafNodesCount:      3,
 			DirectoryNodesCount: 1,
-		}),
+		}.Build()),
 	}
 	reference := object.MustNewSHA256V1LocalReference("8b1a9953c4611296a827abf8c47804d7e6c49c6b2c4e7e3f5d6a7b8c9d0e1f20", 123, 1, 2, 0)
 
@@ -733,9 +721,7 @@ func TestRendererDirectoryEntryList(t *testing.T) {
 func newStringValue(s string) *model_starlark_pb.Value {
 	contents := &model_filesystem_pb.MaybeInlineFileContents{}
 	if s != "" {
-		contents.Level = &model_filesystem_pb.MaybeInlineFileContents_ContentsInline{
-			ContentsInline: []byte(s),
-		}
+		contents.SetContentsInline([]byte(s))
 	}
 	return &model_starlark_pb.Value{
 		Kind: &model_starlark_pb.Value_Str{Str: contents},

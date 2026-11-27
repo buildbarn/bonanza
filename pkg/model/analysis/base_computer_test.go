@@ -111,13 +111,13 @@ func (bct *baseComputerTester) expectGetDirectoryCreationParametersObject(t *tes
 // DirectoryCreationParameters.
 func (baseComputerTester) newDirectoryCreationParameters() *model_filesystem.DirectoryCreationParameters {
 	return util.Must(model_filesystem.NewDirectoryCreationParametersFromProto(
-		&model_filesystem_pb.DirectoryCreationParameters{
+		model_filesystem_pb.DirectoryCreationParameters_builder{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
 			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 15,
 				HorizonSizeBytes: 1 << 18,
 			}.Build(),
-		},
+		}.Build(),
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
 	))
@@ -137,7 +137,7 @@ func (bct *baseComputerTester) expectGetFileCreationParametersObject(t *testing.
 // FileCreationParameters.
 func (baseComputerTester) newFileCreationParameters() *model_filesystem.FileCreationParameters {
 	return util.Must(model_filesystem.NewFileCreationParametersFromProto(
-		&model_filesystem_pb.FileCreationParameters{
+		model_filesystem_pb.FileCreationParameters_builder{
 			Access: &model_filesystem_pb.FileAccessParameters{},
 			ChunkParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1 << 16,
@@ -147,7 +147,7 @@ func (baseComputerTester) newFileCreationParameters() *model_filesystem.FileCrea
 				MinimumSizeBytes: 1 << 16,
 				HorizonSizeBytes: 8 << 16,
 			}.Build(),
-		},
+		}.Build(),
 		util.Must(object.NewReferenceFormat(object_pb.ReferenceFormat_SHA256_V1)),
 		model_encoding.NewBinaryEncoderFactory(true),
 	))

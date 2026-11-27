@@ -53,13 +53,13 @@ func TestPackagesAtAndBelow(t *testing.T) {
 			testutil.EqProto(t, &model_analysis_pb.Repo_Key{CanonicalRepo: "main+"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Repo_Value {
 			return &model_analysis_pb.Repo_Value{
-				RootDirectoryReference: &model_filesystem_pb.DirectoryReference{
+				RootDirectoryReference: model_filesystem_pb.DirectoryReference_builder{
 					Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 						return testDirectoryMarshaler(plainDirectory(
 							directoryNode("foo", packageDirectory(fooChildren...)),
 						))
 					})),
-				},
+				}.Build(),
 			}
 		}))
 

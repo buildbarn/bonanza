@@ -54,13 +54,13 @@ type mergedDirectoryTester struct {
 
 func newMergedDirectoryTester(t *testing.T) *mergedDirectoryTester {
 	parameters, err := model_filesystem.NewDirectoryCreationParametersFromProto(
-		&model_filesystem_pb.DirectoryCreationParameters{
+		model_filesystem_pb.DirectoryCreationParameters_builder{
 			Access: &model_filesystem_pb.DirectoryAccessParameters{},
 			DirectoriesParameters: model_chunking_pb.Parameters_builder{
 				MinimumSizeBytes: 1024,
 				HorizonSizeBytes: 8 * 1024,
 			}.Build(),
-		},
+		}.Build(),
 		object.SHA256V1ReferenceFormat,
 		model_encoding.NewBinaryEncoderFactory(true),
 	)
@@ -111,15 +111,11 @@ func (mt *mergedDirectoryTester) create(tree testTree) model_filesystem.CreatedD
 			})
 			childIndex++
 		case string:
-			node := &model_filesystem_pb.DirectoryEntry_Node{Name: name}
+			node := model_filesystem_pb.DirectoryEntry_Node_builder{Name: name}.Build()
 			if target, ok := strings.CutPrefix(value, "-> "); ok {
-				node.Kind = &model_filesystem_pb.DirectoryEntry_Node_Symlink{
-					Symlink: &model_filesystem_pb.SymlinkProperties{Target: target},
-				}
+				node.SetSymlink(model_filesystem_pb.SymlinkProperties_builder{Target: target}.Build())
 			} else {
-				node.Kind = &model_filesystem_pb.DirectoryEntry_Node_File{
-					File: &model_filesystem_pb.FileProperties{IsExecutable: value == "executable"},
-				}
+				node.SetFile(model_filesystem_pb.FileProperties_builder{IsExecutable: value == "executable"}.Build())
 			}
 			nodes = append(nodes, model_filesystem.DirectoryNode[model_core.CreatedObjectTree]{
 				Name: name,
@@ -160,23 +156,23 @@ func (mt *mergedDirectoryTester) flattenContents(contents model_core.Message[[]*
 	tree := testTree{}
 	var errIter error
 	for node := range model_filesystem.DirectoryAllNodes(mt.ctx, mt.reader, contents, &errIter) {
-		switch kind := node.Message.Kind.(type) {
-		case *model_filesystem_pb.DirectoryEntry_Node_File:
-			if kind.File.IsExecutable {
-				tree[node.Message.Name] = "executable"
+		switch node.Message.WhichKind() {
+		case model_filesystem_pb.DirectoryEntry_Node_File_case:
+			if node.Message.GetFile().GetIsExecutable() {
+				tree[node.Message.GetName()] = "executable"
 			} else {
-				tree[node.Message.Name] = "file"
+				tree[node.Message.GetName()] = "file"
 			}
-		case *model_filesystem_pb.DirectoryEntry_Node_Symlink:
-			tree[node.Message.Name] = "-> " + kind.Symlink.Target
+		case model_filesystem_pb.DirectoryEntry_Node_Symlink_case:
+			tree[node.Message.GetName()] = "-> " + node.Message.GetSymlink().GetTarget()
 		}
 	}
 	require.NoError(mt.t, errIter)
 	for node, child := range model_filesystem.DirectoryAllChildren(mt.ctx, mt.reader, contents, &errIter) {
 		directoriesCount, err := model_filesystem.GetDirectoryDirectoriesCount(child.Message)
 		require.NoError(mt.t, err)
-		require.Equal(mt.t, node.Message.GetDirectory().DirectoriesCount, directoriesCount, "Directories count of %#v", node.Message.Name)
-		tree[node.Message.Name] = mt.flattenContents(child)
+		require.Equal(mt.t, node.Message.GetDirectory().GetDirectoriesCount(), directoriesCount, "Directories count of %#v", node.Message.GetName())
+		tree[node.Message.GetName()] = mt.flattenContents(child)
 	}
 	require.NoError(mt.t, errIter)
 	return tree
@@ -315,8 +311,8 @@ func TestMergedDirectory(t *testing.T) {
 		external := d.GetOrCreateDirectory(bb_path.MustNewComponent("external"))
 		repo := external.GetOrCreateDirectory(bb_path.MustNewComponent("repo+"))
 		require.NoError(t, repo.MergeDirectoryReference(mt.reference(treeA)))
-		repo.AddFile(bb_path.MustNewComponent("top.txt"), model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_filesystem_pb.FileProperties{IsExecutable: true}))
-		repo.AddFile(bb_path.MustNewComponent("extra.txt"), model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_filesystem_pb.FileProperties{IsExecutable: true}))
+		repo.AddFile(bb_path.MustNewComponent("top.txt"), model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_filesystem_pb.FileProperties_builder{IsExecutable: true}.Build()))
+		repo.AddFile(bb_path.MustNewComponent("extra.txt"), model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_filesystem_pb.FileProperties_builder{IsExecutable: true}.Build()))
 		require.NoError(t, repo.AddSymlink(bb_path.MustNewComponent("extra_link"), bb_path.UNIXFormat.NewParser("a//b/./c")))
 		d.MergeDirectoryContents(mt.contents(testTree{
 			"external": testTree{"other+": testTree{"o": "file"}},
