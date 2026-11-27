@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.evaluation.cache;
 
@@ -8,6 +8,7 @@ import "bonanza.build/pkg/proto/model/evaluation/evaluation.proto";
 import "bonanza.build/pkg/proto/model/tag/tag.proto";
 import "google/protobuf/timestamp.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/evaluation/cache";
 
 message ActionTagKeyData {

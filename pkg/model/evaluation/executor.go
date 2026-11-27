@@ -284,7 +284,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 
 		actionTagKeyData, _ := model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.ActionTagKeyData {
-				return &model_evaluation_cache_pb.ActionTagKeyData{
+				return model_evaluation_cache_pb.ActionTagKeyData_builder{
 					CommonTagKeyData: model_tag_pb.CommonKeyData_builder{
 						SignaturePublicKey: cacheTagSignaturePKIXPublicKey,
 						ReferenceFormat:    referenceFormat.ToProto(),
@@ -292,7 +292,7 @@ func (e *executor) execute(ctx context.Context, action *model_executewithstorage
 					}.Build(),
 					KeyReferencesWithOverridesHash: keyReferencesWithOverridesHasher.Sum(nil),
 					ChunkingParameters:             actionMessage.Message.GetChunkingParameters(),
-				}
+				}.Build()
 			},
 		).SortAndSetReferences()
 		actionTagKeyReference, err := model_core.ComputeTopLevelMessageReference(

@@ -496,7 +496,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetKeyStateKeyMessage(ctx co
 
 func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecordReference(keyReference object.LocalReference, value model_core.TopLevelMessage[[]byte, TReference]) object.LocalReference {
 	dependenciesHashRecord, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.DependenciesHashRecord {
-		return &model_evaluation_cache_pb.DependenciesHashRecord{
+		return model_evaluation_cache_pb.DependenciesHashRecord_builder{
 			KeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
 				LocalReference: keyReference,
 			}),
@@ -504,7 +504,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) computeDependenciesHashRecor
 				model_core.NewDiscardingObjectCapturer[TReference](),
 				model_core.WrapTopLevelOpaque(value).Decay(),
 			).Merge(patcher),
-		}
+		}.Build()
 	}).SortAndSetReferences()
 	return util.Must(model_core.ComputeTopLevelMessageReference(dependenciesHashRecord, rc.referenceFormat))
 }
@@ -794,7 +794,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetEvaluations(ctx context.C
 
 func (rc *RecursiveComputer[TReference, TMetadata]) getCacheLookupTagKeyHash(ks *KeyState[TReference, TMetadata], subsequentLookup *model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup) (model_tag.DecodableKeyHash, error) {
 	tagKeyData, _ := model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.NoopReferenceMetadata]) *model_evaluation_cache_pb.LookupTagKeyData {
-		result := &model_evaluation_cache_pb.LookupTagKeyData{
+		result := model_evaluation_cache_pb.LookupTagKeyData_builder{
 			ActionTagKeyReference: patcher.AddReference(model_core.MetadataEntry[model_core.NoopReferenceMetadata]{
 				LocalReference: rc.actionTagKeyReference,
 			}),
@@ -802,7 +802,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) getCacheLookupTagKeyHash(ks 
 				LocalReference: ks.keyReference,
 			}),
 			SubsequentLookup: subsequentLookup,
-		}
+		}.Build()
 		return result
 	}).SortAndSetReferences()
 	return model_tag.NewDecodableKeyHashFromMessage(tagKeyData, rc.lookupResultReader.GetDecodingParametersSizeBytes())
@@ -1854,19 +1854,19 @@ func (initialValueState[TReference, TMetadata]) evaluate(ctx context.Context, rc
 		return (&computingValueState[TReference, TMetadata]{}).evaluate(ctx, rc, ks)
 	}
 
-	switch r := rootLookupResult.Message.Result.(type) {
-	case *model_evaluation_cache_pb.LookupResult_Initial_:
+	switch rootLookupResult.Message.WhichResult() {
+	case model_evaluation_cache_pb.LookupResult_Initial_case:
 		// Start off by attempting to obtain a cache hit on the
 		// graphlet. Retain the expected direct dependencies of
 		// the key, so that we can fall back to obtaining a
 		// cache hit on the value.
-		dependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(rootLookupResult, r.Initial.GraphletVariableDependencyKeys))
+		dependencies, ok, err := rc.resolveCachedKeys(ctx, model_core.Nested(rootLookupResult, rootLookupResult.Message.GetInitial().GetGraphletVariableDependencyKeys()))
 		if err != nil {
 			return &earlyFailedValueState[TReference, TMetadata]{
 				err: err,
 			}, nil
 		}
-		valueVariableDependencyKeys := model_core.Nested(rootLookupResult, r.Initial.ValueVariableDependencyKeys)
+		valueVariableDependencyKeys := model_core.Nested(rootLookupResult, rootLookupResult.Message.GetInitial().GetValueVariableDependencyKeys())
 		if !ok {
 			// Malformed list of graphlet dependencies.
 			// Attempt a lookup of the value instead.
@@ -1880,7 +1880,7 @@ func (initialValueState[TReference, TMetadata]) evaluate(ctx context.Context, rc
 			dependencies:                dependencies,
 			valueVariableDependencyKeys: valueVariableDependencyKeys,
 		}).evaluate(ctx, rc, ks)
-	case *model_evaluation_cache_pb.LookupResult_HitValue:
+	case model_evaluation_cache_pb.LookupResult_HitValue_case:
 		// It turns out the current key does not have any
 		// dependencies. This means that the initial lookup
 		// returned a value immediately.
@@ -1971,10 +1971,10 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			}, unevaluatedDependencies
 		}
 
-		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_builder{
 			Scope:            vs.scope,
 			DependenciesHash: dependenciesHash[:],
-		})
+		}.Build())
 		if err != nil {
 			return &earlyFailedValueState[TReference, TMetadata]{
 				err: err,
@@ -1990,8 +1990,8 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			return vs.fallBackToValueLookup(ctx, rc, ks)
 		}
 
-		switch lookupResult.Message.GetResult().(type) {
-		case *model_evaluation_cache_pb.LookupResult_HitGraphlet:
+		switch lookupResult.Message.WhichResult() {
+		case model_evaluation_cache_pb.LookupResult_HitGraphlet_case:
 			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_GRAPHLET {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -2012,7 +2012,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 				hitGraphletLookupResultReference: lookupResultReference,
 				hoistedVariableDependencies:      dependencies,
 			}, nil
-		case *model_evaluation_cache_pb.LookupResult_HitValue:
+		case model_evaluation_cache_pb.LookupResult_HitValue_case:
 			if vs.scope != model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_VALUE {
 				return vs.fallBackToValueLookup(ctx, rc, ks)
 			}
@@ -2029,7 +2029,7 @@ func (vs *lookingUpValueState[TReference, TMetadata]) evaluate(ctx context.Conte
 			newValueState := rc.newVariableDependenciesComputedValueState(ks, dependencies, value)
 			newValueState.valueIsCached = true
 			return newValueState, nil
-		case *model_evaluation_cache_pb.LookupResult_MissingDependencies_:
+		case model_evaluation_cache_pb.LookupResult_MissingDependencies_case:
 			// The dependencies gathered up to this point
 			// are insufficient to obtain a hit. Extend the
 			// set of dependencies and perform another lookup.
@@ -2178,14 +2178,12 @@ func (vs *noDependenciesComputedValueState[TReference, TMetadata]) upload(ctx co
 		rootTagKeyHash,
 		model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-				return &model_evaluation_cache_pb.LookupResult{
-					Result: &model_evaluation_cache_pb.LookupResult_HitValue{
-						HitValue: model_core.Patch(
-							rc.objectManager,
-							model_core.WrapTopLevelOpaque(vs.value).Decay(),
-						).Merge(patcher),
-					},
-				}
+				return model_evaluation_cache_pb.LookupResult_builder{
+					HitValue: proto.ValueOrDefault(model_core.Patch(
+						rc.objectManager,
+						model_core.WrapTopLevelOpaque(vs.value).Decay(),
+					).Merge(patcher)),
+				}.Build()
 			},
 		),
 	)
@@ -2233,12 +2231,12 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) upload
 	buildHitGraphlet := func() (model_core.PatchedMessage[*model_evaluation_cache_pb.LookupResult, TMetadata], error) {
 		return model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-				return &model_evaluation_cache_pb.LookupResult{
-					Result: &model_evaluation_cache_pb.LookupResult_HitGraphlet{HitGraphlet: model_core.Patch(
+				return model_evaluation_cache_pb.LookupResult_builder{
+					HitGraphlet: proto.ValueOrDefault(model_core.Patch(
 						rc.objectManager,
 						vs.graphlet,
-					).Merge(patcher)},
-				}
+					).Merge(patcher)),
+				}.Build()
 			},
 		), nil
 	}
@@ -2258,12 +2256,12 @@ func (vs *variableDependenciesMarshaledValueState[TReference, TMetadata]) upload
 			}
 			return model_core.MustBuildPatchedMessage(
 				func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-					return &model_evaluation_cache_pb.LookupResult{
-						Result: &model_evaluation_cache_pb.LookupResult_HitValue{HitValue: model_core.Patch(
+					return model_evaluation_cache_pb.LookupResult_builder{
+						HitValue: proto.ValueOrDefault(model_core.Patch(
 							rc.objectManager,
 							model_core.Nested(evaluation, evaluation.Message.GetValue()),
-						).Merge(patcher)},
-					}
+						).Merge(patcher)),
+					}.Build()
 				},
 			), nil
 		}
@@ -2335,13 +2333,13 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadVariableDependenciesLo
 	var containsIndirectionSince *timestamppb.Timestamp
 	rootNeedsUpdate := true
 	if found {
-		if initial, ok := rootLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_Initial_); ok {
-			since := initial.Initial.ContainsIndirectionSince
+		if initial := rootLookupResult.Message.GetInitial(); initial != nil {
+			since := initial.GetContainsIndirectionSince()
 			if since == nil || (since.IsValid() && rc.clock.Now().Sub(since.AsTime()) < rc.cacheLookupResultIndirectionMaximumAge) {
 				var graphletChanged, valueChanged bool
 				graphletInitialDependencies, graphletChanged, err = rc.intersectCachedKeys(
 					ctx,
-					model_core.Nested(rootLookupResult, initial.Initial.GraphletVariableDependencyKeys),
+					model_core.Nested(rootLookupResult, initial.GetGraphletVariableDependencyKeys()),
 					graphletVariableDependencies,
 				)
 				if err != nil {
@@ -2349,7 +2347,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadVariableDependenciesLo
 				}
 				valueInitialDependencies, valueChanged, err = rc.intersectCachedKeys(
 					ctx,
-					model_core.Nested(rootLookupResult, initial.Initial.ValueVariableDependencyKeys),
+					model_core.Nested(rootLookupResult, initial.GetValueVariableDependencyKeys()),
 					valueVariableDependencies,
 				)
 				if err != nil {
@@ -2487,10 +2485,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadLookupResultChain(
 		rc.lock.RLock()
 		dependenciesHash := computeDependenciesHash(sortedGatheredDependencies)
 		rc.lock.RUnlock()
-		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, &model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup{
+		tagKeyHash, err := rc.getCacheLookupTagKeyHash(ks, model_evaluation_cache_pb.LookupTagKeyData_SubsequentLookup_builder{
 			Scope:            scope,
 			DependenciesHash: dependenciesHash[:],
-		})
+		}.Build())
 		if err != nil {
 			return badReference, false, err
 		}
@@ -2527,10 +2525,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) uploadLookupResultChain(
 			return badReference, false, err
 		}
 		if found {
-			if missingDependencies, ok := existingLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_MissingDependencies_); ok {
+			if missingDependencies := existingLookupResult.Message.GetMissingDependencies(); missingDependencies != nil {
 				existingKeyReferences, ok, err := rc.getCachedKeyReferences(
 					ctx,
-					model_core.Nested(existingLookupResult, missingDependencies.MissingDependencies.AdditionalVariableDependencyKeys),
+					model_core.Nested(existingLookupResult, missingDependencies.GetAdditionalVariableDependencyKeys()),
 				)
 				if err != nil {
 					return badReference, false, err
@@ -2609,7 +2607,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
 		rc,
 		graphletVariableDependencies,
 		func(initial *model_evaluation_cache_pb.LookupResult_Initial, keys []*model_evaluation_pb.Keys) {
-			initial.GraphletVariableDependencyKeys = keys
+			initial.SetGraphletVariableDependencyKeys(keys)
 		},
 	)
 	if err != nil {
@@ -2622,7 +2620,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
 		rc,
 		valueVariableDependencies,
 		func(initial *model_evaluation_cache_pb.LookupResult_Initial, keys []*model_evaluation_pb.Keys) {
-			initial.ValueVariableDependencyKeys = keys
+			initial.SetValueVariableDependencyKeys(keys)
 		},
 	)
 	if err != nil {
@@ -2637,18 +2635,16 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeInitialLookupResult(
 	if err != nil {
 		return err
 	}
-	lookupResultInitial.Message.ContainsIndirectionSince = containsIndirectionSince
+	lookupResultInitial.Message.SetContainsIndirectionSince(containsIndirectionSince)
 
 	_, err = rc.storeLookupResult(
 		ctx,
 		tagKeyHash,
 		model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-				return &model_evaluation_cache_pb.LookupResult{
-					Result: &model_evaluation_cache_pb.LookupResult_Initial_{
-						Initial: lookupResultInitial.Merge(patcher),
-					},
-				}
+				return model_evaluation_cache_pb.LookupResult_builder{
+					Initial: proto.ValueOrDefault(lookupResultInitial.Merge(patcher)),
+				}.Build()
 			},
 		),
 	)
@@ -2668,7 +2664,7 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeMissingDependenciesLook
 		rc,
 		additionalVariableDependencies,
 		func(missingDependencies *model_evaluation_cache_pb.LookupResult_MissingDependencies, keys []*model_evaluation_pb.Keys) {
-			missingDependencies.AdditionalVariableDependencyKeys = keys
+			missingDependencies.SetAdditionalVariableDependencyKeys(keys)
 		},
 	)
 	if err != nil {
@@ -2687,11 +2683,9 @@ func (rc *RecursiveComputer[TReference, TMetadata]) storeMissingDependenciesLook
 		tagKeyHash,
 		model_core.MustBuildPatchedMessage(
 			func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_evaluation_cache_pb.LookupResult {
-				return &model_evaluation_cache_pb.LookupResult{
-					Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{
-						MissingDependencies: lookupResultMissingDependencies.Merge(patcher),
-					},
-				}
+				return model_evaluation_cache_pb.LookupResult_builder{
+					MissingDependencies: proto.ValueOrDefault(lookupResultMissingDependencies.Merge(patcher)),
+				}.Build()
 			},
 		),
 	)
@@ -2732,7 +2726,7 @@ func (vs *noDependenciesUploadedValueState[TReference, TMetadata]) getValue(ctx 
 	return model_core.FlattenOpaque(
 		model_core.Nested(
 			rootLookupResult,
-			rootLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitValue).HitValue,
+			rootLookupResult.Message.GetHitValue(),
 		),
 	)
 }
@@ -2791,7 +2785,7 @@ func (vs *variableDependenciesUploadedValueState[TReference, TMetadata]) getGrap
 	}
 	return vs, model_core.Nested(
 		hitGraphletLookupResult,
-		hitGraphletLookupResult.Message.Result.(*model_evaluation_cache_pb.LookupResult_HitGraphlet).HitGraphlet,
+		hitGraphletLookupResult.Message.GetHitGraphlet(),
 	), nil
 }
 

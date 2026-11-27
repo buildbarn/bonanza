@@ -885,9 +885,9 @@ func TestRecursiveComputer(t *testing.T) {
 				),
 			),
 		).Return(model_core.NewSimpleMessage[object.LocalReference](
-			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_MissingDependencies_{MissingDependencies: &model_evaluation_cache_pb.LookupResult_MissingDependencies{}},
-			},
+			model_evaluation_cache_pb.LookupResult_builder{
+				MissingDependencies: &model_evaluation_cache_pb.LookupResult_MissingDependencies{},
+			}.Build(),
 		), nil)
 		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, key model_core.Message[proto.Message, object.LocalReference], e model_evaluation.Environment[object.LocalReference, model_core.ReferenceMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, model_core.ReferenceMetadata], error) {
@@ -979,14 +979,14 @@ func TestRecursiveComputer(t *testing.T) {
 				),
 			),
 		).Return(model_core.NewSimpleMessage[object.LocalReference](
-			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_HitValue{HitValue: model_core_pb.Opaque_builder{
+			model_evaluation_cache_pb.LookupResult_builder{
+				HitValue: model_core_pb.Opaque_builder{
 					Value: util.Must(proto.Marshal(&wrapperspb.UInt64Value{
 						Value: 26,
 					})),
 					References: &model_core_pb.ReferenceSet{},
-				}.Build()},
-			},
+				}.Build(),
+			}.Build(),
 		), nil)
 
 		require.NoError(
@@ -1066,12 +1066,12 @@ func TestRecursiveComputer(t *testing.T) {
 			},
 		).Return(object.MustNewSHA256V1LocalReference("cd897b5bbc720746ba0740100714e8f98f36e3c3cda42b3d3e8c0c26884c0780", 43984, 0, 0, 0), nil)
 		lookupResultReader.EXPECT().ReadObject(gomock.Any(), gomock.Any()).Return(model_core.NewSimpleMessage[object.LocalReference](
-			&model_evaluation_cache_pb.LookupResult{
-				Result: &model_evaluation_cache_pb.LookupResult_Initial_{Initial: &model_evaluation_cache_pb.LookupResult_Initial{
+			model_evaluation_cache_pb.LookupResult_builder{
+				Initial: model_evaluation_cache_pb.LookupResult_Initial_builder{
 					GraphletVariableDependencyKeys: []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
 					ValueVariableDependencyKeys:    []*model_evaluation_pb.Keys{newKeysLeaf(high), newKeysLeaf(low)},
-				}},
-			},
+				}.Build(),
+			}.Build(),
 		), nil)
 
 		computer.EXPECT().ComputeValue(gomock.Any(), gomock.Any(), gomock.Any()).

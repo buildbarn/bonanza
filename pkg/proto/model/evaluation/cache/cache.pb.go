@@ -15,7 +15,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -70,18 +69,13 @@ func (x LookupTagKeyData_SubsequentLookup_Scope) Number() protoreflect.EnumNumbe
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use LookupTagKeyData_SubsequentLookup_Scope.Descriptor instead.
-func (LookupTagKeyData_SubsequentLookup_Scope) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0, 0}
-}
-
 type ActionTagKeyData struct {
-	state                          protoimpl.MessageState `protogen:"open.v1"`
-	CommonTagKeyData               *tag.CommonKeyData     `protobuf:"bytes,1,opt,name=common_tag_key_data,json=commonTagKeyData,proto3" json:"common_tag_key_data,omitempty"`
-	KeyReferencesWithOverridesHash []byte                 `protobuf:"bytes,2,opt,name=key_references_with_overrides_hash,json=keyReferencesWithOverridesHash,proto3" json:"key_references_with_overrides_hash,omitempty"`
-	ChunkingParameters             *chunking.Parameters   `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters,proto3" json:"chunking_parameters,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CommonTagKeyData               *tag.CommonKeyData     `protobuf:"bytes,1,opt,name=common_tag_key_data,json=commonTagKeyData"`
+	xxx_hidden_KeyReferencesWithOverridesHash []byte                 `protobuf:"bytes,2,opt,name=key_references_with_overrides_hash,json=keyReferencesWithOverridesHash"`
+	xxx_hidden_ChunkingParameters             *chunking.Parameters   `protobuf:"bytes,3,opt,name=chunking_parameters,json=chunkingParameters"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *ActionTagKeyData) Reset() {
@@ -109,38 +103,88 @@ func (x *ActionTagKeyData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ActionTagKeyData.ProtoReflect.Descriptor instead.
-func (*ActionTagKeyData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ActionTagKeyData) GetCommonTagKeyData() *tag.CommonKeyData {
 	if x != nil {
-		return x.CommonTagKeyData
+		return x.xxx_hidden_CommonTagKeyData
 	}
 	return nil
 }
 
 func (x *ActionTagKeyData) GetKeyReferencesWithOverridesHash() []byte {
 	if x != nil {
-		return x.KeyReferencesWithOverridesHash
+		return x.xxx_hidden_KeyReferencesWithOverridesHash
 	}
 	return nil
 }
 
 func (x *ActionTagKeyData) GetChunkingParameters() *chunking.Parameters {
 	if x != nil {
-		return x.ChunkingParameters
+		return x.xxx_hidden_ChunkingParameters
 	}
 	return nil
 }
 
+func (x *ActionTagKeyData) SetCommonTagKeyData(v *tag.CommonKeyData) {
+	x.xxx_hidden_CommonTagKeyData = v
+}
+
+func (x *ActionTagKeyData) SetKeyReferencesWithOverridesHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_KeyReferencesWithOverridesHash = v
+}
+
+func (x *ActionTagKeyData) SetChunkingParameters(v *chunking.Parameters) {
+	x.xxx_hidden_ChunkingParameters = v
+}
+
+func (x *ActionTagKeyData) HasCommonTagKeyData() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CommonTagKeyData != nil
+}
+
+func (x *ActionTagKeyData) HasChunkingParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ChunkingParameters != nil
+}
+
+func (x *ActionTagKeyData) ClearCommonTagKeyData() {
+	x.xxx_hidden_CommonTagKeyData = nil
+}
+
+func (x *ActionTagKeyData) ClearChunkingParameters() {
+	x.xxx_hidden_ChunkingParameters = nil
+}
+
+type ActionTagKeyData_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	CommonTagKeyData               *tag.CommonKeyData
+	KeyReferencesWithOverridesHash []byte
+	ChunkingParameters             *chunking.Parameters
+}
+
+func (b0 ActionTagKeyData_builder) Build() *ActionTagKeyData {
+	m0 := &ActionTagKeyData{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_CommonTagKeyData = b.CommonTagKeyData
+	x.xxx_hidden_KeyReferencesWithOverridesHash = b.KeyReferencesWithOverridesHash
+	x.xxx_hidden_ChunkingParameters = b.ChunkingParameters
+	return m0
+}
+
 type DependenciesHashRecord struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	KeyReference  *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference,proto3" json:"key_reference,omitempty"`
-	Value         *core.Opaque           `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_KeyReference *core.Reference        `protobuf:"bytes,1,opt,name=key_reference,json=keyReference"`
+	xxx_hidden_Value        *core.Opaque           `protobuf:"bytes,2,opt,name=value"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *DependenciesHashRecord) Reset() {
@@ -168,32 +212,73 @@ func (x *DependenciesHashRecord) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DependenciesHashRecord.ProtoReflect.Descriptor instead.
-func (*DependenciesHashRecord) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *DependenciesHashRecord) GetKeyReference() *core.Reference {
 	if x != nil {
-		return x.KeyReference
+		return x.xxx_hidden_KeyReference
 	}
 	return nil
 }
 
 func (x *DependenciesHashRecord) GetValue() *core.Opaque {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
+func (x *DependenciesHashRecord) SetKeyReference(v *core.Reference) {
+	x.xxx_hidden_KeyReference = v
+}
+
+func (x *DependenciesHashRecord) SetValue(v *core.Opaque) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *DependenciesHashRecord) HasKeyReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_KeyReference != nil
+}
+
+func (x *DependenciesHashRecord) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *DependenciesHashRecord) ClearKeyReference() {
+	x.xxx_hidden_KeyReference = nil
+}
+
+func (x *DependenciesHashRecord) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type DependenciesHashRecord_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	KeyReference *core.Reference
+	Value        *core.Opaque
+}
+
+func (b0 DependenciesHashRecord_builder) Build() *DependenciesHashRecord {
+	m0 := &DependenciesHashRecord{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_KeyReference = b.KeyReference
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type LookupTagKeyData struct {
-	state                  protoimpl.MessageState             `protogen:"open.v1"`
-	ActionTagKeyReference  *core.Reference                    `protobuf:"bytes,1,opt,name=action_tag_key_reference,json=actionTagKeyReference,proto3" json:"action_tag_key_reference,omitempty"`
-	EvaluationKeyReference *core.Reference                    `protobuf:"bytes,2,opt,name=evaluation_key_reference,json=evaluationKeyReference,proto3" json:"evaluation_key_reference,omitempty"`
-	SubsequentLookup       *LookupTagKeyData_SubsequentLookup `protobuf:"bytes,3,opt,name=subsequent_lookup,json=subsequentLookup,proto3" json:"subsequent_lookup,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState             `protogen:"opaque.v1"`
+	xxx_hidden_ActionTagKeyReference  *core.Reference                    `protobuf:"bytes,1,opt,name=action_tag_key_reference,json=actionTagKeyReference"`
+	xxx_hidden_EvaluationKeyReference *core.Reference                    `protobuf:"bytes,2,opt,name=evaluation_key_reference,json=evaluationKeyReference"`
+	xxx_hidden_SubsequentLookup       *LookupTagKeyData_SubsequentLookup `protobuf:"bytes,3,opt,name=subsequent_lookup,json=subsequentLookup"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *LookupTagKeyData) Reset() {
@@ -221,43 +306,95 @@ func (x *LookupTagKeyData) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupTagKeyData.ProtoReflect.Descriptor instead.
-func (*LookupTagKeyData) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *LookupTagKeyData) GetActionTagKeyReference() *core.Reference {
 	if x != nil {
-		return x.ActionTagKeyReference
+		return x.xxx_hidden_ActionTagKeyReference
 	}
 	return nil
 }
 
 func (x *LookupTagKeyData) GetEvaluationKeyReference() *core.Reference {
 	if x != nil {
-		return x.EvaluationKeyReference
+		return x.xxx_hidden_EvaluationKeyReference
 	}
 	return nil
 }
 
 func (x *LookupTagKeyData) GetSubsequentLookup() *LookupTagKeyData_SubsequentLookup {
 	if x != nil {
-		return x.SubsequentLookup
+		return x.xxx_hidden_SubsequentLookup
 	}
 	return nil
 }
 
+func (x *LookupTagKeyData) SetActionTagKeyReference(v *core.Reference) {
+	x.xxx_hidden_ActionTagKeyReference = v
+}
+
+func (x *LookupTagKeyData) SetEvaluationKeyReference(v *core.Reference) {
+	x.xxx_hidden_EvaluationKeyReference = v
+}
+
+func (x *LookupTagKeyData) SetSubsequentLookup(v *LookupTagKeyData_SubsequentLookup) {
+	x.xxx_hidden_SubsequentLookup = v
+}
+
+func (x *LookupTagKeyData) HasActionTagKeyReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ActionTagKeyReference != nil
+}
+
+func (x *LookupTagKeyData) HasEvaluationKeyReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_EvaluationKeyReference != nil
+}
+
+func (x *LookupTagKeyData) HasSubsequentLookup() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SubsequentLookup != nil
+}
+
+func (x *LookupTagKeyData) ClearActionTagKeyReference() {
+	x.xxx_hidden_ActionTagKeyReference = nil
+}
+
+func (x *LookupTagKeyData) ClearEvaluationKeyReference() {
+	x.xxx_hidden_EvaluationKeyReference = nil
+}
+
+func (x *LookupTagKeyData) ClearSubsequentLookup() {
+	x.xxx_hidden_SubsequentLookup = nil
+}
+
+type LookupTagKeyData_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ActionTagKeyReference  *core.Reference
+	EvaluationKeyReference *core.Reference
+	SubsequentLookup       *LookupTagKeyData_SubsequentLookup
+}
+
+func (b0 LookupTagKeyData_builder) Build() *LookupTagKeyData {
+	m0 := &LookupTagKeyData{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ActionTagKeyReference = b.ActionTagKeyReference
+	x.xxx_hidden_EvaluationKeyReference = b.EvaluationKeyReference
+	x.xxx_hidden_SubsequentLookup = b.SubsequentLookup
+	return m0
+}
+
 type LookupResult struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Result:
-	//
-	//	*LookupResult_Initial_
-	//	*LookupResult_MissingDependencies_
-	//	*LookupResult_HitGraphlet
-	//	*LookupResult_HitValue
-	Result        isLookupResult_Result `protobuf_oneof:"result"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Result isLookupResult_Result  `protobuf_oneof:"result"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LookupResult) Reset() {
@@ -285,21 +422,9 @@ func (x *LookupResult) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupResult.ProtoReflect.Descriptor instead.
-func (*LookupResult) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *LookupResult) GetResult() isLookupResult_Result {
-	if x != nil {
-		return x.Result
-	}
-	return nil
-}
-
 func (x *LookupResult) GetInitial() *LookupResult_Initial {
 	if x != nil {
-		if x, ok := x.Result.(*LookupResult_Initial_); ok {
+		if x, ok := x.xxx_hidden_Result.(*lookupResult_Initial_); ok {
 			return x.Initial
 		}
 	}
@@ -308,7 +433,7 @@ func (x *LookupResult) GetInitial() *LookupResult_Initial {
 
 func (x *LookupResult) GetMissingDependencies() *LookupResult_MissingDependencies {
 	if x != nil {
-		if x, ok := x.Result.(*LookupResult_MissingDependencies_); ok {
+		if x, ok := x.xxx_hidden_Result.(*lookupResult_MissingDependencies_); ok {
 			return x.MissingDependencies
 		}
 	}
@@ -317,7 +442,7 @@ func (x *LookupResult) GetMissingDependencies() *LookupResult_MissingDependencie
 
 func (x *LookupResult) GetHitGraphlet() *evaluation.Graphlet {
 	if x != nil {
-		if x, ok := x.Result.(*LookupResult_HitGraphlet); ok {
+		if x, ok := x.xxx_hidden_Result.(*lookupResult_HitGraphlet); ok {
 			return x.HitGraphlet
 		}
 	}
@@ -326,47 +451,210 @@ func (x *LookupResult) GetHitGraphlet() *evaluation.Graphlet {
 
 func (x *LookupResult) GetHitValue() *core.Opaque {
 	if x != nil {
-		if x, ok := x.Result.(*LookupResult_HitValue); ok {
+		if x, ok := x.xxx_hidden_Result.(*lookupResult_HitValue); ok {
 			return x.HitValue
 		}
 	}
 	return nil
 }
 
+func (x *LookupResult) SetInitial(v *LookupResult_Initial) {
+	if v == nil {
+		x.xxx_hidden_Result = nil
+		return
+	}
+	x.xxx_hidden_Result = &lookupResult_Initial_{v}
+}
+
+func (x *LookupResult) SetMissingDependencies(v *LookupResult_MissingDependencies) {
+	if v == nil {
+		x.xxx_hidden_Result = nil
+		return
+	}
+	x.xxx_hidden_Result = &lookupResult_MissingDependencies_{v}
+}
+
+func (x *LookupResult) SetHitGraphlet(v *evaluation.Graphlet) {
+	if v == nil {
+		x.xxx_hidden_Result = nil
+		return
+	}
+	x.xxx_hidden_Result = &lookupResult_HitGraphlet{v}
+}
+
+func (x *LookupResult) SetHitValue(v *core.Opaque) {
+	if v == nil {
+		x.xxx_hidden_Result = nil
+		return
+	}
+	x.xxx_hidden_Result = &lookupResult_HitValue{v}
+}
+
+func (x *LookupResult) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Result != nil
+}
+
+func (x *LookupResult) HasInitial() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Result.(*lookupResult_Initial_)
+	return ok
+}
+
+func (x *LookupResult) HasMissingDependencies() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Result.(*lookupResult_MissingDependencies_)
+	return ok
+}
+
+func (x *LookupResult) HasHitGraphlet() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Result.(*lookupResult_HitGraphlet)
+	return ok
+}
+
+func (x *LookupResult) HasHitValue() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Result.(*lookupResult_HitValue)
+	return ok
+}
+
+func (x *LookupResult) ClearResult() {
+	x.xxx_hidden_Result = nil
+}
+
+func (x *LookupResult) ClearInitial() {
+	if _, ok := x.xxx_hidden_Result.(*lookupResult_Initial_); ok {
+		x.xxx_hidden_Result = nil
+	}
+}
+
+func (x *LookupResult) ClearMissingDependencies() {
+	if _, ok := x.xxx_hidden_Result.(*lookupResult_MissingDependencies_); ok {
+		x.xxx_hidden_Result = nil
+	}
+}
+
+func (x *LookupResult) ClearHitGraphlet() {
+	if _, ok := x.xxx_hidden_Result.(*lookupResult_HitGraphlet); ok {
+		x.xxx_hidden_Result = nil
+	}
+}
+
+func (x *LookupResult) ClearHitValue() {
+	if _, ok := x.xxx_hidden_Result.(*lookupResult_HitValue); ok {
+		x.xxx_hidden_Result = nil
+	}
+}
+
+const LookupResult_Result_not_set_case case_LookupResult_Result = 0
+const LookupResult_Initial_case case_LookupResult_Result = 1
+const LookupResult_MissingDependencies_case case_LookupResult_Result = 2
+const LookupResult_HitGraphlet_case case_LookupResult_Result = 3
+const LookupResult_HitValue_case case_LookupResult_Result = 4
+
+func (x *LookupResult) WhichResult() case_LookupResult_Result {
+	if x == nil {
+		return LookupResult_Result_not_set_case
+	}
+	switch x.xxx_hidden_Result.(type) {
+	case *lookupResult_Initial_:
+		return LookupResult_Initial_case
+	case *lookupResult_MissingDependencies_:
+		return LookupResult_MissingDependencies_case
+	case *lookupResult_HitGraphlet:
+		return LookupResult_HitGraphlet_case
+	case *lookupResult_HitValue:
+		return LookupResult_HitValue_case
+	default:
+		return LookupResult_Result_not_set_case
+	}
+}
+
+type LookupResult_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Result:
+	Initial             *LookupResult_Initial
+	MissingDependencies *LookupResult_MissingDependencies
+	HitGraphlet         *evaluation.Graphlet
+	HitValue            *core.Opaque
+	// -- end of xxx_hidden_Result
+}
+
+func (b0 LookupResult_builder) Build() *LookupResult {
+	m0 := &LookupResult{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Initial != nil {
+		x.xxx_hidden_Result = &lookupResult_Initial_{b.Initial}
+	}
+	if b.MissingDependencies != nil {
+		x.xxx_hidden_Result = &lookupResult_MissingDependencies_{b.MissingDependencies}
+	}
+	if b.HitGraphlet != nil {
+		x.xxx_hidden_Result = &lookupResult_HitGraphlet{b.HitGraphlet}
+	}
+	if b.HitValue != nil {
+		x.xxx_hidden_Result = &lookupResult_HitValue{b.HitValue}
+	}
+	return m0
+}
+
+type case_LookupResult_Result protoreflect.FieldNumber
+
+func (x case_LookupResult_Result) String() string {
+	md := file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isLookupResult_Result interface {
 	isLookupResult_Result()
 }
 
-type LookupResult_Initial_ struct {
-	Initial *LookupResult_Initial `protobuf:"bytes,1,opt,name=initial,proto3,oneof"`
+type lookupResult_Initial_ struct {
+	Initial *LookupResult_Initial `protobuf:"bytes,1,opt,name=initial,oneof"`
 }
 
-type LookupResult_MissingDependencies_ struct {
-	MissingDependencies *LookupResult_MissingDependencies `protobuf:"bytes,2,opt,name=missing_dependencies,json=missingDependencies,proto3,oneof"`
+type lookupResult_MissingDependencies_ struct {
+	MissingDependencies *LookupResult_MissingDependencies `protobuf:"bytes,2,opt,name=missing_dependencies,json=missingDependencies,oneof"`
 }
 
-type LookupResult_HitGraphlet struct {
-	HitGraphlet *evaluation.Graphlet `protobuf:"bytes,3,opt,name=hit_graphlet,json=hitGraphlet,proto3,oneof"`
+type lookupResult_HitGraphlet struct {
+	HitGraphlet *evaluation.Graphlet `protobuf:"bytes,3,opt,name=hit_graphlet,json=hitGraphlet,oneof"`
 }
 
-type LookupResult_HitValue struct {
-	HitValue *core.Opaque `protobuf:"bytes,4,opt,name=hit_value,json=hitValue,proto3,oneof"`
+type lookupResult_HitValue struct {
+	HitValue *core.Opaque `protobuf:"bytes,4,opt,name=hit_value,json=hitValue,oneof"`
 }
 
-func (*LookupResult_Initial_) isLookupResult_Result() {}
+func (*lookupResult_Initial_) isLookupResult_Result() {}
 
-func (*LookupResult_MissingDependencies_) isLookupResult_Result() {}
+func (*lookupResult_MissingDependencies_) isLookupResult_Result() {}
 
-func (*LookupResult_HitGraphlet) isLookupResult_Result() {}
+func (*lookupResult_HitGraphlet) isLookupResult_Result() {}
 
-func (*LookupResult_HitValue) isLookupResult_Result() {}
+func (*lookupResult_HitValue) isLookupResult_Result() {}
 
 type LookupTagKeyData_SubsequentLookup struct {
-	state            protoimpl.MessageState                  `protogen:"open.v1"`
-	Scope            LookupTagKeyData_SubsequentLookup_Scope `protobuf:"varint,1,opt,name=scope,proto3,enum=bonanza.model.evaluation.cache.LookupTagKeyData_SubsequentLookup_Scope" json:"scope,omitempty"`
-	DependenciesHash []byte                                  `protobuf:"bytes,2,opt,name=dependencies_hash,json=dependenciesHash,proto3" json:"dependencies_hash,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState                  `protogen:"opaque.v1"`
+	xxx_hidden_Scope            LookupTagKeyData_SubsequentLookup_Scope `protobuf:"varint,1,opt,name=scope,enum=bonanza.model.evaluation.cache.LookupTagKeyData_SubsequentLookup_Scope"`
+	xxx_hidden_DependenciesHash []byte                                  `protobuf:"bytes,2,opt,name=dependencies_hash,json=dependenciesHash"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *LookupTagKeyData_SubsequentLookup) Reset() {
@@ -394,32 +682,54 @@ func (x *LookupTagKeyData_SubsequentLookup) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupTagKeyData_SubsequentLookup.ProtoReflect.Descriptor instead.
-func (*LookupTagKeyData_SubsequentLookup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{2, 0}
-}
-
 func (x *LookupTagKeyData_SubsequentLookup) GetScope() LookupTagKeyData_SubsequentLookup_Scope {
 	if x != nil {
-		return x.Scope
+		return x.xxx_hidden_Scope
 	}
 	return LookupTagKeyData_SubsequentLookup_INVALID
 }
 
 func (x *LookupTagKeyData_SubsequentLookup) GetDependenciesHash() []byte {
 	if x != nil {
-		return x.DependenciesHash
+		return x.xxx_hidden_DependenciesHash
 	}
 	return nil
 }
 
+func (x *LookupTagKeyData_SubsequentLookup) SetScope(v LookupTagKeyData_SubsequentLookup_Scope) {
+	x.xxx_hidden_Scope = v
+}
+
+func (x *LookupTagKeyData_SubsequentLookup) SetDependenciesHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_DependenciesHash = v
+}
+
+type LookupTagKeyData_SubsequentLookup_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Scope            LookupTagKeyData_SubsequentLookup_Scope
+	DependenciesHash []byte
+}
+
+func (b0 LookupTagKeyData_SubsequentLookup_builder) Build() *LookupTagKeyData_SubsequentLookup {
+	m0 := &LookupTagKeyData_SubsequentLookup{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Scope = b.Scope
+	x.xxx_hidden_DependenciesHash = b.DependenciesHash
+	return m0
+}
+
 type LookupResult_Initial struct {
-	state                          protoimpl.MessageState `protogen:"open.v1"`
-	GraphletVariableDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=graphlet_variable_dependency_keys,json=graphletVariableDependencyKeys,proto3" json:"graphlet_variable_dependency_keys,omitempty"`
-	ValueVariableDependencyKeys    []*evaluation.Keys     `protobuf:"bytes,2,rep,name=value_variable_dependency_keys,json=valueVariableDependencyKeys,proto3" json:"value_variable_dependency_keys,omitempty"`
-	ContainsIndirectionSince       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=contains_indirection_since,json=containsIndirectionSince,proto3" json:"contains_indirection_since,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GraphletVariableDependencyKeys *[]*evaluation.Keys    `protobuf:"bytes,1,rep,name=graphlet_variable_dependency_keys,json=graphletVariableDependencyKeys"`
+	xxx_hidden_ValueVariableDependencyKeys    *[]*evaluation.Keys    `protobuf:"bytes,2,rep,name=value_variable_dependency_keys,json=valueVariableDependencyKeys"`
+	xxx_hidden_ContainsIndirectionSince       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=contains_indirection_since,json=containsIndirectionSince"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *LookupResult_Initial) Reset() {
@@ -447,37 +757,77 @@ func (x *LookupResult_Initial) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupResult_Initial.ProtoReflect.Descriptor instead.
-func (*LookupResult_Initial) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 0}
-}
-
 func (x *LookupResult_Initial) GetGraphletVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.GraphletVariableDependencyKeys
+		if x.xxx_hidden_GraphletVariableDependencyKeys != nil {
+			return *x.xxx_hidden_GraphletVariableDependencyKeys
+		}
 	}
 	return nil
 }
 
 func (x *LookupResult_Initial) GetValueVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.ValueVariableDependencyKeys
+		if x.xxx_hidden_ValueVariableDependencyKeys != nil {
+			return *x.xxx_hidden_ValueVariableDependencyKeys
+		}
 	}
 	return nil
 }
 
 func (x *LookupResult_Initial) GetContainsIndirectionSince() *timestamppb.Timestamp {
 	if x != nil {
-		return x.ContainsIndirectionSince
+		return x.xxx_hidden_ContainsIndirectionSince
 	}
 	return nil
 }
 
+func (x *LookupResult_Initial) SetGraphletVariableDependencyKeys(v []*evaluation.Keys) {
+	x.xxx_hidden_GraphletVariableDependencyKeys = &v
+}
+
+func (x *LookupResult_Initial) SetValueVariableDependencyKeys(v []*evaluation.Keys) {
+	x.xxx_hidden_ValueVariableDependencyKeys = &v
+}
+
+func (x *LookupResult_Initial) SetContainsIndirectionSince(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ContainsIndirectionSince = v
+}
+
+func (x *LookupResult_Initial) HasContainsIndirectionSince() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ContainsIndirectionSince != nil
+}
+
+func (x *LookupResult_Initial) ClearContainsIndirectionSince() {
+	x.xxx_hidden_ContainsIndirectionSince = nil
+}
+
+type LookupResult_Initial_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GraphletVariableDependencyKeys []*evaluation.Keys
+	ValueVariableDependencyKeys    []*evaluation.Keys
+	ContainsIndirectionSince       *timestamppb.Timestamp
+}
+
+func (b0 LookupResult_Initial_builder) Build() *LookupResult_Initial {
+	m0 := &LookupResult_Initial{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_GraphletVariableDependencyKeys = &b.GraphletVariableDependencyKeys
+	x.xxx_hidden_ValueVariableDependencyKeys = &b.ValueVariableDependencyKeys
+	x.xxx_hidden_ContainsIndirectionSince = b.ContainsIndirectionSince
+	return m0
+}
+
 type LookupResult_MissingDependencies struct {
-	state                            protoimpl.MessageState `protogen:"open.v1"`
-	AdditionalVariableDependencyKeys []*evaluation.Keys     `protobuf:"bytes,1,rep,name=additional_variable_dependency_keys,json=additionalVariableDependencyKeys,proto3" json:"additional_variable_dependency_keys,omitempty"`
-	unknownFields                    protoimpl.UnknownFields
-	sizeCache                        protoimpl.SizeCache
+	state                                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_AdditionalVariableDependencyKeys *[]*evaluation.Keys    `protobuf:"bytes,1,rep,name=additional_variable_dependency_keys,json=additionalVariableDependencyKeys"`
+	unknownFields                               protoimpl.UnknownFields
+	sizeCache                                   protoimpl.SizeCache
 }
 
 func (x *LookupResult_MissingDependencies) Reset() {
@@ -505,16 +855,31 @@ func (x *LookupResult_MissingDependencies) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupResult_MissingDependencies.ProtoReflect.Descriptor instead.
-func (*LookupResult_MissingDependencies) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP(), []int{3, 1}
-}
-
 func (x *LookupResult_MissingDependencies) GetAdditionalVariableDependencyKeys() []*evaluation.Keys {
 	if x != nil {
-		return x.AdditionalVariableDependencyKeys
+		if x.xxx_hidden_AdditionalVariableDependencyKeys != nil {
+			return *x.xxx_hidden_AdditionalVariableDependencyKeys
+		}
 	}
 	return nil
+}
+
+func (x *LookupResult_MissingDependencies) SetAdditionalVariableDependencyKeys(v []*evaluation.Keys) {
+	x.xxx_hidden_AdditionalVariableDependencyKeys = &v
+}
+
+type LookupResult_MissingDependencies_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	AdditionalVariableDependencyKeys []*evaluation.Keys
+}
+
+func (b0 LookupResult_MissingDependencies_builder) Build() *LookupResult_MissingDependencies {
+	m0 := &LookupResult_MissingDependencies{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_AdditionalVariableDependencyKeys = &b.AdditionalVariableDependencyKeys
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto protoreflect.FileDescriptor
@@ -551,19 +916,7 @@ const file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc = 
 	"\x1acontains_indirection_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x18containsIndirectionSince\x1a\x84\x01\n" +
 	"\x13MissingDependencies\x12m\n" +
 	"#additional_variable_dependency_keys\x18\x01 \x03(\v2\x1e.bonanza.model.evaluation.KeysR additionalVariableDependencyKeysB\b\n" +
-	"\x06resultB0Z.bonanza.build/pkg/proto/model/evaluation/cacheb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_rawDescData
-}
+	"\x06resultB5Z.bonanza.build/pkg/proto/model/evaluation/cache\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
@@ -614,10 +967,10 @@ func file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_evaluation_cache_cache_proto_msgTypes[3].OneofWrappers = []any{
-		(*LookupResult_Initial_)(nil),
-		(*LookupResult_MissingDependencies_)(nil),
-		(*LookupResult_HitGraphlet)(nil),
-		(*LookupResult_HitValue)(nil),
+		(*lookupResult_Initial_)(nil),
+		(*lookupResult_MissingDependencies_)(nil),
+		(*lookupResult_HitGraphlet)(nil),
+		(*lookupResult_HitValue)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
