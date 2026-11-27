@@ -1,9 +1,10 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.remoteexecution;
 
 import "bonanza.build/pkg/proto/encryptedaction/encryptedaction.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/remoteexecution";
 
 service Execution {

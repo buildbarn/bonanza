@@ -503,9 +503,9 @@ func (bq *InMemoryBuildQueue) WaitExecution(in *remoteexecution_pb.WaitExecution
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
 
-	o, ok := bq.operationsNameMap[in.Name]
+	o, ok := bq.operationsNameMap[in.GetName()]
 	if !ok {
-		return status.Errorf(codes.NotFound, "Operation with name %#v not found", in.Name)
+		return status.Errorf(codes.NotFound, "Operation with name %#v not found", in.GetName())
 	}
 	return o.waitExecution(bq, out)
 }
@@ -2272,19 +2272,17 @@ func (o *operation) waitExecution(bq *InMemoryBuildQueue, out remoteexecution_pb
 	for {
 		// Construct the ExecuteResponse that needs to be sent
 		// back to the client.
-		response := &remoteexecution_pb.ExecuteResponse{
+		response := remoteexecution_pb.ExecuteResponse_builder{
 			Name: o.name,
-		}
+		}.Build()
 		done := false
 		if t.initialSizeClassLearner == nil {
 			if err := t.failureErr; err != nil {
 				return err
 			}
-			response.Stage = &remoteexecution_pb.ExecuteResponse_Completed_{
-				Completed: &remoteexecution_pb.ExecuteResponse_Completed{
-					CompletionEvent: t.lastExecutionEvent,
-				},
-			}
+			response.SetCompleted(remoteexecution_pb.ExecuteResponse_Completed_builder{
+				CompletionEvent: t.lastExecutionEvent,
+			}.Build())
 			done = true
 		} else if t.currentWorker != nil {
 			// Attach an execution event in case the worker
@@ -2294,15 +2292,11 @@ func (o *operation) waitExecution(bq *InMemoryBuildQueue, out remoteexecution_pb
 				lastEvent = t.lastExecutionEvent
 				executionEventsReturned = t.executionEventsSeen
 			}
-			response.Stage = &remoteexecution_pb.ExecuteResponse_Executing_{
-				Executing: &remoteexecution_pb.ExecuteResponse_Executing{
-					LastEvent: lastEvent,
-				},
-			}
+			response.SetExecuting(remoteexecution_pb.ExecuteResponse_Executing_builder{
+				LastEvent: lastEvent,
+			}.Build())
 		} else {
-			response.Stage = &remoteexecution_pb.ExecuteResponse_Queued_{
-				Queued: &remoteexecution_pb.ExecuteResponse_Queued{},
-			}
+			response.SetQueued(&remoteexecution_pb.ExecuteResponse_Queued{})
 		}
 
 		stageChangeWakeup := t.stageChangeWakeup

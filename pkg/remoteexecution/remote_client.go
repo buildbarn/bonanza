@@ -68,10 +68,10 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 	return func(yield func(ExecutionUpdate[[]byte]) bool) {
 		ctxWithCancel, cancel := context.WithCancel(ctx)
 		defer cancel()
-		client, err := c.executionClient.Execute(ctxWithCancel, &remoteexecution_pb.ExecuteRequest{
+		client, err := c.executionClient.Execute(ctxWithCancel, remoteexecution_pb.ExecuteRequest_builder{
 			Action: action,
 			// TODO: Priority.
-		})
+		}.Build())
 		if err != nil {
 			*errOut = err
 			return
@@ -93,13 +93,13 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 				return
 			}
 
-			switch response.GetStage().(type) {
-			case *remoteexecution_pb.ExecuteResponse_Queued_:
+			switch response.WhichStage() {
+			case remoteexecution_pb.ExecuteResponse_Queued_case:
 				if !yield(ExecutionUpdate[[]byte]{Stage: ExecutionStageQueued}) {
 					*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution updates")
 					return
 				}
-			case *remoteexecution_pb.ExecuteResponse_Executing_:
+			case remoteexecution_pb.ExecuteResponse_Executing_case:
 				// If the worker has posted an execution
 				// event, unmarshal it and yield it to the
 				// caller.
@@ -117,7 +117,7 @@ func (c *remoteClient) RunAction(ctx context.Context, platformECDHPublicKey *ecd
 					*errOut = status.Error(codes.Canceled, "Caller canceled iteration of execution updates")
 					return
 				}
-			case *remoteexecution_pb.ExecuteResponse_Completed_:
+			case remoteexecution_pb.ExecuteResponse_Completed_case:
 				// Action has completed. Unmarshal and
 				// return the completion event.
 				completionEventMessage := response.GetCompleted().GetCompletionEvent()

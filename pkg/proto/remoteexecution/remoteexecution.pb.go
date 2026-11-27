@@ -11,7 +11,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -23,11 +22,11 @@ const (
 )
 
 type ExecuteRequest struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Action        *encryptedaction.Action `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
-	Priority      int32                   `protobuf:"varint,2,opt,name=priority,proto3" json:"priority,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Action   *encryptedaction.Action `protobuf:"bytes,1,opt,name=action"`
+	xxx_hidden_Priority int32                   `protobuf:"varint,2,opt,name=priority"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ExecuteRequest) Reset() {
@@ -55,30 +54,60 @@ func (x *ExecuteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecuteRequest.ProtoReflect.Descriptor instead.
-func (*ExecuteRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ExecuteRequest) GetAction() *encryptedaction.Action {
 	if x != nil {
-		return x.Action
+		return x.xxx_hidden_Action
 	}
 	return nil
 }
 
 func (x *ExecuteRequest) GetPriority() int32 {
 	if x != nil {
-		return x.Priority
+		return x.xxx_hidden_Priority
 	}
 	return 0
 }
 
+func (x *ExecuteRequest) SetAction(v *encryptedaction.Action) {
+	x.xxx_hidden_Action = v
+}
+
+func (x *ExecuteRequest) SetPriority(v int32) {
+	x.xxx_hidden_Priority = v
+}
+
+func (x *ExecuteRequest) HasAction() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Action != nil
+}
+
+func (x *ExecuteRequest) ClearAction() {
+	x.xxx_hidden_Action = nil
+}
+
+type ExecuteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Action   *encryptedaction.Action
+	Priority int32
+}
+
+func (b0 ExecuteRequest_builder) Build() *ExecuteRequest {
+	m0 := &ExecuteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Action = b.Action
+	x.xxx_hidden_Priority = b.Priority
+	return m0
+}
+
 type WaitExecutionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name string                 `protobuf:"bytes,1,opt,name=name"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *WaitExecutionRequest) Reset() {
@@ -106,29 +135,37 @@ func (x *WaitExecutionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WaitExecutionRequest.ProtoReflect.Descriptor instead.
-func (*WaitExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *WaitExecutionRequest) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
+func (x *WaitExecutionRequest) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+type WaitExecutionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name string
+}
+
+func (b0 WaitExecutionRequest_builder) Build() *WaitExecutionRequest {
+	m0 := &WaitExecutionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	return m0
+}
+
 type ExecuteResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Types that are valid to be assigned to Stage:
-	//
-	//	*ExecuteResponse_Queued_
-	//	*ExecuteResponse_Executing_
-	//	*ExecuteResponse_Completed_
-	Stage         isExecuteResponse_Stage `protobuf_oneof:"stage"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Name  string                  `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Stage isExecuteResponse_Stage `protobuf_oneof:"stage"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ExecuteResponse) Reset() {
@@ -156,28 +193,16 @@ func (x *ExecuteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecuteResponse.ProtoReflect.Descriptor instead.
-func (*ExecuteResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *ExecuteResponse) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
-func (x *ExecuteResponse) GetStage() isExecuteResponse_Stage {
-	if x != nil {
-		return x.Stage
-	}
-	return nil
-}
-
 func (x *ExecuteResponse) GetQueued() *ExecuteResponse_Queued {
 	if x != nil {
-		if x, ok := x.Stage.(*ExecuteResponse_Queued_); ok {
+		if x, ok := x.xxx_hidden_Stage.(*executeResponse_Queued_); ok {
 			return x.Queued
 		}
 	}
@@ -186,7 +211,7 @@ func (x *ExecuteResponse) GetQueued() *ExecuteResponse_Queued {
 
 func (x *ExecuteResponse) GetExecuting() *ExecuteResponse_Executing {
 	if x != nil {
-		if x, ok := x.Stage.(*ExecuteResponse_Executing_); ok {
+		if x, ok := x.xxx_hidden_Stage.(*executeResponse_Executing_); ok {
 			return x.Executing
 		}
 	}
@@ -195,37 +220,177 @@ func (x *ExecuteResponse) GetExecuting() *ExecuteResponse_Executing {
 
 func (x *ExecuteResponse) GetCompleted() *ExecuteResponse_Completed {
 	if x != nil {
-		if x, ok := x.Stage.(*ExecuteResponse_Completed_); ok {
+		if x, ok := x.xxx_hidden_Stage.(*executeResponse_Completed_); ok {
 			return x.Completed
 		}
 	}
 	return nil
 }
 
+func (x *ExecuteResponse) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *ExecuteResponse) SetQueued(v *ExecuteResponse_Queued) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &executeResponse_Queued_{v}
+}
+
+func (x *ExecuteResponse) SetExecuting(v *ExecuteResponse_Executing) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &executeResponse_Executing_{v}
+}
+
+func (x *ExecuteResponse) SetCompleted(v *ExecuteResponse_Completed) {
+	if v == nil {
+		x.xxx_hidden_Stage = nil
+		return
+	}
+	x.xxx_hidden_Stage = &executeResponse_Completed_{v}
+}
+
+func (x *ExecuteResponse) HasStage() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Stage != nil
+}
+
+func (x *ExecuteResponse) HasQueued() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*executeResponse_Queued_)
+	return ok
+}
+
+func (x *ExecuteResponse) HasExecuting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*executeResponse_Executing_)
+	return ok
+}
+
+func (x *ExecuteResponse) HasCompleted() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Stage.(*executeResponse_Completed_)
+	return ok
+}
+
+func (x *ExecuteResponse) ClearStage() {
+	x.xxx_hidden_Stage = nil
+}
+
+func (x *ExecuteResponse) ClearQueued() {
+	if _, ok := x.xxx_hidden_Stage.(*executeResponse_Queued_); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+func (x *ExecuteResponse) ClearExecuting() {
+	if _, ok := x.xxx_hidden_Stage.(*executeResponse_Executing_); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+func (x *ExecuteResponse) ClearCompleted() {
+	if _, ok := x.xxx_hidden_Stage.(*executeResponse_Completed_); ok {
+		x.xxx_hidden_Stage = nil
+	}
+}
+
+const ExecuteResponse_Stage_not_set_case case_ExecuteResponse_Stage = 0
+const ExecuteResponse_Queued_case case_ExecuteResponse_Stage = 2
+const ExecuteResponse_Executing_case case_ExecuteResponse_Stage = 3
+const ExecuteResponse_Completed_case case_ExecuteResponse_Stage = 4
+
+func (x *ExecuteResponse) WhichStage() case_ExecuteResponse_Stage {
+	if x == nil {
+		return ExecuteResponse_Stage_not_set_case
+	}
+	switch x.xxx_hidden_Stage.(type) {
+	case *executeResponse_Queued_:
+		return ExecuteResponse_Queued_case
+	case *executeResponse_Executing_:
+		return ExecuteResponse_Executing_case
+	case *executeResponse_Completed_:
+		return ExecuteResponse_Completed_case
+	default:
+		return ExecuteResponse_Stage_not_set_case
+	}
+}
+
+type ExecuteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name string
+	// Fields of oneof xxx_hidden_Stage:
+	Queued    *ExecuteResponse_Queued
+	Executing *ExecuteResponse_Executing
+	Completed *ExecuteResponse_Completed
+	// -- end of xxx_hidden_Stage
+}
+
+func (b0 ExecuteResponse_builder) Build() *ExecuteResponse {
+	m0 := &ExecuteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	if b.Queued != nil {
+		x.xxx_hidden_Stage = &executeResponse_Queued_{b.Queued}
+	}
+	if b.Executing != nil {
+		x.xxx_hidden_Stage = &executeResponse_Executing_{b.Executing}
+	}
+	if b.Completed != nil {
+		x.xxx_hidden_Stage = &executeResponse_Completed_{b.Completed}
+	}
+	return m0
+}
+
+type case_ExecuteResponse_Stage protoreflect.FieldNumber
+
+func (x case_ExecuteResponse_Stage) String() string {
+	md := file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isExecuteResponse_Stage interface {
 	isExecuteResponse_Stage()
 }
 
-type ExecuteResponse_Queued_ struct {
-	Queued *ExecuteResponse_Queued `protobuf:"bytes,2,opt,name=queued,proto3,oneof"`
+type executeResponse_Queued_ struct {
+	Queued *ExecuteResponse_Queued `protobuf:"bytes,2,opt,name=queued,oneof"`
 }
 
-type ExecuteResponse_Executing_ struct {
-	Executing *ExecuteResponse_Executing `protobuf:"bytes,3,opt,name=executing,proto3,oneof"`
+type executeResponse_Executing_ struct {
+	Executing *ExecuteResponse_Executing `protobuf:"bytes,3,opt,name=executing,oneof"`
 }
 
-type ExecuteResponse_Completed_ struct {
-	Completed *ExecuteResponse_Completed `protobuf:"bytes,4,opt,name=completed,proto3,oneof"`
+type executeResponse_Completed_ struct {
+	Completed *ExecuteResponse_Completed `protobuf:"bytes,4,opt,name=completed,oneof"`
 }
 
-func (*ExecuteResponse_Queued_) isExecuteResponse_Stage() {}
+func (*executeResponse_Queued_) isExecuteResponse_Stage() {}
 
-func (*ExecuteResponse_Executing_) isExecuteResponse_Stage() {}
+func (*executeResponse_Executing_) isExecuteResponse_Stage() {}
 
-func (*ExecuteResponse_Completed_) isExecuteResponse_Stage() {}
+func (*executeResponse_Completed_) isExecuteResponse_Stage() {}
 
 type ExecuteResponse_Queued struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -255,16 +420,23 @@ func (x *ExecuteResponse_Queued) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecuteResponse_Queued.ProtoReflect.Descriptor instead.
-func (*ExecuteResponse_Queued) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 0}
+type ExecuteResponse_Queued_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 ExecuteResponse_Queued_builder) Build() *ExecuteResponse_Queued {
+	m0 := &ExecuteResponse_Queued{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type ExecuteResponse_Executing struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LastEvent     *encryptedaction.Event `protobuf:"bytes,1,opt,name=last_event,json=lastEvent,proto3" json:"last_event,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LastEvent *encryptedaction.Event `protobuf:"bytes,1,opt,name=last_event,json=lastEvent"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ExecuteResponse_Executing) Reset() {
@@ -292,23 +464,47 @@ func (x *ExecuteResponse_Executing) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecuteResponse_Executing.ProtoReflect.Descriptor instead.
-func (*ExecuteResponse_Executing) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 1}
-}
-
 func (x *ExecuteResponse_Executing) GetLastEvent() *encryptedaction.Event {
 	if x != nil {
-		return x.LastEvent
+		return x.xxx_hidden_LastEvent
 	}
 	return nil
 }
 
+func (x *ExecuteResponse_Executing) SetLastEvent(v *encryptedaction.Event) {
+	x.xxx_hidden_LastEvent = v
+}
+
+func (x *ExecuteResponse_Executing) HasLastEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LastEvent != nil
+}
+
+func (x *ExecuteResponse_Executing) ClearLastEvent() {
+	x.xxx_hidden_LastEvent = nil
+}
+
+type ExecuteResponse_Executing_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LastEvent *encryptedaction.Event
+}
+
+func (b0 ExecuteResponse_Executing_builder) Build() *ExecuteResponse_Executing {
+	m0 := &ExecuteResponse_Executing{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LastEvent = b.LastEvent
+	return m0
+}
+
 type ExecuteResponse_Completed struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	CompletionEvent *encryptedaction.Event `protobuf:"bytes,1,opt,name=completion_event,json=completionEvent,proto3" json:"completion_event,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CompletionEvent *encryptedaction.Event `protobuf:"bytes,1,opt,name=completion_event,json=completionEvent"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *ExecuteResponse_Completed) Reset() {
@@ -336,16 +532,40 @@ func (x *ExecuteResponse_Completed) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecuteResponse_Completed.ProtoReflect.Descriptor instead.
-func (*ExecuteResponse_Completed) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP(), []int{2, 2}
-}
-
 func (x *ExecuteResponse_Completed) GetCompletionEvent() *encryptedaction.Event {
 	if x != nil {
-		return x.CompletionEvent
+		return x.xxx_hidden_CompletionEvent
 	}
 	return nil
+}
+
+func (x *ExecuteResponse_Completed) SetCompletionEvent(v *encryptedaction.Event) {
+	x.xxx_hidden_CompletionEvent = v
+}
+
+func (x *ExecuteResponse_Completed) HasCompletionEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CompletionEvent != nil
+}
+
+func (x *ExecuteResponse_Completed) ClearCompletionEvent() {
+	x.xxx_hidden_CompletionEvent = nil
+}
+
+type ExecuteResponse_Completed_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	CompletionEvent *encryptedaction.Event
+}
+
+func (b0 ExecuteResponse_Completed_builder) Build() *ExecuteResponse_Completed {
+	m0 := &ExecuteResponse_Completed{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_CompletionEvent = b.CompletionEvent
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto protoreflect.FileDescriptor
@@ -372,19 +592,7 @@ const file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc
 	"\x05stage2\xd7\x01\n" +
 	"\tExecution\x12^\n" +
 	"\aExecute\x12'.bonanza.remoteexecution.ExecuteRequest\x1a(.bonanza.remoteexecution.ExecuteResponse0\x01\x12j\n" +
-	"\rWaitExecution\x12-.bonanza.remoteexecution.WaitExecutionRequest\x1a(.bonanza.remoteexecution.ExecuteResponse0\x01B)Z'bonanza.build/pkg/proto/remoteexecutionb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_rawDescData
-}
+	"\rWaitExecution\x12-.bonanza.remoteexecution.WaitExecutionRequest\x1a(.bonanza.remoteexecution.ExecuteResponse0\x01B.Z'bonanza.build/pkg/proto/remoteexecution\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_goTypes = []any{
@@ -421,9 +629,9 @@ func file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_remoteexecution_remoteexecution_proto_msgTypes[2].OneofWrappers = []any{
-		(*ExecuteResponse_Queued_)(nil),
-		(*ExecuteResponse_Executing_)(nil),
-		(*ExecuteResponse_Completed_)(nil),
+		(*executeResponse_Queued_)(nil),
+		(*executeResponse_Executing_)(nil),
+		(*executeResponse_Completed_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
