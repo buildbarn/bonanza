@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.executewithstorage;
 
@@ -7,6 +7,7 @@ import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
 import "bonanza.build/pkg/proto/model/format/format.proto";
 import "bonanza.build/pkg/proto/storage/object/object.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/executewithstorage";
 
 // Unlike REv2, our remote execution and remote worker protocols are

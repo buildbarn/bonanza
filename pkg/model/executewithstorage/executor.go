@@ -36,14 +36,14 @@ func NewExecutor(
 }
 
 func (e *executor) Execute(ctx context.Context, action *model_executewithstorage_pb.Action, executionTimeout time.Duration, executionEventMessages chan<- *model_executewithstorage_pb.Event) (*model_executewithstorage_pb.Result, time.Duration, remoteworker_pb.CurrentState_Completed_Result, error) {
-	namespace, err := object.NewNamespace(action.Namespace)
+	namespace, err := object.NewNamespace(action.GetNamespace())
 	if err != nil {
 		return nil, 0, 0, util.StatusWrap(err, "Invalid namespace")
 	}
 
 	actionReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(
 		namespace.ReferenceFormat,
-		action.ActionReference,
+		action.GetActionReference(),
 	)
 	if err != nil {
 		return nil, 0, 0, util.StatusWrap(err, "Invalid action reference")
@@ -53,9 +53,9 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	storedAllExecutionEvents := make(chan struct{})
 	go func() {
 		for executionEvent := range executionEvents {
-			executionEventMessages <- &model_executewithstorage_pb.Event{
+			executionEventMessages <- model_executewithstorage_pb.Event_builder{
 				EventReference: model_core.OptionalDecodableLocalReferenceToWeakProto(executionEvent),
-			}
+			}.Build()
 		}
 		close(storedAllExecutionEvents)
 	}()
@@ -66,8 +66,8 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 			Namespace: namespace,
 			Action: Action[object.LocalReference]{
 				Reference: actionReference,
-				Encoders:  action.ActionEncoders,
-				Format:    action.ActionFormat,
+				Encoders:  action.GetActionEncoders(),
+				Format:    action.GetActionFormat(),
 			},
 		},
 		executionTimeout,
@@ -80,7 +80,7 @@ func (e *executor) Execute(ctx context.Context, action *model_executewithstorage
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	return &model_executewithstorage_pb.Result{
+	return model_executewithstorage_pb.Result_builder{
 		ResultReference: model_core.OptionalDecodableLocalReferenceToWeakProto(resultReference),
-	}, virtualExecutionDuration, resultCode, nil
+	}.Build(), virtualExecutionDuration, resultCode, nil
 }

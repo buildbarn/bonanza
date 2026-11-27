@@ -78,12 +78,12 @@ func (c *protoClient) RunAction(
 	executionEventMessages := c.base.RunAction(
 		ctx,
 		platformECDHPublicKey,
-		&model_executewithstorage_pb.Action{
+		model_executewithstorage_pb.Action_builder{
 			Namespace:       action.Namespace.ToProto(),
 			ActionEncoders:  action.Encoders,
 			ActionReference: model_core.OptionalDecodableLocalReferenceToWeakProto(action.Reference),
 			ActionFormat:    action.Format,
-		},
+		}.Build(),
 		actionAdditionalData,
 		&resultMessage,
 		&errBase,
@@ -96,7 +96,7 @@ func (c *protoClient) RunAction(
 			update, err := remoteexecution.MapExecutionUpdateEvent(
 				executionUpdate,
 				func(executionEventMessage *model_executewithstorage_pb.Event) (*model_core.Decodable[object.LocalReference], error) {
-					executionEventReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage.EventReference)
+					executionEventReference, err := model_core.NewOptionalDecodableLocalReferenceFromWeakProto(referenceFormat, executionEventMessage.GetEventReference())
 					if err != nil {
 						return nil, util.StatusWrapWithCode(err, codes.Internal, "Received invalid execution event reference")
 					}

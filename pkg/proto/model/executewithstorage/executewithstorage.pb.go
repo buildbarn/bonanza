@@ -14,7 +14,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -26,13 +25,13 @@ const (
 )
 
 type Action struct {
-	state           protoimpl.MessageState       `protogen:"open.v1"`
-	Namespace       *object.Namespace            `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	ActionEncoders  []*encoding.BinaryEncoder    `protobuf:"bytes,2,rep,name=action_encoders,json=actionEncoders,proto3" json:"action_encoders,omitempty"`
-	ActionReference *core.WeakDecodableReference `protobuf:"bytes,3,opt,name=action_reference,json=actionReference,proto3" json:"action_reference,omitempty"`
-	ActionFormat    *format.Format               `protobuf:"bytes,4,opt,name=action_format,json=actionFormat,proto3" json:"action_format,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Namespace       *object.Namespace            `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_ActionEncoders  *[]*encoding.BinaryEncoder   `protobuf:"bytes,2,rep,name=action_encoders,json=actionEncoders"`
+	xxx_hidden_ActionReference *core.WeakDecodableReference `protobuf:"bytes,3,opt,name=action_reference,json=actionReference"`
+	xxx_hidden_ActionFormat    *format.Format               `protobuf:"bytes,4,opt,name=action_format,json=actionFormat"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Action) Reset() {
@@ -60,44 +59,110 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Action.ProtoReflect.Descriptor instead.
-func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Action) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *Action) GetActionEncoders() []*encoding.BinaryEncoder {
 	if x != nil {
-		return x.ActionEncoders
+		if x.xxx_hidden_ActionEncoders != nil {
+			return *x.xxx_hidden_ActionEncoders
+		}
 	}
 	return nil
 }
 
 func (x *Action) GetActionReference() *core.WeakDecodableReference {
 	if x != nil {
-		return x.ActionReference
+		return x.xxx_hidden_ActionReference
 	}
 	return nil
 }
 
 func (x *Action) GetActionFormat() *format.Format {
 	if x != nil {
-		return x.ActionFormat
+		return x.xxx_hidden_ActionFormat
 	}
 	return nil
 }
 
+func (x *Action) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *Action) SetActionEncoders(v []*encoding.BinaryEncoder) {
+	x.xxx_hidden_ActionEncoders = &v
+}
+
+func (x *Action) SetActionReference(v *core.WeakDecodableReference) {
+	x.xxx_hidden_ActionReference = v
+}
+
+func (x *Action) SetActionFormat(v *format.Format) {
+	x.xxx_hidden_ActionFormat = v
+}
+
+func (x *Action) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *Action) HasActionReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ActionReference != nil
+}
+
+func (x *Action) HasActionFormat() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ActionFormat != nil
+}
+
+func (x *Action) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *Action) ClearActionReference() {
+	x.xxx_hidden_ActionReference = nil
+}
+
+func (x *Action) ClearActionFormat() {
+	x.xxx_hidden_ActionFormat = nil
+}
+
+type Action_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace       *object.Namespace
+	ActionEncoders  []*encoding.BinaryEncoder
+	ActionReference *core.WeakDecodableReference
+	ActionFormat    *format.Format
+}
+
+func (b0 Action_builder) Build() *Action {
+	m0 := &Action{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_ActionEncoders = &b.ActionEncoders
+	x.xxx_hidden_ActionReference = b.ActionReference
+	x.xxx_hidden_ActionFormat = b.ActionFormat
+	return m0
+}
+
 type Event struct {
-	state          protoimpl.MessageState       `protogen:"open.v1"`
-	EventReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=event_reference,json=eventReference,proto3" json:"event_reference,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_EventReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=event_reference,json=eventReference"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Event) Reset() {
@@ -125,23 +190,47 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Event.ProtoReflect.Descriptor instead.
-func (*Event) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Event) GetEventReference() *core.WeakDecodableReference {
 	if x != nil {
-		return x.EventReference
+		return x.xxx_hidden_EventReference
 	}
 	return nil
 }
 
+func (x *Event) SetEventReference(v *core.WeakDecodableReference) {
+	x.xxx_hidden_EventReference = v
+}
+
+func (x *Event) HasEventReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_EventReference != nil
+}
+
+func (x *Event) ClearEventReference() {
+	x.xxx_hidden_EventReference = nil
+}
+
+type Event_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	EventReference *core.WeakDecodableReference
+}
+
+func (b0 Event_builder) Build() *Event {
+	m0 := &Event{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_EventReference = b.EventReference
+	return m0
+}
+
 type Result struct {
-	state           protoimpl.MessageState       `protogen:"open.v1"`
-	ResultReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=result_reference,json=resultReference,proto3" json:"result_reference,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ResultReference *core.WeakDecodableReference `protobuf:"bytes,1,opt,name=result_reference,json=resultReference"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Result) Reset() {
@@ -169,16 +258,40 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Result.ProtoReflect.Descriptor instead.
-func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *Result) GetResultReference() *core.WeakDecodableReference {
 	if x != nil {
-		return x.ResultReference
+		return x.xxx_hidden_ResultReference
 	}
 	return nil
+}
+
+func (x *Result) SetResultReference(v *core.WeakDecodableReference) {
+	x.xxx_hidden_ResultReference = v
+}
+
+func (x *Result) HasResultReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ResultReference != nil
+}
+
+func (x *Result) ClearResultReference() {
+	x.xxx_hidden_ResultReference = nil
+}
+
+type Result_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ResultReference *core.WeakDecodableReference
+}
+
+func (b0 Result_builder) Build() *Result {
+	m0 := &Result{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ResultReference = b.ResultReference
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto protoreflect.FileDescriptor
@@ -194,19 +307,7 @@ const file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_p
 	"\x05Event\x12S\n" +
 	"\x0fevent_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0eeventReference\"_\n" +
 	"\x06Result\x12U\n" +
-	"\x10result_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0fresultReferenceB2Z0bonanza.build/pkg/proto/model/executewithstorageb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_rawDescData
-}
+	"\x10result_reference\x18\x01 \x01(\v2*.bonanza.model.core.WeakDecodableReferenceR\x0fresultReferenceB7Z0bonanza.build/pkg/proto/model/executewithstorage\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_bonanza_build_pkg_proto_model_executewithstorage_executewithstorage_proto_goTypes = []any{
