@@ -6,7 +6,6 @@ import "bonanza.build/pkg/proto/model/chunking/chunking.proto";
 import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/encoding/encoding.proto";
 import "google/protobuf/empty.proto";
-import "google/protobuf/wrappers.proto";
 
 option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/filesystem";
@@ -108,7 +107,8 @@ message DirectoryEntry {
     //
     // This value can be used to determine whether symbolic links
     // escape, without loading the objects referenced by this B-tree.
-    google.protobuf.UInt32Value maximum_symlink_escapement_levels = 6;
+    uint32 maximum_symlink_escapement_levels = 6
+        [features.field_presence = EXPLICIT];
   }
 
   message Node {
@@ -184,7 +184,8 @@ message DirectoryReference {
   //   current directory. The value corresponds to the maximum number of
   //   leading ".." components minus the depth at which the symbolic
   //   link is stored.
-  google.protobuf.UInt32Value maximum_symlink_escapement_levels = 3;
+  uint32 maximum_symlink_escapement_levels = 3
+      [features.field_presence = EXPLICIT];
 }
 
 message FileContents {

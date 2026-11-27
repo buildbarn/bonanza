@@ -72,8 +72,8 @@ func (d *unmodifiedDirectory[TReference]) isEqualTo(other *unmodifiedDirectory[T
 // a given number of levels, without loading any data from storage.
 func (d *unmodifiedDirectory[TReference]) maximumSymlinkEscapementLevelsAtMost(maximumEscapementLevels uint32) bool {
 	if d.reference.IsSet() {
-		currentMaximumEscapementLevels := d.reference.Message.GetMaximumSymlinkEscapementLevels()
-		return currentMaximumEscapementLevels != nil && currentMaximumEscapementLevels.Value <= maximumEscapementLevels
+		m := d.reference.Message
+		return m.HasMaximumSymlinkEscapementLevels() && m.GetMaximumSymlinkEscapementLevels() <= maximumEscapementLevels
 	}
 	return false
 }

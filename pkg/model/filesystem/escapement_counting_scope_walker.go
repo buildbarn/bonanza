@@ -2,8 +2,6 @@ package filesystem
 
 import (
 	"github.com/buildbarn/bb-storage/pkg/filesystem/path"
-
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // EscapementCountingScopeWalker determines the number of levels a given
@@ -14,7 +12,7 @@ import (
 // components (e.g., "a/../b"), it determines the number of levels is
 // not bounded.
 type EscapementCountingScopeWalker struct {
-	levels *wrapperspb.UInt32Value
+	levels *uint32
 }
 
 var _ path.ScopeWalker = (*EscapementCountingScopeWalker)(nil)
@@ -24,13 +22,13 @@ var _ path.ScopeWalker = (*EscapementCountingScopeWalker)(nil)
 // state (i.e., corresponding with path ".").
 func NewEscapementCountingScopeWalker() *EscapementCountingScopeWalker {
 	return &EscapementCountingScopeWalker{
-		levels: &wrapperspb.UInt32Value{Value: 0},
+		levels: new(uint32),
 	}
 }
 
 // GetLevels returns the number of levels the parsed path escapes the
 // current directory. If nil is returned, the escapement is not bounded.
-func (sw *EscapementCountingScopeWalker) GetLevels() *wrapperspb.UInt32Value {
+func (sw *EscapementCountingScopeWalker) GetLevels() *uint32 {
 	return sw.levels
 }
 
@@ -81,7 +79,7 @@ func (leadingEscapementCountingComponentWalker) OnTerminal(name path.Component) 
 }
 
 func (cw leadingEscapementCountingComponentWalker) OnUp() (path.ComponentWalker, error) {
-	cw.scopeWalker.levels.Value++
+	*cw.scopeWalker.levels++
 	return cw, nil
 }
 

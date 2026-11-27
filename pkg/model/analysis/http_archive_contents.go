@@ -459,7 +459,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 
 	// Store the root directory itself. We don't embed it into the
 	// response, as that prevents it from being accessed separately.
-	if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
+	if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || *l != 0 {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("archive contains one or more symbolic links that potentially escape the archive's root directory")
 	}
 	contentsReference, err := createdRootDirectory.CaptureDirectoryReference(ctx, directoryCreationParameters, e)

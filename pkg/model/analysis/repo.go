@@ -55,7 +55,6 @@ import (
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type jsonOrderedMapEntry[T any] struct {
@@ -2737,7 +2736,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doWhich(thread *eva
 			// The input root is empty, meaning it is not
 			// backed by an object.
 			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
-				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
+				MaximumSymlinkEscapementLevels: proto.Uint32(0),
 			}.Build(),
 		}.Build()), nil
 	})

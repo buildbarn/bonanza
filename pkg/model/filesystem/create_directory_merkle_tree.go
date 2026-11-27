@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // CapturableDirectory is an interface for a directory that can be
@@ -487,7 +486,7 @@ type CreatedDirectory[TDirectory model_core.ReferenceMetadata] struct {
 	Message model_core.PatchedMessage[[]*model_filesystem_pb.DirectoryEntry, TDirectory]
 	// The number of subdirectories contained in the directory.
 	DirectoriesCount               uint32
-	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value
+	MaximumSymlinkEscapementLevels *uint32
 }
 
 // NewCreatedDirectoryBare creates a CreatedDirectory, recomputing

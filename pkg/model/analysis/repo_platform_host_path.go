@@ -345,7 +345,7 @@ func (sr *changeTrackingDirectorySymlinksRelativizer[TReference, TMetadata]) rel
 		if err := path.Resolve(target, escapementCounter); err != nil {
 			return fmt.Errorf("failed to resolve symlink %#v %w", name.String(), err)
 		}
-		if levels := escapementCounter.GetLevels(); levels == nil || levels.Value > maximumEscapementLevels {
+		if levels := escapementCounter.GetLevels(); levels == nil || *levels > maximumEscapementLevels {
 			// Target of this symlink is absolute or has too
 			// many ".." components.
 			r := changeTrackingDirectoryNormalizingPathResolver[TReference, TMetadata]{

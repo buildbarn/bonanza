@@ -157,7 +157,7 @@ func (d *localCapturableDirectory[TDirectory, TFile]) ReadDir() ([]filesystem.Fi
 			if err := path.Resolve(targetParser, escapementCounter); err != nil {
 				return nil, util.StatusWrapf(err, "Failed to resolve target of symbolic link %#v", name.String())
 			}
-			if l := escapementCounter.GetLevels(); l == nil || l.Value > d.depth {
+			if l := escapementCounter.GetLevels(); l == nil || *l > d.depth {
 				return nil, status.Errorf(codes.InvalidArgument, "Symbolic link %#v has a target that potentially escapes the module's root directory", name.String())
 			}
 		}
@@ -692,7 +692,7 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	modules := make([]*model_analysis_pb.BuildSpecification_Value_Module, 0, len(moduleNames))
 	for i, moduleName := range moduleNames {
 		createdRootDirectory := createdModuleRootDirectories[i]
-		if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || l.Value != 0 {
+		if l := createdRootDirectory.MaximumSymlinkEscapementLevels; l == nil || *l != 0 {
 			logger.Fatal(formatted.Textf("Module %#v contains one or more symbolic links that potentially escape the module's root directory", moduleName.String()))
 		}
 		if createdRootDirectory.IsEmpty() {

@@ -304,7 +304,7 @@ func (c *mergedDirectoryCreator[TReference, TMetadata]) create(d *MergedDirector
 			return CreatedDirectory[TMetadata]{
 				Message:                        model_core.PatchList(c.capturer, contents),
 				DirectoriesCount:               source.reference.Message.GetDirectoriesCount(),
-				MaximumSymlinkEscapementLevels: source.reference.Message.GetMaximumSymlinkEscapementLevels(),
+				MaximumSymlinkEscapementLevels: getMaximumSymlinkEscapementLevels(source.reference.Message),
 			}, nil
 		case mergedDirectorySourceContents, mergedDirectorySourceChild:
 			contents, err := c.loadSource(source)

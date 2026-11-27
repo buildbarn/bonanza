@@ -9,10 +9,9 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	"bonanza.build/pkg/storage/dag"
 
-	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"google.golang.org/protobuf/proto"
 )
 
 // symlinkEntry creates a DirectoryEntry for a symbolic link.
@@ -57,9 +56,9 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 0},
+			proto.Uint32(0),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})
@@ -73,9 +72,9 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 0},
+			proto.Uint32(0),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})
@@ -89,9 +88,9 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 1},
+			proto.Uint32(1),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})
@@ -121,15 +120,15 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 						FirstName:                      "hello",
 						DirectoryNodesCount:            1,
 						DirectoryContentsCount:         1,
-						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+						MaximumSymlinkEscapementLevels: proto.Uint32(3),
 					}.Build(),
 				}.Build()},
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 3},
+			proto.Uint32(3),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})
@@ -148,7 +147,7 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 							}.Build(),
 							FirstName:                      "a",
 							LeafNodesCount:                 100,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 3},
+							MaximumSymlinkEscapementLevels: proto.Uint32(3),
 						}.Build(),
 					}.Build()),
 					directoryNodeEntry("hello", 0),
@@ -156,9 +155,9 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 2},
+			proto.Uint32(2),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})
@@ -175,9 +174,9 @@ func TestNewCreatedDirectoryBare(t *testing.T) {
 			),
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(
+		require.Equal(
 			t,
-			&wrapperspb.UInt32Value{Value: 2},
+			proto.Uint32(2),
 			cd.MaximumSymlinkEscapementLevels,
 		)
 	})

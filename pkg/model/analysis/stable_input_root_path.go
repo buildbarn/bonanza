@@ -20,7 +20,6 @@ import (
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ctx context.Context, key *model_analysis_pb.StableInputRootPath_Key, e StableInputRootPathEnvironment[TReference, TMetadata]) (PatchedStableInputRootPathValue[TMetadata], error) {
@@ -89,7 +88,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeStableInputRootPathValue(ct
 			// The input root is empty, meaning it is not
 			// backed by an object.
 			InputRootReference: model_filesystem_pb.DirectoryReference_builder{
-				MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{},
+				MaximumSymlinkEscapementLevels: proto.Uint32(0),
 			}.Build(),
 		}.Build()), nil
 	})

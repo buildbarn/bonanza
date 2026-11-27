@@ -23,9 +23,10 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // inMemoryCapturableDirectory is a simple implementation of
@@ -173,7 +174,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 
 	// The symbolic link escapes its parent directory by three
 	// levels, meaning it escapes the root directory by two.
-	testutil.RequireEqualProto(t, &wrapperspb.UInt32Value{Value: 2}, createdRootDirectory.MaximumSymlinkEscapementLevels)
+	require.Equal(t, proto.Uint32(2), createdRootDirectory.MaximumSymlinkEscapementLevels)
 
 	// Store the top level of the B-tree in an object, so that the
 	// directory can be accessed through a DirectoryReference.
@@ -208,7 +209,7 @@ func TestCreateDirectoryMerkleTreeLargeDirectory(t *testing.T) {
 	// from the root directory, without loading any objects.
 	maximumSymlinkEscapementLevels, err := model_filesystem.GetDirectoryMaximumSymlinkEscapementLevels(rootDirectory.Message)
 	require.NoError(t, err)
-	testutil.RequireEqualProto(t, &wrapperspb.UInt32Value{Value: 2}, maximumSymlinkEscapementLevels)
+	require.Equal(t, proto.Uint32(2), maximumSymlinkEscapementLevels)
 
 	entriesReader := model_parser.LookupParsedObjectReader(
 		model_parser.NewParsedObjectPoolIngester[model_core.CreatedObjectTree](

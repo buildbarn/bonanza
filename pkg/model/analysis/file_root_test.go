@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"go.uber.org/mock/gomock"
 )
@@ -242,7 +241,7 @@ func TestFileRoot(t *testing.T) {
 							}))
 						})),
 						DirectoriesCount:               0,
-						MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
+						MaximumSymlinkEscapementLevels: proto.Uint32(0),
 					}.Build(),
 				}.Build()
 			}))
@@ -293,7 +292,7 @@ func TestFileRoot(t *testing.T) {
 								}))
 							})),
 							DirectoriesCount:               0,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
+							MaximumSymlinkEscapementLevels: proto.Uint32(0),
 						}.Build(),
 					}.Build()
 				}))
@@ -423,7 +422,7 @@ func TestFileRoot(t *testing.T) {
 									}))))
 							})),
 							DirectoriesCount:               0,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
+							MaximumSymlinkEscapementLevels: proto.Uint32(0),
 						}.Build(),
 					}.Build()
 				}))
@@ -443,7 +442,7 @@ func TestFileRoot(t *testing.T) {
 								}))
 							})),
 							DirectoriesCount:               0,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
+							MaximumSymlinkEscapementLevels: proto.Uint32(0),
 						}.Build(),
 					}.Build()
 				}))
@@ -1127,7 +1126,7 @@ func TestFileRoot(t *testing.T) {
 								))
 							})),
 							DirectoriesCount:               1,
-							MaximumSymlinkEscapementLevels: &wrapperspb.UInt32Value{Value: 0},
+							MaximumSymlinkEscapementLevels: proto.Uint32(0),
 						}.Build(),
 					}.Build()
 				}))

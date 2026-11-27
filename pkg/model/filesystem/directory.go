@@ -14,7 +14,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // DirectoryDereference loads the contents of a directory referenced by
@@ -435,11 +434,11 @@ type maximumSymlinkEscapementLevels struct {
 	unbounded bool
 }
 
-func (l *maximumSymlinkEscapementLevels) raise(levels *wrapperspb.UInt32Value) {
+func (l *maximumSymlinkEscapementLevels) raise(levels *uint32) {
 	if levels == nil {
 		l.unbounded = true
-	} else if l.levels < levels.Value {
-		l.levels = levels.Value
+	} else if l.levels < *levels {
+		l.levels = *levels
 	}
 }
 
@@ -454,18 +453,36 @@ func (l *maximumSymlinkEscapementLevels) raiseChild(child *maximumSymlinkEscapem
 	}
 }
 
-func (l *maximumSymlinkEscapementLevels) toProto() *wrapperspb.UInt32Value {
+func (l *maximumSymlinkEscapementLevels) toProto() *uint32 {
 	if l.unbounded {
 		return nil
 	}
-	return &wrapperspb.UInt32Value{Value: l.levels}
+	return &l.levels
+}
+
+// maximumSymlinkEscapementLevelsMessage is implemented by all messages
+// that have a maximum_symlink_escapement_levels field.
+type maximumSymlinkEscapementLevelsMessage interface {
+	HasMaximumSymlinkEscapementLevels() bool
+	GetMaximumSymlinkEscapementLevels() uint32
+}
+
+// getMaximumSymlinkEscapementLevels returns the value of the
+// maximum_symlink_escapement_levels field of a message, or nil if the
+// field is not set (i.e., the escapement is not bounded).
+func getMaximumSymlinkEscapementLevels(m maximumSymlinkEscapementLevelsMessage) *uint32 {
+	if !m.HasMaximumSymlinkEscapementLevels() {
+		return nil
+	}
+	levels := m.GetMaximumSymlinkEscapementLevels()
+	return &levels
 }
 
 func (l *maximumSymlinkEscapementLevels) raiseEntries(entries []*model_filesystem_pb.DirectoryEntry) error {
 	for _, entry := range entries {
 		switch entry.WhichLevel() {
 		case model_filesystem_pb.DirectoryEntry_Parent_case:
-			l.raise(entry.GetParent().GetMaximumSymlinkEscapementLevels())
+			l.raise(getMaximumSymlinkEscapementLevels(entry.GetParent()))
 		case model_filesystem_pb.DirectoryEntry_Node_case:
 			if symlink := entry.GetNode().GetSymlink(); symlink != nil {
 				escapementCounter := NewEscapementCountingScopeWalker()
@@ -498,14 +515,14 @@ func (l *maximumSymlinkEscapementLevels) raiseEntries(entries []*model_filesyste
 //
 // The value that is returned has the same semantics as
 // DirectoryReference.maximum_symlink_escapement_levels.
-func GetDirectoryMaximumSymlinkEscapementLevels(entries []*model_filesystem_pb.DirectoryEntry) (*wrapperspb.UInt32Value, error) {
+func GetDirectoryMaximumSymlinkEscapementLevels(entries []*model_filesystem_pb.DirectoryEntry) (*uint32, error) {
 	return getDirectoryEntriesMaximumSymlinkEscapementLevels(entries)
 }
 
 // getDirectoryEntriesMaximumSymlinkEscapementLevels computes the
 // maximum symlink escapement levels of a part of a directory's B-tree,
 // relative to the directory to which the B-tree belongs.
-func getDirectoryEntriesMaximumSymlinkEscapementLevels(entries []*model_filesystem_pb.DirectoryEntry) (*wrapperspb.UInt32Value, error) {
+func getDirectoryEntriesMaximumSymlinkEscapementLevels(entries []*model_filesystem_pb.DirectoryEntry) (*uint32, error) {
 	var l maximumSymlinkEscapementLevels
 	if err := l.raiseEntries(entries); err != nil {
 		return nil, err

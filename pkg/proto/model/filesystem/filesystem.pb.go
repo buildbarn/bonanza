@@ -13,7 +13,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -440,7 +439,9 @@ type DirectoryReference struct {
 	state                                     protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_Reference                      *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
 	xxx_hidden_DirectoriesCount               uint32                   `protobuf:"varint,2,opt,name=directories_count,json=directoriesCount"`
-	xxx_hidden_MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,3,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	xxx_hidden_MaximumSymlinkEscapementLevels uint32                   `protobuf:"varint,3,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	XXX_raceDetectHookData                    protoimpl.RaceDetectHookData
+	XXX_presence                              [1]uint32
 	unknownFields                             protoimpl.UnknownFields
 	sizeCache                                 protoimpl.SizeCache
 }
@@ -484,11 +485,11 @@ func (x *DirectoryReference) GetDirectoriesCount() uint32 {
 	return 0
 }
 
-func (x *DirectoryReference) GetMaximumSymlinkEscapementLevels() *wrapperspb.UInt32Value {
+func (x *DirectoryReference) GetMaximumSymlinkEscapementLevels() uint32 {
 	if x != nil {
 		return x.xxx_hidden_MaximumSymlinkEscapementLevels
 	}
-	return nil
+	return 0
 }
 
 func (x *DirectoryReference) SetReference(v *core.DecodableReference) {
@@ -499,8 +500,9 @@ func (x *DirectoryReference) SetDirectoriesCount(v uint32) {
 	x.xxx_hidden_DirectoriesCount = v
 }
 
-func (x *DirectoryReference) SetMaximumSymlinkEscapementLevels(v *wrapperspb.UInt32Value) {
+func (x *DirectoryReference) SetMaximumSymlinkEscapementLevels(v uint32) {
 	x.xxx_hidden_MaximumSymlinkEscapementLevels = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *DirectoryReference) HasReference() bool {
@@ -514,7 +516,7 @@ func (x *DirectoryReference) HasMaximumSymlinkEscapementLevels() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MaximumSymlinkEscapementLevels != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *DirectoryReference) ClearReference() {
@@ -522,7 +524,8 @@ func (x *DirectoryReference) ClearReference() {
 }
 
 func (x *DirectoryReference) ClearMaximumSymlinkEscapementLevels() {
-	x.xxx_hidden_MaximumSymlinkEscapementLevels = nil
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = 0
 }
 
 type DirectoryReference_builder struct {
@@ -530,7 +533,7 @@ type DirectoryReference_builder struct {
 
 	Reference                      *core.DecodableReference
 	DirectoriesCount               uint32
-	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value
+	MaximumSymlinkEscapementLevels *uint32
 }
 
 func (b0 DirectoryReference_builder) Build() *DirectoryReference {
@@ -539,7 +542,10 @@ func (b0 DirectoryReference_builder) Build() *DirectoryReference {
 	_, _ = b, x
 	x.xxx_hidden_Reference = b.Reference
 	x.xxx_hidden_DirectoriesCount = b.DirectoriesCount
-	x.xxx_hidden_MaximumSymlinkEscapementLevels = b.MaximumSymlinkEscapementLevels
+	if b.MaximumSymlinkEscapementLevels != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_MaximumSymlinkEscapementLevels = *b.MaximumSymlinkEscapementLevels
+	}
 	return m0
 }
 
@@ -1384,7 +1390,9 @@ type DirectoryEntry_Parent struct {
 	xxx_hidden_LeafNodesCount                 uint32                   `protobuf:"varint,3,opt,name=leaf_nodes_count,json=leafNodesCount"`
 	xxx_hidden_DirectoryNodesCount            uint32                   `protobuf:"varint,4,opt,name=directory_nodes_count,json=directoryNodesCount"`
 	xxx_hidden_DirectoryContentsCount         uint32                   `protobuf:"varint,5,opt,name=directory_contents_count,json=directoryContentsCount"`
-	xxx_hidden_MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value  `protobuf:"bytes,6,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	xxx_hidden_MaximumSymlinkEscapementLevels uint32                   `protobuf:"varint,6,opt,name=maximum_symlink_escapement_levels,json=maximumSymlinkEscapementLevels"`
+	XXX_raceDetectHookData                    protoimpl.RaceDetectHookData
+	XXX_presence                              [1]uint32
 	unknownFields                             protoimpl.UnknownFields
 	sizeCache                                 protoimpl.SizeCache
 }
@@ -1449,11 +1457,11 @@ func (x *DirectoryEntry_Parent) GetDirectoryContentsCount() uint32 {
 	return 0
 }
 
-func (x *DirectoryEntry_Parent) GetMaximumSymlinkEscapementLevels() *wrapperspb.UInt32Value {
+func (x *DirectoryEntry_Parent) GetMaximumSymlinkEscapementLevels() uint32 {
 	if x != nil {
 		return x.xxx_hidden_MaximumSymlinkEscapementLevels
 	}
-	return nil
+	return 0
 }
 
 func (x *DirectoryEntry_Parent) SetReference(v *core.DecodableReference) {
@@ -1476,8 +1484,9 @@ func (x *DirectoryEntry_Parent) SetDirectoryContentsCount(v uint32) {
 	x.xxx_hidden_DirectoryContentsCount = v
 }
 
-func (x *DirectoryEntry_Parent) SetMaximumSymlinkEscapementLevels(v *wrapperspb.UInt32Value) {
+func (x *DirectoryEntry_Parent) SetMaximumSymlinkEscapementLevels(v uint32) {
 	x.xxx_hidden_MaximumSymlinkEscapementLevels = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *DirectoryEntry_Parent) HasReference() bool {
@@ -1491,7 +1500,7 @@ func (x *DirectoryEntry_Parent) HasMaximumSymlinkEscapementLevels() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MaximumSymlinkEscapementLevels != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
 func (x *DirectoryEntry_Parent) ClearReference() {
@@ -1499,7 +1508,8 @@ func (x *DirectoryEntry_Parent) ClearReference() {
 }
 
 func (x *DirectoryEntry_Parent) ClearMaximumSymlinkEscapementLevels() {
-	x.xxx_hidden_MaximumSymlinkEscapementLevels = nil
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_MaximumSymlinkEscapementLevels = 0
 }
 
 type DirectoryEntry_Parent_builder struct {
@@ -1510,7 +1520,7 @@ type DirectoryEntry_Parent_builder struct {
 	LeafNodesCount                 uint32
 	DirectoryNodesCount            uint32
 	DirectoryContentsCount         uint32
-	MaximumSymlinkEscapementLevels *wrapperspb.UInt32Value
+	MaximumSymlinkEscapementLevels *uint32
 }
 
 func (b0 DirectoryEntry_Parent_builder) Build() *DirectoryEntry_Parent {
@@ -1522,7 +1532,10 @@ func (b0 DirectoryEntry_Parent_builder) Build() *DirectoryEntry_Parent {
 	x.xxx_hidden_LeafNodesCount = b.LeafNodesCount
 	x.xxx_hidden_DirectoryNodesCount = b.DirectoryNodesCount
 	x.xxx_hidden_DirectoryContentsCount = b.DirectoryContentsCount
-	x.xxx_hidden_MaximumSymlinkEscapementLevels = b.MaximumSymlinkEscapementLevels
+	if b.MaximumSymlinkEscapementLevels != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_MaximumSymlinkEscapementLevels = *b.MaximumSymlinkEscapementLevels
+	}
 	return m0
 }
 
@@ -1841,39 +1854,39 @@ var File_bonanza_build_pkg_proto_model_filesystem_filesystem_proto protoreflect.
 
 const file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_rawDesc = "" +
 	"\n" +
-	"9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"y\n" +
+	"9bonanza.build/pkg/proto/model/filesystem/filesystem.proto\x12\x18bonanza.model.filesystem\x1a5bonanza.build/pkg/proto/model/chunking/chunking.proto\x1a-bonanza.build/pkg/proto/model/core/core.proto\x1a5bonanza.build/pkg/proto/model/encoding/encoding.proto\x1a\x1bgoogle/protobuf/empty.proto\"y\n" +
 	"\x0eFileProperties\x12B\n" +
 	"\bcontents\x18\x01 \x01(\v2&.bonanza.model.filesystem.FileContentsR\bcontents\x12#\n" +
 	"\ris_executable\x18\x02 \x01(\bR\fisExecutable\"+\n" +
 	"\x11SymlinkProperties\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\"B\n" +
 	"\x13DirectoryProperties\x12+\n" +
-	"\x11directories_count\x18\x01 \x01(\rR\x10directoriesCount\"\x8c\b\n" +
+	"\x11directories_count\x18\x01 \x01(\rR\x10directoriesCount\"\xf5\a\n" +
 	"\x0eDirectoryEntry\x12I\n" +
 	"\x06parent\x18\x01 \x01(\v2/.bonanza.model.filesystem.DirectoryEntry.ParentH\x00R\x06parent\x12C\n" +
 	"\x04node\x18\x02 \x01(\v2-.bonanza.model.filesystem.DirectoryEntry.NodeH\x00R\x04node\x12k\n" +
 	"\x12directory_contents\x18\x03 \x01(\v2:.bonanza.model.filesystem.DirectoryEntry.DirectoryContentsH\x00R\x11directoryContents\x1aW\n" +
 	"\x11DirectoryContents\x12B\n" +
-	"\aentries\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\aentries\x1a\x9d\x03\n" +
+	"\aentries\x18\x01 \x03(\v2(.bonanza.model.filesystem.DirectoryEntryR\aentries\x1a\x86\x03\n" +
 	"\x06Parent\x12s\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB-\xea\xd7 )\x1a'bonanza.model.filesystem.DirectoryEntryR\treference\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x02 \x01(\tR\tfirstName\x12(\n" +
 	"\x10leaf_nodes_count\x18\x03 \x01(\rR\x0eleafNodesCount\x122\n" +
 	"\x15directory_nodes_count\x18\x04 \x01(\rR\x13directoryNodesCount\x128\n" +
-	"\x18directory_contents_count\x18\x05 \x01(\rR\x16directoryContentsCount\x12g\n" +
-	"!maximum_symlink_escapement_levels\x18\x06 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x1emaximumSymlinkEscapementLevels\x1a\xfa\x01\n" +
+	"\x18directory_contents_count\x18\x05 \x01(\rR\x16directoryContentsCount\x12P\n" +
+	"!maximum_symlink_escapement_levels\x18\x06 \x01(\rB\x05\xaa\x01\x02\b\x01R\x1emaximumSymlinkEscapementLevels\x1a\xfa\x01\n" +
 	"\x04Node\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12>\n" +
 	"\x04file\x18\x02 \x01(\v2(.bonanza.model.filesystem.FilePropertiesH\x00R\x04file\x12G\n" +
 	"\asymlink\x18\x03 \x01(\v2+.bonanza.model.filesystem.SymlinkPropertiesH\x00R\asymlink\x12M\n" +
 	"\tdirectory\x18\x04 \x01(\v2-.bonanza.model.filesystem.DirectoryPropertiesH\x00R\tdirectoryB\x06\n" +
 	"\x04kindB\a\n" +
-	"\x05level\"\x9f\x02\n" +
+	"\x05level\"\x88\x02\n" +
 	"\x12DirectoryReference\x12s\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB-\xea\xd7 )\x1a'bonanza.model.filesystem.DirectoryEntryR\treference\x12+\n" +
-	"\x11directories_count\x18\x02 \x01(\rR\x10directoriesCount\x12g\n" +
-	"!maximum_symlink_escapement_levels\x18\x03 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x1emaximumSymlinkEscapementLevels\"\xbe\x03\n" +
+	"\x11directories_count\x18\x02 \x01(\rR\x10directoriesCount\x12P\n" +
+	"!maximum_symlink_escapement_levels\x18\x03 \x01(\rB\x05\xaa\x01\x02\b\x01R\x1emaximumSymlinkEscapementLevels\"\xbe\x03\n" +
 	"\fFileContents\x12A\n" +
 	"\x04list\x18\x01 \x01(\v2+.bonanza.model.filesystem.FileContents.ListH\x00R\x04list\x12Y\n" +
 	"\x0fchunk_reference\x18\x02 \x01(\v2&.bonanza.model.core.DecodableReferenceB\x06\xea\xd7 \x02\n" +
@@ -1921,10 +1934,9 @@ var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_goTypes = []a
 	(*DirectoryEntry_Node)(nil),              // 13: bonanza.model.filesystem.DirectoryEntry.Node
 	(*FileContents_List)(nil),                // 14: bonanza.model.filesystem.FileContents.List
 	(*core.DecodableReference)(nil),          // 15: bonanza.model.core.DecodableReference
-	(*wrapperspb.UInt32Value)(nil),           // 16: google.protobuf.UInt32Value
-	(*emptypb.Empty)(nil),                    // 17: google.protobuf.Empty
-	(*encoding.BinaryEncoder)(nil),           // 18: bonanza.model.encoding.BinaryEncoder
-	(*chunking.Parameters)(nil),              // 19: bonanza.model.chunking.Parameters
+	(*emptypb.Empty)(nil),                    // 16: google.protobuf.Empty
+	(*encoding.BinaryEncoder)(nil),           // 17: bonanza.model.encoding.BinaryEncoder
+	(*chunking.Parameters)(nil),              // 18: bonanza.model.chunking.Parameters
 }
 var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []int32{
 	5,  // 0: bonanza.model.filesystem.FileProperties.contents:type_name -> bonanza.model.filesystem.FileContents
@@ -1932,31 +1944,29 @@ var file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_depIdxs = []i
 	13, // 2: bonanza.model.filesystem.DirectoryEntry.node:type_name -> bonanza.model.filesystem.DirectoryEntry.Node
 	11, // 3: bonanza.model.filesystem.DirectoryEntry.directory_contents:type_name -> bonanza.model.filesystem.DirectoryEntry.DirectoryContents
 	15, // 4: bonanza.model.filesystem.DirectoryReference.reference:type_name -> bonanza.model.core.DecodableReference
-	16, // 5: bonanza.model.filesystem.DirectoryReference.maximum_symlink_escapement_levels:type_name -> google.protobuf.UInt32Value
-	14, // 6: bonanza.model.filesystem.FileContents.list:type_name -> bonanza.model.filesystem.FileContents.List
-	15, // 7: bonanza.model.filesystem.FileContents.chunk_reference:type_name -> bonanza.model.core.DecodableReference
-	17, // 8: bonanza.model.filesystem.FileContents.hole:type_name -> google.protobuf.Empty
-	5,  // 9: bonanza.model.filesystem.MaybeInlineFileContents.contents_external:type_name -> bonanza.model.filesystem.FileContents
-	18, // 10: bonanza.model.filesystem.DirectoryAccessParameters.encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	7,  // 11: bonanza.model.filesystem.DirectoryCreationParameters.access:type_name -> bonanza.model.filesystem.DirectoryAccessParameters
-	19, // 12: bonanza.model.filesystem.DirectoryCreationParameters.directories_parameters:type_name -> bonanza.model.chunking.Parameters
-	18, // 13: bonanza.model.filesystem.FileAccessParameters.chunk_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	18, // 14: bonanza.model.filesystem.FileAccessParameters.file_contents_list_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
-	9,  // 15: bonanza.model.filesystem.FileCreationParameters.access:type_name -> bonanza.model.filesystem.FileAccessParameters
-	19, // 16: bonanza.model.filesystem.FileCreationParameters.chunk_parameters:type_name -> bonanza.model.chunking.Parameters
-	19, // 17: bonanza.model.filesystem.FileCreationParameters.file_contents_list_parameters:type_name -> bonanza.model.chunking.Parameters
-	3,  // 18: bonanza.model.filesystem.DirectoryEntry.DirectoryContents.entries:type_name -> bonanza.model.filesystem.DirectoryEntry
-	15, // 19: bonanza.model.filesystem.DirectoryEntry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
-	16, // 20: bonanza.model.filesystem.DirectoryEntry.Parent.maximum_symlink_escapement_levels:type_name -> google.protobuf.UInt32Value
-	0,  // 21: bonanza.model.filesystem.DirectoryEntry.Node.file:type_name -> bonanza.model.filesystem.FileProperties
-	1,  // 22: bonanza.model.filesystem.DirectoryEntry.Node.symlink:type_name -> bonanza.model.filesystem.SymlinkProperties
-	2,  // 23: bonanza.model.filesystem.DirectoryEntry.Node.directory:type_name -> bonanza.model.filesystem.DirectoryProperties
-	15, // 24: bonanza.model.filesystem.FileContents.List.reference:type_name -> bonanza.model.core.DecodableReference
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	14, // 5: bonanza.model.filesystem.FileContents.list:type_name -> bonanza.model.filesystem.FileContents.List
+	15, // 6: bonanza.model.filesystem.FileContents.chunk_reference:type_name -> bonanza.model.core.DecodableReference
+	16, // 7: bonanza.model.filesystem.FileContents.hole:type_name -> google.protobuf.Empty
+	5,  // 8: bonanza.model.filesystem.MaybeInlineFileContents.contents_external:type_name -> bonanza.model.filesystem.FileContents
+	17, // 9: bonanza.model.filesystem.DirectoryAccessParameters.encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	7,  // 10: bonanza.model.filesystem.DirectoryCreationParameters.access:type_name -> bonanza.model.filesystem.DirectoryAccessParameters
+	18, // 11: bonanza.model.filesystem.DirectoryCreationParameters.directories_parameters:type_name -> bonanza.model.chunking.Parameters
+	17, // 12: bonanza.model.filesystem.FileAccessParameters.chunk_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	17, // 13: bonanza.model.filesystem.FileAccessParameters.file_contents_list_encoders:type_name -> bonanza.model.encoding.BinaryEncoder
+	9,  // 14: bonanza.model.filesystem.FileCreationParameters.access:type_name -> bonanza.model.filesystem.FileAccessParameters
+	18, // 15: bonanza.model.filesystem.FileCreationParameters.chunk_parameters:type_name -> bonanza.model.chunking.Parameters
+	18, // 16: bonanza.model.filesystem.FileCreationParameters.file_contents_list_parameters:type_name -> bonanza.model.chunking.Parameters
+	3,  // 17: bonanza.model.filesystem.DirectoryEntry.DirectoryContents.entries:type_name -> bonanza.model.filesystem.DirectoryEntry
+	15, // 18: bonanza.model.filesystem.DirectoryEntry.Parent.reference:type_name -> bonanza.model.core.DecodableReference
+	0,  // 19: bonanza.model.filesystem.DirectoryEntry.Node.file:type_name -> bonanza.model.filesystem.FileProperties
+	1,  // 20: bonanza.model.filesystem.DirectoryEntry.Node.symlink:type_name -> bonanza.model.filesystem.SymlinkProperties
+	2,  // 21: bonanza.model.filesystem.DirectoryEntry.Node.directory:type_name -> bonanza.model.filesystem.DirectoryProperties
+	15, // 22: bonanza.model.filesystem.FileContents.List.reference:type_name -> bonanza.model.core.DecodableReference
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_bonanza_build_pkg_proto_model_filesystem_filesystem_proto_init() }

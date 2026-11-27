@@ -12,7 +12,6 @@ proto_library(
         "//pkg/proto/model/core:core_proto",
         "//pkg/proto/model/encoding:encoding_proto",
         "@protobuf//:empty_proto",
-        "@protobuf//:wrappers_proto",
     ],
 )
 
