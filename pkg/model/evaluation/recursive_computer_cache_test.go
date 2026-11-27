@@ -18,6 +18,7 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/clock"
@@ -165,11 +166,11 @@ func (c *cacheTestComputer) ComputeValue(ctx context.Context, key model_core.Mes
 	), nil
 }
 
-func (*cacheTestComputer) ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
+func (*cacheTestComputer) ComputeObject(keyFormat *model_format_pb.Format, value model_core.TopLevelMessage[[]byte, object.LocalReference]) (any, error) {
 	panic("values do not have objects")
 }
 
-func (*cacheTestComputer) IsLookup(typeName string) bool {
+func (*cacheTestComputer) IsLookup(keyFormat *model_format_pb.Format) bool {
 	return false
 }
 

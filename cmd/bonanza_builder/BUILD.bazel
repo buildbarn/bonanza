@@ -18,6 +18,7 @@ go_library(
         "//pkg/model/starlark",
         "//pkg/proto/configuration/bonanza_builder",
         "//pkg/proto/model/executewithstorage",
+        "//pkg/proto/model/format",
         "//pkg/proto/remoteexecution",
         "//pkg/proto/remoteworker",
         "//pkg/proto/storage/dag",

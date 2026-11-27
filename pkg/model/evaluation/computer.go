@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 
 	"google.golang.org/protobuf/proto"
@@ -23,7 +24,7 @@ var ErrMissingDependency = errors.New("missing dependency")
 // framework. They are yielded by the computer in the form of a
 // BinaryMarshaler. They are unmarshaled using an Unmarshaler that is
 // provided by the caller of Environment.GetValue(), or by
-// ComputeObject(), which is provided the type URL of the key to
+// ComputeObject(), which is provided the format of the key to
 // determine the type of the value.
 //
 // Values may have an object associated with them, consisting of an
@@ -34,8 +35,8 @@ var ErrMissingDependency = errors.New("missing dependency")
 // anything other than the value.
 type Computer[TReference any, TMetadata model_core.ReferenceMetadata] interface {
 	ComputeValue(ctx context.Context, key model_core.Message[proto.Message, TReference], e Environment[TReference, TMetadata]) (model_core.PatchedMessage[encoding.BinaryMarshaler, TMetadata], error)
-	ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error)
-	IsLookup(typeName string) bool
+	ComputeObject(keyFormat *model_format_pb.Format, value model_core.TopLevelMessage[[]byte, TReference]) (any, error)
+	IsLookup(keyFormat *model_format_pb.Format) bool
 }
 
 // ComputerForTesting is used to generate mocks that are used by

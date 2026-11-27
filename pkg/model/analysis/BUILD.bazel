@@ -143,6 +143,7 @@ go_library(
         "//pkg/proto/model/evaluation",
         "//pkg/proto/model/fetch",
         "//pkg/proto/model/filesystem",
+        "//pkg/proto/model/format",  # keep
         "//pkg/proto/model/starlark",
         "//pkg/remoteexecution",
         "//pkg/search",

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	model_core "bonanza.build/pkg/model/core"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/program"
@@ -59,7 +60,7 @@ type simpleRecursiveComputerEvaluationQueues[TReference object.BasicReference, T
 	concurrency uint32
 }
 
-func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(typeName string) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+func (q *simpleRecursiveComputerEvaluationQueues[TReference, TMetadata]) PickQueue(keyFormat *model_format_pb.Format) *RecursiveComputerEvaluationQueue[TReference, TMetadata] {
 	return q.queue
 }
 

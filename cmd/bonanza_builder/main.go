@@ -16,6 +16,7 @@ import (
 	model_starlark "bonanza.build/pkg/model/starlark"
 	"bonanza.build/pkg/proto/configuration/bonanza_builder"
 	model_executewithstorage_pb "bonanza.build/pkg/proto/model/executewithstorage"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	remoteexecution_pb "bonanza.build/pkg/proto/remoteexecution"
 	remoteworker_pb "bonanza.build/pkg/proto/remoteworker"
 	dag_pb "bonanza.build/pkg/proto/storage/dag"
@@ -222,18 +223,18 @@ type queues[TReference object.BasicReference, TMetadata model_core.ReferenceMeta
 	remote model_evaluation.RecursiveComputerEvaluationQueues[TReference, TMetadata]
 }
 
-func (q *queues[TReference, TMetadata]) PickQueue(typeName string) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
-	switch typeName {
+func (q *queues[TReference, TMetadata]) PickQueue(keyFormat *model_format_pb.Format) *model_evaluation.RecursiveComputerEvaluationQueue[TReference, TMetadata] {
+	switch keyFormat.GetProtoTypeName() {
 	case "bonanza.model.analysis.HttpFileContents.Key":
 	case "bonanza.model.analysis.RawActionResult.Key":
 		// Run evaluation steps that call into the remote
 		// execution client with a higher concurrency.
-		return q.remote.PickQueue(typeName)
+		return q.remote.PickQueue(keyFormat)
 	}
 
 	// Run all other evaluation steps that run locally with a lower
 	// concurrency.
-	return q.local.PickQueue(typeName)
+	return q.local.PickQueue(keyFormat)
 }
 
 func (q *queues[TReference, TMetadata]) ProcessAllEvaluatableKeys(group program.Group, computer *model_evaluation.RecursiveComputer[TReference, TMetadata]) {

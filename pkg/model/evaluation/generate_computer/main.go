@@ -194,6 +194,7 @@ func main() {
 	fmt.Printf("\t\"bonanza.build/pkg/storage/object\"\n")
 	fmt.Printf("\tmodel_core \"bonanza.build/pkg/model/core\"\n")
 	fmt.Printf("\tmodel_format \"bonanza.build/pkg/model/format\"\n")
+	fmt.Printf("\tmodel_format_pb \"bonanza.build/pkg/proto/model/format\"\n")
 	fmt.Printf("\t\"google.golang.org/protobuf/proto\"\n")
 	fmt.Printf("\tpb %#v\n", computerDefinition.ProtoPackage)
 	for _, shortName := range slices.Sorted(maps.Keys(imports)) {
@@ -389,8 +390,8 @@ func main() {
 			fmt.Printf("var keyTypeName%s = string((*pb.%s_Key)(nil).ProtoReflect().Descriptor().FullName())\n", functionName, getMessageName(functionName))
 		}
 	}
-	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(keyTypeName string, value model_core.TopLevelMessage[[]byte, TReference]) (any, error) {\n")
-	fmt.Printf("\tswitch keyTypeName {\n")
+	fmt.Printf("func (c *typedComputer[TReference, TMetadata]) ComputeObject(keyFormat *model_format_pb.Format, value model_core.TopLevelMessage[[]byte, TReference]) (any, error) {\n")
+	fmt.Printf("\tswitch keyFormat.GetProtoTypeName() {\n")
 	for _, functionName := range slices.Sorted(maps.Keys(computerDefinition.Functions)) {
 		if computerDefinition.Functions[functionName].ObjectType != nil {
 			fmt.Printf("\tcase keyTypeName%s:\n", functionName)
@@ -406,8 +407,8 @@ func main() {
 	fmt.Printf("\t}\n")
 	fmt.Printf("}\n")
 
-	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(typeName string) bool {\n")
-	fmt.Printf("\t_, ok := isLookupKeyTypeNames[typeName]\n")
+	fmt.Printf("func (typedComputer[TReference, TMetadata]) IsLookup(keyFormat *model_format_pb.Format) bool {\n")
+	fmt.Printf("\t_, ok := isLookupKeyTypeNames[keyFormat.GetProtoTypeName()]\n")
 	fmt.Printf("\treturn ok\n")
 	fmt.Printf("}\n")
 }

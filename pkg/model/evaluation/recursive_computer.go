@@ -23,6 +23,7 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_evaluation_pb "bonanza.build/pkg/proto/model/evaluation"
 	model_evaluation_cache_pb "bonanza.build/pkg/proto/model/evaluation/cache"
+	model_format_pb "bonanza.build/pkg/proto/model/format"
 	"bonanza.build/pkg/storage/object"
 	bonanza_sync "bonanza.build/pkg/sync"
 
@@ -62,7 +63,7 @@ func NewRecursiveComputerEvaluationQueue[TReference object.BasicReference, TMeta
 // RecursiveComputerEvaluationQueuePicker is used by RecursiveComputer to pick a
 // RecursiveComputerEvaluationQueue to which a given key should be assigned.
 type RecursiveComputerEvaluationQueuePicker[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] interface {
-	PickQueue(typeName string) *RecursiveComputerEvaluationQueue[TReference, TMetadata]
+	PickQueue(keyFormat *model_format_pb.Format) *RecursiveComputerEvaluationQueue[TReference, TMetadata]
 }
 
 // RecursiveComputer can be used to compute values, taking dependencies
@@ -435,14 +436,14 @@ func (rc *RecursiveComputer[TReference, TMetadata]) forceUnblockKeyState(ks *Key
 	rc.blockedKeys.remove(ks)
 }
 
-func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], keyTypeName string, evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
+func (rc *RecursiveComputer[TReference, TMetadata]) getOrCreateKeyStateLocked(keyReference object.LocalReference, keyMessageFetcher messageFetcher[TReference, TMetadata], keyFormat *model_format_pb.Format, evaluationQueue *RecursiveComputerEvaluationQueue[TReference, TMetadata]) *KeyState[TReference, TMetadata] {
 	ks, ok := rc.keys[keyReference]
 	if !ok {
 		// Brand new key.
 		ks = &KeyState[TReference, TMetadata]{
 			keyReference:      keyReference,
 			keyMessageFetcher: keyMessageFetcher,
-			isLookup:          rc.base.IsLookup(keyTypeName),
+			isLookup:          rc.base.IsLookup(keyFormat),
 			valueState:        initialValueState[TReference, TMetadata]{},
 			evaluationQueue:   evaluationQueue,
 		}
@@ -477,10 +478,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) GetOrCreateKeyState(key mode
 	keyMessageFetcher := &staticMessageFetcher[TReference, TMetadata]{
 		message: key,
 	}
-	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat().GetProtoTypeName())
+	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat())
 
 	rc.lock.Lock()
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat().GetProtoTypeName(), evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat(), evaluationQueue)
 	rc.lock.Unlock()
 	return ks, nil
 }
@@ -938,10 +939,10 @@ func (rc *RecursiveComputer[TReference, TMetadata]) resolveCachedKeys(ctx contex
 		if !exists {
 			// Key has not been requested before. Only
 			// consult the base computer in this case.
-			typeName := key.Message.GetFormat().GetProtoTypeName()
-			evaluationQueue := rc.evaluationQueuePicker.PickQueue(typeName)
+			keyFormat := key.Message.GetFormat()
+			evaluationQueue := rc.evaluationQueuePicker.PickQueue(keyFormat)
 			rc.lock.Lock()
-			ks = rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, typeName, evaluationQueue)
+			ks = rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, keyFormat, evaluationQueue)
 			rc.lock.Unlock()
 		}
 		keyStates = append(keyStates, ks)
@@ -1080,7 +1081,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) ReportProgress(
 	rc.lock.Unlock()
 }
 
-func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (*KeyState[TReference, TMetadata], valueState[TReference, TMetadata], string) {
+func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (*KeyState[TReference, TMetadata], valueState[TReference, TMetadata], *model_format_pb.Format) {
 	rc := e.computer
 	key, err := model_core.MarshalTopLevelAny(model_core.Unpatch(rc.objectManager, patchedKey))
 	if err != nil {
@@ -1094,15 +1095,15 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 		message: key,
 	}
 
-	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat().GetProtoTypeName())
+	evaluationQueue := rc.evaluationQueuePicker.PickQueue(key.Message.GetFormat())
 
 	rc.lock.Lock()
 	defer rc.lock.Unlock()
 
-	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat().GetProtoTypeName(), evaluationQueue)
+	ks := rc.getOrCreateKeyStateLocked(keyReference, keyMessageFetcher, key.Message.GetFormat(), evaluationQueue)
 	if !ks.valueState.isEvaluated() {
 		e.missingDependencies[ks] = struct{}{}
-		return nil, nil, ""
+		return nil, nil, nil
 	}
 	if err := ks.valueState.getError(); err != nil {
 		// In case of failures we always assume that the
@@ -1114,12 +1115,12 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) getValueState(p
 			KeyState: ks,
 			Err:      err,
 		})
-		return nil, nil, ""
+		return nil, nil, nil
 	}
 	if ks.valueState.isVariableDependency() {
 		e.directVariableDependencies[ks] = struct{}{}
 	}
-	return ks, ks.valueState, key.Message.GetFormat().GetProtoTypeName()
+	return ks, ks.valueState, key.Message.GetFormat()
 }
 
 // setDependencyError reports that a value derived from the value of a
@@ -1157,7 +1158,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetValue(patche
 }
 
 func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patchedKey model_core.PatchedMessage[proto.Message, TMetadata]) (any, bool) {
-	ks, vs, keyTypeName := e.getValueState(patchedKey)
+	ks, vs, keyFormat := e.getValueState(patchedKey)
 	if vs == nil {
 		return nil, false
 	}
@@ -1170,7 +1171,7 @@ func (e *recursivelyComputingEnvironment[TReference, TMetadata]) GetObject(patch
 		e.setError(err)
 		return nil, false
 	}
-	object, err := e.computer.base.ComputeObject(keyTypeName, value)
+	object, err := e.computer.base.ComputeObject(keyFormat, value)
 	if err != nil {
 		e.setDependencyError(ks, err)
 		return nil, false
