@@ -24,13 +24,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Con
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
+	fromPackage, err := label.NewCanonicalPackage(key.Message.GetFromPackage())
 	if err != nil {
 		return PatchedSelectValue[TMetadata]{}, fmt.Errorf("invalid package: %w", err)
 	}
 	labelResolver := newLabelResolver(e)
 	fileReader, gotFileReader := getFileReader(e)
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 	missingDependencies := false
 	var platformConstraints []*model_analysis_pb.Constraint
 	var matchingIndices []uint32
@@ -38,7 +38,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeSelectValue(ctx context.Con
 		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 CheckConditions:
-	for i, conditionIdentifier := range key.Message.ConditionIdentifiers {
+	for i, conditionIdentifier := range key.Message.GetConditionIdentifiers() {
 		configSettingInfo, configSettingLabelStr, err := getProviderFromVisibleConfiguredTarget(
 			e,
 			fromPackage.String(),
@@ -96,8 +96,8 @@ CheckConditions:
 		if err != nil {
 			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to obtain \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", conditionIdentifier, err)
 		}
-		flagValuesDict, ok := flagValuesField.Message.GetKind().(*model_starlark_pb.Value_Dict)
-		if !ok {
+		flagValuesDict := flagValuesField.Message.GetDict()
+		if flagValuesDict == nil {
 			return PatchedSelectValue[TMetadata]{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a dict", conditionIdentifier)
 		}
 		configSettingLabel, err := label.NewCanonicalLabel(configSettingLabelStr)
@@ -108,19 +108,19 @@ CheckConditions:
 		for key, value := range model_starlark.AllDictLeafEntries(
 			ctx,
 			valueReaders.Dict,
-			model_core.Nested(flagValuesField, flagValuesDict.Dict),
+			model_core.Nested(flagValuesField, flagValuesDict),
 			&errIter,
 		) {
-			buildSettingLabel, ok := key.Message.GetKind().(*model_starlark_pb.Value_Label)
-			if !ok {
+			buildSettingLabel := key.Message.GetLabel()
+			if buildSettingLabel == "" {
 				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("\"flag_values\" field of ConfigSettingInfo provider of config setting %#v contains a key that is not a label", conditionIdentifier)
 			}
 			expectedValue, ok, err := getStringValue(ctx, fileReader, value)
 			if err != nil {
-				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel, conditionIdentifier, err)
 			}
 			if !ok {
-				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a string", buildSettingLabel.Label, conditionIdentifier)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v is not a string", buildSettingLabel, conditionIdentifier)
 			}
 
 			actualValue, err := c.getBuildSettingValue(
@@ -129,7 +129,7 @@ CheckConditions:
 				analysisReaders,
 				valueReaders,
 				configSettingLabel.GetCanonicalPackage(),
-				buildSettingLabel.Label,
+				buildSettingLabel,
 				configurationReference,
 			)
 			if err != nil {
@@ -150,7 +150,7 @@ CheckConditions:
 			}
 			equal, err := comparer.compareBuildSettingValue(actualValue)
 			if err != nil {
-				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to compare key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel.Label, conditionIdentifier, err)
+				return PatchedSelectValue[TMetadata]{}, fmt.Errorf("failed to compare key %#v of \"flag_values\" field of ConfigSettingInfo provider of config setting %#v: %w", buildSettingLabel, conditionIdentifier, err)
 			}
 			if !equal {
 				continue CheckConditions
@@ -167,11 +167,9 @@ CheckConditions:
 		return PatchedSelectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.Select_Value{
-			ConditionIndices: matchingIndices,
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.Select_Value{
+		ConditionIndices: matchingIndices,
+	}), nil
 }
 
 type buildSettingValueComparer[TReference object.BasicReference] struct {
@@ -184,14 +182,14 @@ type buildSettingValueComparer[TReference object.BasicReference] struct {
 }
 
 func (vc *buildSettingValueComparer[TReference]) compareBuildSettingValue(actualValue model_core.Message[*model_starlark_pb.Value, TReference]) (bool, error) {
-	switch typedValue := actualValue.Message.GetKind().(type) {
-	case *model_starlark_pb.Value_Bool:
+	switch actualValue.Message.WhichKind() {
+	case model_starlark_pb.Value_Bool_case:
 		expectedBooleanValue, err := model_starlark.ParseBoolBuildSettingString(vc.expectedValue)
 		if err != nil {
 			return false, err
 		}
-		return expectedBooleanValue == typedValue.Bool, nil
-	case *model_starlark_pb.Value_Label:
+		return expectedBooleanValue == actualValue.Message.GetBool(), nil
+	case model_starlark_pb.Value_Label_case:
 		// Parse label to obtain a canonical representation.
 		apparentLabel, err := vc.fromPackage.AppendLabel(vc.expectedValue)
 		if err != nil {
@@ -201,13 +199,13 @@ func (vc *buildSettingValueComparer[TReference]) compareBuildSettingValue(actual
 		if err != nil {
 			return false, fmt.Errorf("failed to resolve label %#v: %w", vc.expectedValue, err)
 		}
-		return resolvedLabel.String() == typedValue.Label, nil
-	case *model_starlark_pb.Value_List:
+		return resolvedLabel.String() == actualValue.Message.GetLabel(), nil
+	case model_starlark_pb.Value_List_case:
 		var errIter error
 		for element := range model_starlark.AllListLeafElementsSkippingDuplicateParents(
 			vc.context,
 			vc.listReader,
-			model_core.Nested(actualValue, typedValue.List.Elements),
+			model_core.Nested(actualValue, actualValue.Message.GetList().GetElements()),
 			/* listsSeen = */ map[model_core.Decodable[object.LocalReference]]struct{}{},
 			&errIter,
 		) {
@@ -223,7 +221,7 @@ func (vc *buildSettingValueComparer[TReference]) compareBuildSettingValue(actual
 			return false, errIter
 		}
 		return false, nil
-	case *model_starlark_pb.Value_Str:
+	case model_starlark_pb.Value_Str_case:
 		actualString, _, err := getStringValue(vc.context, vc.fileReader, actualValue)
 		if err != nil {
 			return false, err

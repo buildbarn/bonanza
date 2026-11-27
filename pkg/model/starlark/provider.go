@@ -13,6 +13,8 @@ import (
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Provider is a factory for structs having a distinct type. Providers
@@ -160,9 +162,9 @@ func (p *Provider[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path 
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 
-	provider := &model_starlark_pb.Provider{
+	provider := model_starlark_pb.Provider_builder{
 		InstanceProperties: instanceProperties.Message,
-	}
+	}.Build()
 	patcher := instanceProperties.Patcher
 
 	if p.initFunction != nil {
@@ -171,16 +173,14 @@ func (p *Provider[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path 
 			patcher.Discard()
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 		}
-		provider.InitFunction = initFunction.Message
+		provider.SetInitFunction(initFunction.Message)
 		patcher.Merge(initFunction.Patcher)
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Provider{
-				Provider: provider,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Provider: proto.ValueOrDefault(provider),
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -188,7 +188,7 @@ func (p *Provider[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path 
 // DecodeProvider converts a Protobuf message of a provider to a native
 // Starlark provider object.
 func DecodeProvider[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider, TReference]) (*Provider[TReference, TMetadata], error) {
-	instanceProperties := m.Message.InstanceProperties
+	instanceProperties := m.Message.GetInstanceProperties()
 	if instanceProperties == nil {
 		return nil, errors.New("provider instance properties are missing")
 	}
@@ -197,12 +197,12 @@ func DecodeProvider[TReference object.BasicReference, TMetadata model_core.Refer
 		return nil, err
 	}
 	var initFunction eval.Function
-	if m.Message.InitFunction != nil {
-		initFunction = DecodeFunction[TReference, TMetadata](model_core.Nested(m, m.Message.InitFunction))
+	if mInitFunction := m.Message.GetInitFunction(); mInitFunction != nil {
+		initFunction = DecodeFunction[TReference, TMetadata](model_core.Nested(m, mInitFunction))
 	}
 	return NewProvider[TReference](
 		providerInstanceProperties,
-		m.Message.Fields,
+		m.Message.GetFields(),
 		initFunction,
 	), nil
 }
@@ -226,13 +226,13 @@ func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.R
 			providerIdentifiers = append(providerIdentifiers, provider.Identifier.String())
 		}
 		slices.Sort(providerIdentifiers)
-		encodedProviderSets = append(encodedProviderSets, &model_starlark_pb.ProviderSet{
+		encodedProviderSets = append(encodedProviderSets, model_starlark_pb.ProviderSet_builder{
 			ProviderIdentifiers: slices.Compact(providerIdentifiers),
-		})
+		}.Build())
 	}
 
 	compareProviderSets := func(a, b *model_starlark_pb.ProviderSet) int {
-		return slices.Compare(a.ProviderIdentifiers, b.ProviderIdentifiers)
+		return slices.Compare(a.GetProviderIdentifiers(), b.GetProviderIdentifiers())
 	}
 	slices.SortFunc(encodedProviderSets, compareProviderSets)
 	encodedProviderSets = slices.CompactFunc(encodedProviderSets, func(a, b *model_starlark_pb.ProviderSet) bool {
@@ -244,7 +244,7 @@ func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.R
 	// set is a subset of it.
 	return slices.DeleteFunc(slices.Clone(encodedProviderSets), func(superset *model_starlark_pb.ProviderSet) bool {
 		for _, subset := range encodedProviderSets {
-			if subset != superset && isSortedSubset(subset.ProviderIdentifiers, superset.ProviderIdentifiers) {
+			if subset != superset && isSortedSubset(subset.GetProviderIdentifiers(), superset.GetProviderIdentifiers()) {
 				return true
 			}
 		}
@@ -258,7 +258,7 @@ func EncodeProviderSets[TReference object.BasicReference, TMetadata model_core.R
 // by EncodeProviderSets().
 func ProviderSetsSatisfiedBy(providerSets []*model_starlark_pb.ProviderSet, providerIdentifiers []string) bool {
 	for _, providerSet := range providerSets {
-		if isSortedSubset(providerSet.ProviderIdentifiers, providerIdentifiers) {
+		if isSortedSubset(providerSet.GetProviderIdentifiers(), providerIdentifiers) {
 			return true
 		}
 	}

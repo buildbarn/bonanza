@@ -12,18 +12,18 @@ import (
 )
 
 func TestParseAspectParameterValue(t *testing.T) {
-	boolAttr := &model_starlark_pb.NamedAttr{
+	boolAttr := model_starlark_pb.NamedAttr_builder{
 		Name: "flag",
-		Attr: &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_Bool{Bool: &emptypb.Empty{}}},
-	}
-	intAttr := &model_starlark_pb.NamedAttr{
+		Attr: model_starlark_pb.Attr_builder{Bool: &emptypb.Empty{}}.Build(),
+	}.Build()
+	intAttr := model_starlark_pb.NamedAttr_builder{
 		Name: "count",
-		Attr: &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_Int{Int: &model_starlark_pb.Attr_IntType{}}},
-	}
-	stringAttr := &model_starlark_pb.NamedAttr{
+		Attr: model_starlark_pb.Attr_builder{Int: &model_starlark_pb.Attr_IntType{}}.Build(),
+	}.Build()
+	stringAttr := model_starlark_pb.NamedAttr_builder{
 		Name: "mode",
-		Attr: &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}}},
-	}
+		Attr: model_starlark_pb.Attr_builder{String: &model_starlark_pb.Attr_StringType{}}.Build(),
+	}.Build()
 
 	t.Run("Bool", func(t *testing.T) {
 		for _, value := range []string{"true", "True", "1"} {

@@ -43,15 +43,14 @@ func TestInt(t *testing.T) {
 	t.Run("ZeroInValue", func(t *testing.T) {
 		// Zero is encoded as an empty value. Its presence
 		// should be retained when stored as part of a oneof.
-		data, err := proto.Marshal(&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(0))},
-		})
+		data, err := proto.Marshal(model_starlark_pb.Value_builder{
+			Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(0))),
+		}.Build())
 		require.NoError(t, err)
 		var value model_starlark_pb.Value
 		require.NoError(t, proto.Unmarshal(data, &value))
-		kind, ok := value.Kind.(*model_starlark_pb.Value_Int)
-		require.True(t, ok)
-		require.Equal(t, 0, model_starlark.DecodeInt(kind.Int).Sign())
+		require.True(t, value.HasInt())
+		require.Equal(t, 0, model_starlark.DecodeInt(value.GetInt()).Sign())
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {

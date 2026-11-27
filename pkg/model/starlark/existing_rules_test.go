@@ -68,17 +68,17 @@ func TestExistingRules(t *testing.T) {
 		case string:
 			return newStringValue(v)
 		case label.CanonicalLabel:
-			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: v.String()}}
+			return model_starlark_pb.Value_builder{Label: proto.String(v.String())}.Build()
 		case []*model_starlark_pb.Value:
 			elements := make([]*model_starlark_pb.List_Element, 0, len(v))
 			for _, element := range v {
-				elements = append(elements, &model_starlark_pb.List_Element{
-					Level: &model_starlark_pb.List_Element_Leaf{Leaf: element},
-				})
+				elements = append(elements, model_starlark_pb.List_Element_builder{
+					Leaf: proto.ValueOrDefault(element),
+				}.Build())
 			}
-			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{Elements: elements}}}
+			return model_starlark_pb.Value_builder{List: model_starlark_pb.List_builder{Elements: elements}.Build()}.Build()
 		case nil:
-			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &emptypb.Empty{}}}
+			return model_starlark_pb.Value_builder{None: &emptypb.Empty{}}.Build()
 		}
 		panic("unknown value kind")
 	}
@@ -89,10 +89,10 @@ func TestExistingRules(t *testing.T) {
 		return groups
 	}
 	noMatch := func(v *model_starlark_pb.Value, conditions ...*model_starlark_pb.Select_Condition) *model_starlark_pb.Select_Group {
-		return &model_starlark_pb.Select_Group{
-			Conditions: conditions,
-			NoMatch:    &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: v},
-		}
+		return model_starlark_pb.Select_Group_builder{
+			Conditions:   conditions,
+			NoMatchValue: proto.ValueOrDefault(v),
+		}.Build()
 	}
 
 	newThread := func(t *testing.T, resolver model_starlark.ExistingRulesResolver[object.LocalReference]) *eval.Thread {
@@ -106,55 +106,55 @@ func TestExistingRules(t *testing.T) {
 		})
 		thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 			require.Equal(t, "@@rules+//:defs.bzl%my_rule", identifier.String())
-			return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{
-					Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
+			return model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Value_builder{
+				Rule: model_starlark_pb.Rule_builder{
+					Definition: model_starlark_pb.Rule_Definition_builder{
 						Attrs: []*model_starlark_pb.NamedAttr{
-							{
+							model_starlark_pb.NamedAttr_builder{
 								Name: "_private",
-								Attr: &model_starlark_pb.Attr{
-									Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+								Attr: model_starlark_pb.Attr_builder{
+									String:  &model_starlark_pb.Attr_StringType{},
 									Default: value("private"),
-								},
-							},
-							{
+								}.Build(),
+							}.Build(),
+							model_starlark_pb.NamedAttr_builder{
 								Name: "computed",
-								Attr: &model_starlark_pb.Attr{
-									Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-									Default: &model_starlark_pb.Value{
-										Kind: &model_starlark_pb.Value_Function{Function: &model_starlark_pb.Function{NamePath: []*model_starlark_pb.Function_Name{{Name: "_computed"}}}},
-									},
-								},
-							},
-							{
+								Attr: model_starlark_pb.Attr_builder{
+									String: &model_starlark_pb.Attr_StringType{},
+									Default: model_starlark_pb.Value_builder{
+										Function: model_starlark_pb.Function_builder{NamePath: []*model_starlark_pb.Function_Name{model_starlark_pb.Function_Name_builder{Name: "_computed"}.Build()}}.Build(),
+									}.Build(),
+								}.Build(),
+							}.Build(),
+							model_starlark_pb.NamedAttr_builder{
 								Name: "defaulted",
-								Attr: &model_starlark_pb.Attr{
-									Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+								Attr: model_starlark_pb.Attr_builder{
+									String:  &model_starlark_pb.Attr_StringType{},
 									Default: value("default"),
-								},
-							},
-							{
+								}.Build(),
+							}.Build(),
+							model_starlark_pb.NamedAttr_builder{
 								Name: "env",
-								Attr: &model_starlark_pb.Attr{
-									Type: &model_starlark_pb.Attr_StringDict{StringDict: &model_starlark_pb.Attr_StringDictType{}},
-								},
-							},
-							{
+								Attr: model_starlark_pb.Attr_builder{
+									StringDict: &model_starlark_pb.Attr_StringDictType{},
+								}.Build(),
+							}.Build(),
+							model_starlark_pb.NamedAttr_builder{
 								Name: "opts",
-								Attr: &model_starlark_pb.Attr{
-									Type: &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{}},
-								},
-							},
-							{
+								Attr: model_starlark_pb.Attr_builder{
+									StringList: &model_starlark_pb.Attr_StringListType{},
+								}.Build(),
+							}.Build(),
+							model_starlark_pb.NamedAttr_builder{
 								Name: "srcs",
-								Attr: &model_starlark_pb.Attr{
-									Type: &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{}},
-								},
-							},
+								Attr: model_starlark_pb.Attr_builder{
+									StringList: &model_starlark_pb.Attr_StringListType{},
+								}.Build(),
+							}.Build(),
 						},
-					}},
-				}},
-			}), nil
+					}.Build(),
+				}.Build(),
+			}.Build()), nil
 		}))
 		if resolver != nil {
 			thread.SetLocal(model_starlark.ExistingRulesResolverKey, resolver)
@@ -163,106 +163,106 @@ func TestExistingRules(t *testing.T) {
 	}
 
 	resolver := fakeExistingRulesResolver{
-		"alias": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{
+		"alias": model_starlark_pb.Target_Definition_builder{
+			Alias: model_starlark_pb.Alias_builder{
 				Actual: noMatch(value(newLabel("@@main+//foo:actual"))),
-			}},
-		},
-		"flag": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{LabelSetting: &model_starlark_pb.LabelSetting{
+			}.Build(),
+		}.Build(),
+		"flag": model_starlark_pb.Target_Definition_builder{
+			LabelSetting: model_starlark_pb.LabelSetting_builder{
 				BuildSettingDefault: "@@main+//bar:default",
 				Flag:                true,
 				OnLeaveScope:        "@@main+//bar:host",
-				Scope: &model_starlark_pb.BuildSettingScope{
-					Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//bar:host_flag"},
-				},
-			}},
-		},
-		"rule": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{RuleTarget: &model_starlark_pb.RuleTarget{
+				Scope: model_starlark_pb.BuildSettingScope_builder{
+					Exec: proto.String("@@main+//bar:host_flag"),
+				}.Build(),
+			}.Build(),
+		}.Build(),
+		"rule": model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
 				RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
 				PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
-					{ValueParts: valueParts(noMatch(value(nil)))},
-					{ValueParts: valueParts(noMatch(value(nil)))},
-					{ValueParts: valueParts(noMatch(&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Dict{Dict: &model_starlark_pb.Dict{
-							Entries: []*model_starlark_pb.Dict_Entry{{
-								Level: &model_starlark_pb.Dict_Entry_Leaf_{Leaf: &model_starlark_pb.Dict_Entry_Leaf{
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value(nil)))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value(nil)))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(model_starlark_pb.Value_builder{
+						Dict: model_starlark_pb.Dict_builder{
+							Entries: []*model_starlark_pb.Dict_Entry{model_starlark_pb.Dict_Entry_builder{
+								Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
 									Key:   value("FILES"),
 									Value: value([]*model_starlark_pb.Value{value(newLabel("@@main+//foo:f"))}),
-								}},
-							}},
-						}},
-					}))},
-					{ValueParts: valueParts(
+								}.Build(),
+							}.Build()},
+						}.Build(),
+					}.Build()))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(
 						noMatch(value([]*model_starlark_pb.Value{value("-O0")})),
-						noMatch(value(nil), &model_starlark_pb.Select_Condition{
+						noMatch(value(nil), model_starlark_pb.Select_Condition_builder{
 							ConditionIdentifier: "@@main+//:opt",
 							Value:               value([]*model_starlark_pb.Value{value("-O2"), value(newLabel("@@main+//foo:opt.txt"))}),
-						}),
-					)},
-					{ValueParts: valueParts(noMatch(value([]*model_starlark_pb.Value{
+						}.Build()),
+					)}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value([]*model_starlark_pb.Value{
 						value(newLabel("@@main+//foo:a.c")),
 						value(newLabel("@@main+//bar:b.c")),
 						value(newLabel("@@other+//baz:c.c")),
-					})))},
+					})))}.Build(),
 				},
 				ExecCompatibleWith: []string{"@@main+//foo:exec"},
 				Tags:               []string{"manual"},
-				InheritableAttrs: &model_starlark_pb.InheritableAttrs{
+				InheritableAttrs: model_starlark_pb.InheritableAttrs_builder{
 					Deprecation: "Don't use this",
 					Testonly:    true,
-				},
-			}},
-		},
-		"rule_test": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{RuleTarget: &model_starlark_pb.RuleTarget{
+				}.Build(),
+			}.Build(),
+		}.Build(),
+		"rule_test": model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
 				RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
 				PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
-					{ValueParts: valueParts(noMatch(value("explicit")))},
-					{ValueParts: valueParts(noMatch(value("explicit")))},
-					{ValueParts: valueParts(noMatch(value(nil)))},
-					{ValueParts: valueParts(noMatch(value(nil)))},
-					{ValueParts: valueParts(noMatch(value(nil)))},
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value("explicit")))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value("explicit")))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value(nil)))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value(nil)))}.Build(),
+					model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: valueParts(noMatch(value(nil)))}.Build(),
 				},
 				TargetCompatibleWith: valueParts(noMatch(value([]*model_starlark_pb.Value{value(newLabel("@@main+//:linux"))}))),
-				BuildSetting: &model_starlark_pb.RuleTarget_BuildSetting{
+				BuildSetting: model_starlark_pb.RuleTarget_BuildSetting_builder{
 					Default: value("setting"),
-					Scope: &model_starlark_pb.BuildSettingScope{
-						Kind: &model_starlark_pb.BuildSettingScope_Universal{Universal: &emptypb.Empty{}},
-					},
-				},
+					Scope: model_starlark_pb.BuildSettingScope_builder{
+						Universal: &emptypb.Empty{},
+					}.Build(),
+				}.Build(),
 
-				Test: &model_starlark_pb.RuleTarget_Test{
+				Test: model_starlark_pb.RuleTarget_Test_builder{
 					Size:       model_starlark_pb.TestSize_LARGE,
 					Timeout:    model_starlark_pb.TestTimeout_LONG,
 					Flaky:      true,
-					ShardCount: valueParts(noMatch(&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(3)))}})),
+					ShardCount: valueParts(noMatch(model_starlark_pb.Value_builder{Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(3)))}.Build())),
 					Args:       valueParts(noMatch(value([]*model_starlark_pb.Value{value("--verbose")}))),
-				},
-			}},
-		},
-		"setting": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{LabelSetting: &model_starlark_pb.LabelSetting{
-				Scope: &model_starlark_pb.BuildSettingScope{
-					Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
-				},
-			}},
-		},
-		"source.txt": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{SourceFileTarget: &model_starlark_pb.SourceFileTarget{}},
-		},
-		"suite": &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{TestSuite: &model_starlark_pb.TestSuite{
-				Tests: []*model_starlark_pb.TestSuite_Test{{
-					Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:test"},
-				}},
+				}.Build(),
+			}.Build(),
+		}.Build(),
+		"setting": model_starlark_pb.Target_Definition_builder{
+			LabelSetting: model_starlark_pb.LabelSetting_builder{
+				Scope: model_starlark_pb.BuildSettingScope_builder{
+					Target: &emptypb.Empty{},
+				}.Build(),
+			}.Build(),
+		}.Build(),
+		"source.txt": model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build(),
+		"suite": model_starlark_pb.Target_Definition_builder{
+			TestSuite: model_starlark_pb.TestSuite_builder{
+				Tests: []*model_starlark_pb.TestSuite_Test{model_starlark_pb.TestSuite_Test_builder{
+					Leaf: proto.String("@@main+//foo:test"),
+				}.Build()},
 				PositiveTags: []string{"fast"},
 				NegativeTags: []string{"flaky"},
 				Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
 				Manual:       true,
-			}},
-		},
+			}.Build(),
+		}.Build(),
 	}
 
 	t.Run("ExistingRule", func(t *testing.T) {
@@ -311,20 +311,20 @@ func TestExistingRules(t *testing.T) {
 		)
 		require.NoError(t, err)
 		tuple := func(elements ...*model_starlark_pb.Value) *model_starlark_pb.Value {
-			return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Tuple{Tuple: &model_starlark_pb.Tuple{Elements: elements}}}
+			return model_starlark_pb.Value_builder{Tuple: model_starlark_pb.Tuple_builder{Elements: elements}.Build()}.Build()
 		}
-		testutil.RequireEqualProto(t, &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Select{Select: &model_starlark_pb.Select{
+		testutil.RequireEqualProto(t, model_starlark_pb.Value_builder{
+			Select: model_starlark_pb.Select_builder{
 				Groups: valueParts(
 					noMatch(tuple(value("-O0"))),
-					noMatch(value(nil), &model_starlark_pb.Select_Condition{
+					noMatch(value(nil), model_starlark_pb.Select_Condition_builder{
 						ConditionIdentifier: "@@main+//:opt",
 						Value:               tuple(value("-O2"), value(":opt.txt")),
-					}),
+					}.Build()),
 				),
 				ConcatenationOperator: model_starlark_pb.Select_PLUS,
-			}},
-		}, encodedOpts.Message)
+			}.Build(),
+		}.Build(), encodedOpts.Message)
 	})
 
 	t.Run("ExistingRules", func(t *testing.T) {

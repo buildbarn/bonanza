@@ -9,6 +9,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestAllStructFields(t *testing.T) {
@@ -30,13 +32,13 @@ func TestAllStructFields(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		var errIter error
-		require.Equal(t, []string{"a", "b"}, allFieldNames(&model_starlark_pb.Struct_Fields{
+		require.Equal(t, []string{"a", "b"}, allFieldNames(model_starlark_pb.Struct_Fields_builder{
 			Keys: []string{"a", "b"},
 			Values: []*model_starlark_pb.List_Element{
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("1")}},
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("2")}},
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("1"))}.Build(),
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("2"))}.Build(),
 			},
-		}, &errIter))
+		}.Build(), &errIter))
 		require.NoError(t, errIter)
 	})
 
@@ -44,25 +46,25 @@ func TestAllStructFields(t *testing.T) {
 		// Errors raised while processing values should be
 		// reported, as opposed to the struct being truncated.
 		var errIter error
-		require.Equal(t, []string{"a"}, allFieldNames(&model_starlark_pb.Struct_Fields{
+		require.Equal(t, []string{"a"}, allFieldNames(model_starlark_pb.Struct_Fields_builder{
 			Keys: []string{"a", "b"},
 			Values: []*model_starlark_pb.List_Element{
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("1")}},
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("1"))}.Build(),
 				{},
 			},
-		}, &errIter))
+		}.Build(), &errIter))
 		require.EqualError(t, errIter, "not a valid leaf entry")
 	})
 
 	t.Run("FewerKeysThanValues", func(t *testing.T) {
 		var errIter error
-		require.Equal(t, []string{"a"}, allFieldNames(&model_starlark_pb.Struct_Fields{
+		require.Equal(t, []string{"a"}, allFieldNames(model_starlark_pb.Struct_Fields_builder{
 			Keys: []string{"a"},
 			Values: []*model_starlark_pb.List_Element{
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("1")}},
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("2")}},
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("1"))}.Build(),
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("2"))}.Build(),
 			},
-		}, &errIter))
+		}.Build(), &errIter))
 		require.EqualError(t, errIter, "struct has fewer keys than values")
 	})
 }

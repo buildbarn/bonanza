@@ -11,6 +11,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -28,21 +30,19 @@ func TestRuleImplementationWrappers(t *testing.T) {
 	}
 
 	newFunction := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], name string) *model_starlark_pb.Function {
-		return &model_starlark_pb.Function{
+		return model_starlark_pb.Function_builder{
 			Filename: "@@rules+//:wrappers.bzl",
-			NamePath: []*model_starlark_pb.Function_Name{{Name: name}},
-		}
+			NamePath: []*model_starlark_pb.Function_Name{model_starlark_pb.Function_Name_builder{Name: name}.Build()},
+		}.Build()
 	}
 	expectGlobal := func(e *MockRuleImplementationWrappersEnvironmentForTesting, identifier, name string) {
 		message := model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree]{}
 		if name != "" {
 			message = newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.CompiledBzlFileGlobal_Value {
 				return &model_analysis_pb.CompiledBzlFileGlobal_Value{
-					Global: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Function{
-							Function: newFunction(patcher, name),
-						},
-					},
+					Global: model_starlark_pb.Value_builder{
+						Function: proto.ValueOrDefault(newFunction(patcher, name)),
+					}.Build(),
 				}
 			})
 		}

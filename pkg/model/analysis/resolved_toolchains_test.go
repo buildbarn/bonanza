@@ -10,6 +10,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -63,25 +65,25 @@ func TestResolvedToolchains(t *testing.T) {
 				}
 			}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TargetProvider_Value{
-			Fields: &model_starlark_pb.Struct_Fields{
+			Fields: model_starlark_pb.Struct_Fields_builder{
 				Keys: []string{"no_match_error", "type_label"},
 				Values: []*model_starlark_pb.List_Element{
-					{Level: &model_starlark_pb.List_Element_Leaf{Leaf: newStringValue(noMatchError)}},
-					{Level: &model_starlark_pb.List_Element_Leaf{Leaf: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Label{Label: toolchainType},
-					}}},
+					model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(newStringValue(noMatchError))}.Build(),
+					model_starlark_pb.List_Element_builder{Leaf: model_starlark_pb.Value_builder{
+						Label: proto.String(toolchainType),
+					}.Build()}.Build(),
 				},
-			},
+			}.Build(),
 		}))
 	}
 	compute := func(e *MockResolvedToolchainsEnvironmentForTesting, mandatory bool) (*model_analysis_pb.ResolvedToolchains_Value, error) {
 		value, err := bct.computer.ComputeResolvedToolchainsValue(
 			ctx,
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.ResolvedToolchains_Key{
-				Toolchains: []*model_starlark_pb.ToolchainType{{
+				Toolchains: []*model_starlark_pb.ToolchainType{model_starlark_pb.ToolchainType_builder{
 					ToolchainType: toolchainType,
 					Mandatory:     mandatory,
-				}},
+				}.Build()},
 			}),
 			e,
 		)

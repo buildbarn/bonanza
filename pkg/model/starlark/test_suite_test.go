@@ -19,6 +19,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -82,7 +84,7 @@ func TestTestSuite(t *testing.T) {
 	getTestSuite := func(t *testing.T, targetRegistrar *model_starlark.TargetRegistrar[object.LocalReference, model_core.CreatedObjectTree], name string) *model_starlark_pb.TestSuite {
 		testSuite := targetRegistrar.GetAndRemoveTarget(name).Message.GetTestSuite()
 		require.NotNil(t, testSuite)
-		testSuite.Visibility = nil
+		testSuite.ClearVisibility()
 		return testSuite
 	}
 	// callTestSuite invokes test_suite() from within a BUILD file
@@ -108,9 +110,9 @@ func TestTestSuite(t *testing.T) {
 		// Without any tags, tests of all sizes are included.
 		testSuite, err := callTestSuite(t)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Sizes: allTestSizes,
-		}, testSuite)
+		}.Build(), testSuite)
 		require.Empty(t, model_starlark.GetTestSuiteTags(testSuite))
 		require.Empty(t, model_starlark.GetTestSuiteQueryTags(testSuite))
 	})
@@ -120,14 +122,14 @@ func TestTestSuite(t *testing.T) {
 		// deduplicated.
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tests", Value: stringList("c", "//bar:b", ":a", "@@main+//foo:a")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Tests: []*model_starlark_pb.TestSuite_Test{
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//bar:b"}},
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:a"}},
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:c"}},
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//bar:b")}.Build(),
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:a")}.Build(),
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:c")}.Build(),
 			},
 			Sizes: allTestSizes,
-		}, testSuite)
+		}.Build(), testSuite)
 	})
 
 	t.Run("UnknownRepo", func(t *testing.T) {
@@ -139,12 +141,12 @@ func TestTestSuite(t *testing.T) {
 
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tests", Value: stringList("@dev//:t")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Tests: []*model_starlark_pb.TestSuite_Test{
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@[unknown repo 'dev' requested from main+]//:t"}},
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@[unknown repo 'dev' requested from main+]//:t")}.Build(),
 			},
 			Sizes: allTestSizes,
-		}, testSuite)
+		}.Build(), testSuite)
 	})
 
 	t.Run("ImplicitTests", func(t *testing.T) {
@@ -191,30 +193,30 @@ func TestTestSuite(t *testing.T) {
 		call(testSuiteBuiltin, name("explicit"), eval.NamedArg{Name: "tests", Value: stringList(":d_manual")})
 		require.NoError(t, finalize(thread, targetRegistrar))
 
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Tests: []*model_starlark_pb.TestSuite_Test{
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:a_small"}},
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:b_large"}},
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:c_flaky"}},
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:a_small")}.Build(),
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:b_large")}.Build(),
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:c_flaky")}.Build(),
 			},
 			Sizes: allTestSizes,
-		}, getTestSuite(t, targetRegistrar, "all"))
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		}.Build(), getTestSuite(t, targetRegistrar, "all"))
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Tests: []*model_starlark_pb.TestSuite_Test{
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:a_small"}},
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:a_small")}.Build(),
 			},
 			NegativeTags: []string{"flaky"},
 			Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
-		}, getTestSuite(t, targetRegistrar, "small_without_flaky"))
+		}.Build(), getTestSuite(t, targetRegistrar, "small_without_flaky"))
 
 		// Test suites listing tests explicitly should not be
 		// affected.
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Tests: []*model_starlark_pb.TestSuite_Test{
-				{Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:d_manual"}},
+				model_starlark_pb.TestSuite_Test_builder{Leaf: proto.String("@@main+//foo:d_manual")}.Build(),
 			},
 			Sizes: allTestSizes,
-		}, getTestSuite(t, targetRegistrar, "explicit"))
+		}.Build(), getTestSuite(t, targetRegistrar, "explicit"))
 	})
 
 	t.Run("Tags", func(t *testing.T) {
@@ -224,12 +226,12 @@ func TestTestSuite(t *testing.T) {
 		// would otherwise have a special meaning.
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("small", "-flaky", "manual", "+manual", "+small", "requires-network", "-medium", "-nightly", "requires-network")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			PositiveTags: []string{"manual", "requires-network"},
 			NegativeTags: []string{"flaky", "nightly"},
 			Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
 			Manual:       true,
-		}, testSuite)
+		}.Build(), testSuite)
 
 		// The tags should be reconstructed in a form that
 		// yields the same test suite if provided to
@@ -250,12 +252,12 @@ func TestTestSuite(t *testing.T) {
 		// be included.
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("-enormous", "-small")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Sizes: []model_starlark_pb.TestSize{
 				model_starlark_pb.TestSize_MEDIUM,
 				model_starlark_pb.TestSize_LARGE,
 			},
-		}, testSuite)
+		}.Build(), testSuite)
 		tags := model_starlark.GetTestSuiteTags(testSuite)
 		require.Equal(t, []string{"-enormous", "-small"}, tags)
 		reconstructedTestSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList(tags...)})
@@ -268,19 +270,19 @@ func TestTestSuite(t *testing.T) {
 		// selecting that size.
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("-enormous", "-large", "-small")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Sizes: []model_starlark_pb.TestSize{model_starlark_pb.TestSize_MEDIUM},
-		}, testSuite)
+		}.Build(), testSuite)
 		require.Equal(t, []string{"medium"}, model_starlark.GetTestSuiteTags(testSuite))
 	})
 
 	t.Run("ManualOnly", func(t *testing.T) {
 		testSuite, err := callTestSuite(t, eval.NamedArg{Name: "tags", Value: stringList("manual")})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.TestSuite{
+		testutil.RequireEqualProto(t, model_starlark_pb.TestSuite_builder{
 			Sizes:  allTestSizes,
 			Manual: true,
-		}, testSuite)
+		}.Build(), testSuite)
 		require.Equal(t, []string{"manual"}, model_starlark.GetTestSuiteTags(testSuite))
 		require.Equal(t, []string{"manual"}, model_starlark.GetTestSuiteQueryTags(testSuite))
 	})
@@ -307,14 +309,14 @@ func TestTestSuite(t *testing.T) {
 }
 
 func TestTestSuiteMatchesTest(t *testing.T) {
-	testSuite := &model_starlark_pb.TestSuite{
+	testSuite := model_starlark_pb.TestSuite_builder{
 		PositiveTags: []string{"a", "b"},
 		NegativeTags: []string{"c"},
 		Sizes: []model_starlark_pb.TestSize{
 			model_starlark_pb.TestSize_SMALL,
 			model_starlark_pb.TestSize_LARGE,
 		},
-	}
+	}.Build()
 
 	t.Run("Match", func(t *testing.T) {
 		require.True(t, model_starlark.TestSuiteMatchesTest(testSuite, []string{"a", "b", "d"}, model_starlark_pb.TestSize_SMALL))

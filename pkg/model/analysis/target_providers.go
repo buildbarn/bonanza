@@ -58,7 +58,7 @@ func mergeProviderInstances[TReference object.BasicReference, TMetadata model_co
 		}
 	}
 	getProviderIdentifier := func(instance providerInstance) string {
-		return instance.instance.Message.ProviderInstanceProperties.GetProviderIdentifier()
+		return instance.instance.Message.GetProviderInstanceProperties().GetProviderIdentifier()
 	}
 	slices.SortStableFunc(allInstances, func(a, b providerInstance) int {
 		return strings.Compare(getProviderIdentifier(a), getProviderIdentifier(b))
@@ -93,7 +93,7 @@ func mergeProviderInstances[TReference object.BasicReference, TMetadata model_co
 			for key, value := range model_starlark.AllStructFields(
 				ctx,
 				valueReaders.List,
-				model_core.Nested(instance.instance, instance.instance.Message.Fields),
+				model_core.Nested(instance.instance, instance.instance.Message.GetFields()),
 				&errIter,
 			) {
 				if existingSource, ok := fieldSources[key]; ok {
@@ -111,13 +111,13 @@ func mergeProviderInstances[TReference object.BasicReference, TMetadata model_co
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode merged instance of provider %#v: %w", providerIdentifier, err)
 		}
-		mergedInstances = append(mergedInstances, &model_starlark_pb.Struct{
+		mergedInstances = append(mergedInstances, model_starlark_pb.Struct_builder{
 			Fields: mergedFields.Merge(patcher),
 			ProviderInstanceProperties: model_core.Patch(
 				e,
-				model_core.Nested(group[0].instance, group[0].instance.Message.ProviderInstanceProperties),
+				model_core.Nested(group[0].instance, group[0].instance.Message.GetProviderInstanceProperties()),
 			).Merge(patcher),
-		})
+		}.Build())
 	}
 	return mergedInstances, nil
 }
@@ -193,18 +193,18 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 	// aspects preceding it, meaning that aspects are applied to
 	// every prefix of the list. Aspects are applied in the same
 	// configuration as the target itself.
-	aspects := key.Message.Variant.GetAspects()
+	aspects := key.Message.GetVariant().GetAspects()
 	sources := make([]providerInstanceSource[TReference], 0, 1+len(aspects))
 	sources = append(sources, providerInstanceSource[TReference]{
-		description:       fmt.Sprintf("target %#v", key.Message.Label),
-		providerInstances: model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances),
+		description:       fmt.Sprintf("target %#v", key.Message.GetLabel()),
+		providerInstances: model_core.Nested(configuredTarget, configuredTarget.Message.GetProviderInstances()),
 	})
 	missingDependencies := false
 	for i, aspect := range aspects {
 		aspectConfiguredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
-					Label: key.Message.Label,
+					Label: key.Message.GetLabel(),
 					Variant: newTargetVariant(
 						model_core.Patch(e, configurationReference).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, aspects[:i+1])).Merge(patcher),
@@ -217,8 +217,8 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 			continue
 		}
 		sources = append(sources, providerInstanceSource[TReference]{
-			description:       fmt.Sprintf("aspect %#v", aspect.Identifier),
-			providerInstances: model_core.Nested(aspectConfiguredTarget, aspectConfiguredTarget.Message.ProviderInstances),
+			description:       fmt.Sprintf("aspect %#v", aspect.GetIdentifier()),
+			providerInstances: model_core.Nested(aspectConfiguredTarget, aspectConfiguredTarget.Message.GetProviderInstances()),
 		})
 	}
 	if missingDependencies {
@@ -245,7 +245,7 @@ func (c *baseComputer[TReference, TMetadata]) computeTargetProvidersValueWithAsp
 		}
 		return &model_analysis_pb.TargetProviders_Value{
 			ProviderInstances: providerInstances,
-			IsFileTarget:      configuredTarget.Message.IsFileTarget,
+			IsFileTarget:      configuredTarget.Message.GetIsFileTarget(),
 		}, nil
 	})
 }

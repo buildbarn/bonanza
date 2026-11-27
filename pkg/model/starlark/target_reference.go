@@ -14,6 +14,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // ConfiguredTargetReference contains the properties of a Starlark Target
@@ -49,7 +51,7 @@ func (ctr *ConfiguredTargetReference[TReference, TMetadata]) getProviderValue(th
 	index, ok := sort.Find(
 		len(ctr.encodedProviders.Message),
 		func(i int) int {
-			return strings.Compare(providerIdentifierStr, ctr.encodedProviders.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+			return strings.Compare(providerIdentifierStr, ctr.encodedProviders.Message[i].GetProviderInstanceProperties().GetProviderIdentifier())
 		},
 	)
 	if !ok {
@@ -250,40 +252,38 @@ func (tr *TargetReference[TReference, TMetadata]) Get(thread *eval.Thread, v eva
 // time.
 func (tr *TargetReference[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
-		m := &model_starlark_pb.TargetReference{
+		m := model_starlark_pb.TargetReference_builder{
 			OriginalLabel: tr.originalLabel.String(),
-		}
+		}.Build()
 		if ctr := tr.configured; ctr != nil {
-			m.Configured = &model_starlark_pb.TargetReference_Configured{
+			m.SetConfigured(model_starlark_pb.TargetReference_Configured_builder{
 				Label: ctr.label.String(),
 				Providers: model_core.PatchList(
 					options.ObjectCapturer,
 					ctr.encodedProviders,
 				).Merge(patcher),
-			}
+			}.Build())
 		}
-		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_TargetReference{
-				TargetReference: m,
-			},
-		}
+		return model_starlark_pb.Value_builder{
+			TargetReference: proto.ValueOrDefault(m),
+		}.Build()
 	}), nil
 }
 
 func decodeTargetReference[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](encodedValue model_core.Message[*model_starlark_pb.Value, TReference], targetReference *model_starlark_pb.TargetReference) (eval.Value, error) {
-	originalLabel, err := pg_label.NewResolvedLabel(targetReference.OriginalLabel)
+	originalLabel, err := pg_label.NewResolvedLabel(targetReference.GetOriginalLabel())
 	if err != nil {
-		return nil, fmt.Errorf("invalid original label %#v: %w", targetReference.OriginalLabel, err)
+		return nil, fmt.Errorf("invalid original label %#v: %w", targetReference.GetOriginalLabel(), err)
 	}
 	var configuredTargetReference *ConfiguredTargetReference[TReference, TMetadata]
-	if configured := targetReference.Configured; configured != nil {
-		label, err := pg_label.NewCanonicalLabel(configured.Label)
+	if configured := targetReference.GetConfigured(); configured != nil {
+		label, err := pg_label.NewCanonicalLabel(configured.GetLabel())
 		if err != nil {
-			return nil, fmt.Errorf("invalid label %#v: %w", configured.Label, err)
+			return nil, fmt.Errorf("invalid label %#v: %w", configured.GetLabel(), err)
 		}
 		configuredTargetReference = NewConfiguredTargetReference[TReference, TMetadata](
 			label,
-			model_core.Nested(encodedValue, configured.Providers),
+			model_core.Nested(encodedValue, configured.GetProviders()),
 		)
 	}
 	return NewTargetReference[TReference, TMetadata](

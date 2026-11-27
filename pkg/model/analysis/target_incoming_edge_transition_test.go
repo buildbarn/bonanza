@@ -13,6 +13,9 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+	xpb "google.golang.org/protobuf/types/known/emptypb"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -23,12 +26,10 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 	newConfiguration := func(platform string) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 			return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
-				Level: &model_analysis_pb.BuildSettingOverride_Leaf_{
-					Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
-						Label: "@@bazel_tools+//command_line_option:platforms",
-						Value: labelValue(platform),
-					},
-				},
+				Level: &model_analysis_pb.BuildSettingOverride_Leaf_{Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
+					Label: "@@bazel_tools+//command_line_option:platforms",
+					Value: labelValue(platform),
+				}},
 			}})
 		})
 	}
@@ -55,40 +56,34 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Rule{
-					Rule: &model_starlark_pb.Rule{
-						Kind: &model_starlark_pb.Rule_Definition_{
-							Definition: definition,
-						},
-					},
-				},
-			},
+			Global: model_starlark_pb.Value_builder{
+				Rule: model_starlark_pb.Rule_builder{
+					Definition: proto.ValueOrDefault(definition),
+				}.Build(),
+			}.Build(),
 		}))
 	}
-	ruleTargetDefinition := &model_starlark_pb.Target_Definition{
-		Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-			RuleTarget: &model_starlark_pb.RuleTarget{
-				RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-				PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
-					{
-						// Left at its default value.
-						ValueParts: []*model_starlark_pb.Select_Group{
-							valueSelectGroup(&model_starlark_pb.Value{
-								Kind: &model_starlark_pb.Value_None{},
-							}),
-						},
+	ruleTargetDefinition := model_starlark_pb.Target_Definition_builder{
+		RuleTarget: model_starlark_pb.RuleTarget_builder{
+			RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+			PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
+				model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+					// Left at its default value.
+					ValueParts: []*model_starlark_pb.Select_Group{
+						valueSelectGroup(model_starlark_pb.Value_builder{
+							None: &xpb.Empty{},
+						}.Build()),
 					},
-					{
-						// Explicitly set.
-						ValueParts: []*model_starlark_pb.Select_Group{
-							valueSelectGroup(labelValue("@@main+//:dep")),
-						},
+				}.Build(),
+				model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+					// Explicitly set.
+					ValueParts: []*model_starlark_pb.Select_Group{
+						valueSelectGroup(labelValue("@@main+//:dep")),
 					},
-				},
+				}.Build(),
 			},
-		},
-	}
+		}.Build(),
+	}.Build()
 	compute := func(e *MockTargetIncomingEdgeTransitionEnvironmentForTesting, label string) (model_core.PatchedMessage[*model_analysis_pb.TargetIncomingEdgeTransition_Value, model_core.CreatedObjectTree], error) {
 		return bct.computer.ComputeTargetIncomingEdgeTransitionValue(
 			ctx,
@@ -126,11 +121,9 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		// configuration, so they should transition to the empty
 		// configuration.
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:foo.txt", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-			},
-		})
+		expectTarget(e, "@@main+//:foo.txt", model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build())
 
 		value, err := compute(e, "@@main+//:foo.txt")
 		require.NoError(t, err)
@@ -139,11 +132,9 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 
 	t.Run("PackageGroup", func(t *testing.T) {
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:group", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-				PackageGroup: &model_starlark_pb.PackageGroup{},
-			},
-		})
+		expectTarget(e, "@@main+//:group", model_starlark_pb.Target_Definition_builder{
+			PackageGroup: &model_starlark_pb.PackageGroup{},
+		}.Build())
 
 		value, err := compute(e, "@@main+//:group")
 		require.NoError(t, err)
@@ -153,11 +144,9 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 	t.Run("TestSuite", func(t *testing.T) {
 		// Test suites use an identity transition.
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:tests", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{
-				TestSuite: &model_starlark_pb.TestSuite{},
-			},
-		})
+		expectTarget(e, "@@main+//:tests", model_starlark_pb.Target_Definition_builder{
+			TestSuite: &model_starlark_pb.TestSuite{},
+		}.Build())
 
 		value, err := compute(e, "@@main+//:tests")
 		require.NoError(t, err)
@@ -168,13 +157,11 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		// Predeclared output files should use the incoming edge
 		// transition of the rule target that owns them.
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:foo.out", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
-				PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{
-					OwnerTargetName: "foo",
-				},
-			},
-		})
+		expectTarget(e, "@@main+//:foo.out", model_starlark_pb.Target_Definition_builder{
+			PredeclaredOutputFileTarget: model_starlark_pb.PredeclaredOutputFileTarget_builder{
+				OwnerTargetName: "foo",
+			}.Build(),
+		}.Build())
 		e.EXPECT().GetTargetIncomingEdgeTransitionValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
 				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
@@ -211,13 +198,11 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 		// indices of the public attrs that are explicitly set.
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo", ruleTargetDefinition)
-		expectRule(e, &model_starlark_pb.Rule_Definition{
-			CfgTransition: &model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: "@@rules+//:defs.bzl%my_transition",
-				},
-			},
-		})
+		expectRule(e, model_starlark_pb.Rule_Definition_builder{
+			CfgTransition: model_starlark_pb.Transition_UserDefined_builder{
+				Identifier: proto.String("@@rules+//:defs.bzl%my_transition"),
+			}.Build(),
+		}.Build())
 		e.EXPECT().GetRuleUsageIncomingEdgeTransitionValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Key {
 				return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Key{
@@ -228,9 +213,7 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value {
 			return &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value{
-				Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{
-					OutputConfigurationReference: attachObject(patcher, transitionedConfiguration),
-				},
+				Result: &model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference{OutputConfigurationReference: attachObject(patcher, transitionedConfiguration)},
 			}
 		}))
 
@@ -242,13 +225,11 @@ func TestTargetIncomingEdgeTransition(t *testing.T) {
 	t.Run("RuleTargetWithTransitionMissingDependency", func(t *testing.T) {
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo", ruleTargetDefinition)
-		expectRule(e, &model_starlark_pb.Rule_Definition{
-			CfgTransition: &model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: "@@rules+//:defs.bzl%my_transition",
-				},
-			},
-		})
+		expectRule(e, model_starlark_pb.Rule_Definition_builder{
+			CfgTransition: model_starlark_pb.Transition_UserDefined_builder{
+				Identifier: proto.String("@@rules+//:defs.bzl%my_transition"),
+			}.Build(),
+		}.Build())
 		e.EXPECT().GetRuleUsageIncomingEdgeTransitionValue(gomock.Any()).
 			Return(model_core.Message[*model_analysis_pb.RuleUsageIncomingEdgeTransition_Value, model_core.CreatedObjectTree]{})
 

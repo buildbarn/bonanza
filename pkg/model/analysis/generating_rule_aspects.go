@@ -14,7 +14,7 @@ import (
 func (baseComputer[TReference, TMetadata]) ComputeGeneratingRuleAspectsValue(ctx context.Context, key *model_analysis_pb.GeneratingRuleAspects_Key, e GeneratingRuleAspectsEnvironment[TReference, TMetadata]) (PatchedGeneratingRuleAspectsValue[TMetadata], error) {
 	missingDependencies := false
 	var aspectIndices []uint32
-	for i, aspectIdentifierStr := range key.AspectIdentifiers {
+	for i, aspectIdentifierStr := range key.GetAspectIdentifiers() {
 		aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(aspectIdentifierStr)
 		if err != nil {
 			return PatchedGeneratingRuleAspectsValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier %#v: %w", aspectIdentifierStr, err)
@@ -27,7 +27,7 @@ func (baseComputer[TReference, TMetadata]) ComputeGeneratingRuleAspectsValue(ctx
 			}
 			return PatchedGeneratingRuleAspectsValue[TMetadata]{}, err
 		}
-		if aspectDefinition.Message.ApplyToGeneratingRules {
+		if aspectDefinition.Message.GetApplyToGeneratingRules() {
 			aspectIndices = append(aspectIndices, uint32(i))
 		}
 	}

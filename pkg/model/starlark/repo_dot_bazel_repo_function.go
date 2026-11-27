@@ -18,11 +18,11 @@ import (
 // inheritable attributes of rule targets. These are used when no
 // REPO.bazel file is present, REPO.bazel contains no call to repo(),
 // and a BUILD file contains no call to package().
-var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs{
-	Visibility: &model_starlark_pb.PackageGroup{
+var DefaultInheritableAttrs = model_starlark_pb.InheritableAttrs_builder{
+	Visibility: model_starlark_pb.PackageGroup_builder{
 		Tree: &model_starlark_pb.PackageGroup_Subpackages{},
-	},
-}
+	}.Build(),
+}.Build()
 
 // NewRepoDotBazelRepoFunction creates an implementation of the repo()
 // function that may be invoked from within REPO.bazel files. Upon
@@ -49,7 +49,7 @@ func NewRepoDotBazelRepoFunction[TReference object.BasicReference, TMetadata mod
 			thread,
 			b,
 			args,
-			model_core.NewSimpleMessage[TReference](&DefaultInheritableAttrs),
+			model_core.NewSimpleMessage[TReference](DefaultInheritableAttrs),
 			encoder,
 			inlinedTreeOptions,
 			objectCapturer,
@@ -79,9 +79,9 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 	}
 
 	var applicableLicenses []string
-	deprecation := previousInheritableAttrs.Message.Deprecation
-	packageMetadata := previousInheritableAttrs.Message.PackageMetadata
-	testOnly := previousInheritableAttrs.Message.Testonly
+	deprecation := previousInheritableAttrs.Message.GetDeprecation()
+	packageMetadata := previousInheritableAttrs.Message.GetPackageMetadata()
+	testOnly := previousInheritableAttrs.Message.GetTestonly()
 	var visibility []pg_label.ResolvedLabel
 	canonicalPackage, err := CurrentFilePackage(thread)
 	if err != nil {
@@ -113,8 +113,8 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 	// Features provided to package() are merged on top of the
 	// ones provided to repo().
 	previousFeatures, err := NewFeatureSet(
-		previousInheritableAttrs.Message.EnabledFeatures,
-		previousInheritableAttrs.Message.DisabledFeatures,
+		previousInheritableAttrs.Message.GetEnabledFeatures(),
+		previousInheritableAttrs.Message.GetDisabledFeatures(),
 	)
 	if err != nil {
 		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, fmt.Errorf("%s: %w", b.Name(), err)
@@ -132,19 +132,19 @@ func getDefaultInheritableAttrs[TReference object.BasicReference, TMetadata mode
 		// Clone the existing visibility.
 		visibilityPackageGroup = model_core.Patch(
 			objectCapturer,
-			model_core.Nested(previousInheritableAttrs, previousInheritableAttrs.Message.Visibility),
+			model_core.Nested(previousInheritableAttrs, previousInheritableAttrs.Message.GetVisibility()),
 		)
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.InheritableAttrs{
+		model_starlark_pb.InheritableAttrs_builder{
 			Deprecation:      deprecation,
 			DisabledFeatures: mergedFeatures.GetDisabled(),
 			EnabledFeatures:  mergedFeatures.GetEnabled(),
 			PackageMetadata:  packageMetadata,
 			Testonly:         testOnly,
 			Visibility:       visibilityPackageGroup.Message,
-		},
+		}.Build(),
 		visibilityPackageGroup.Patcher,
 	), nil
 }

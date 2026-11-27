@@ -81,43 +81,44 @@ func getValueDecodingOptions[TReference any](thread *eval.Thread) (*ValueDecodin
 // is needed to decode values that track their own name, such as rules
 // and providers.
 func DecodeValue[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, value model_core.Message[*model_starlark_pb.Value, TReference], currentIdentifier *pg_label.CanonicalStarlarkIdentifier) (eval.Value, error) {
-	switch typedValue := value.Message.GetKind().(type) {
-	case *model_starlark_pb.Value_None:
+	switch value.Message.WhichKind() {
+	case model_starlark_pb.Value_None_case:
 		return eval.None, nil
-	case *model_starlark_pb.Value_Bool:
-		return eval.Bool(typedValue.Bool), nil
-	case *model_starlark_pb.Value_Int:
-		return eval.MakeBigInt(DecodeInt(typedValue.Int)), nil
-	case *model_starlark_pb.Value_Str:
-		return decodeString[TReference, TMetadata](value, typedValue.Str)
-	case *model_starlark_pb.Value_Bytes:
+	case model_starlark_pb.Value_Bool_case:
+		return eval.Bool(value.Message.GetBool()), nil
+	case model_starlark_pb.Value_Int_case:
+		return eval.MakeBigInt(DecodeInt(value.Message.GetInt())), nil
+	case model_starlark_pb.Value_Str_case:
+		return decodeString[TReference, TMetadata](value, value.Message.GetStr())
+	case model_starlark_pb.Value_Bytes_case:
 		return nil, errors.New("values of type bytes are not supported")
-	case *model_starlark_pb.Value_List:
+	case model_starlark_pb.Value_List_case:
 		return &storedList[TReference, TMetadata]{
 			storedSequence: storedSequence[TReference, TMetadata]{
 				value:    value,
-				elements: model_core.Nested(value, typedValue.List.Elements),
+				elements: model_core.Nested(value, value.Message.GetList().GetElements()),
 				length:   -1,
 			},
 		}, nil
-	case *model_starlark_pb.Value_Set:
+	case model_starlark_pb.Value_Set_case:
 		return &storedSet[TReference, TMetadata]{
 			storedSequence: storedSequence[TReference, TMetadata]{
 				value:    value,
-				elements: model_core.Nested(value, typedValue.Set.Elements),
+				elements: model_core.Nested(value, value.Message.GetSet().GetElements()),
 				length:   -1,
 			},
 		}, nil
-	case *model_starlark_pb.Value_Dict:
+	case model_starlark_pb.Value_Dict_case:
 		return &storedDict[TReference, TMetadata]{
 			value: value,
-			dict:  model_core.Nested(value, typedValue.Dict),
+			dict:  model_core.Nested(value, value.Message.GetDict()),
 		}, nil
-	case *model_starlark_pb.Value_Tuple:
+	case model_starlark_pb.Value_Tuple_case:
 		// Tuples are stored inline, so there is no need to defer
 		// decoding of their elements.
-		elements := make([]eval.Value, 0, len(typedValue.Tuple.Elements))
-		for i, element := range typedValue.Tuple.Elements {
+		tupleElements := value.Message.GetTuple().GetElements()
+		elements := make([]eval.Value, 0, len(tupleElements))
+		for i, element := range tupleElements {
 			decodedElement, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(value, element), nil)
 			if err != nil {
 				return nil, fmt.Errorf("at index %d: %w", i, err)
@@ -125,14 +126,14 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			elements = append(elements, decodedElement)
 		}
 		return eval.NewTuple(elements), nil
-	case *model_starlark_pb.Value_Builtin:
+	case model_starlark_pb.Value_Builtin_case:
 		options, err := getValueDecodingOptions[TReference](thread)
 		if err != nil {
 			return nil, err
 		}
 		// Builtins may either be provided by Bonanza, or be part
 		// of the core language (e.g., len() or json.encode()).
-		parts := strings.Split(typedValue.Builtin, ".")
+		parts := strings.Split(value.Message.GetBuiltin(), ".")
 		builtin, ok := options.BzlFileBuiltins[parts[0]]
 		if !ok {
 			builtin, ok = eval.Universe()[parts[0]]
@@ -151,16 +152,16 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			}
 		}
 		return builtin, nil
-	case *model_starlark_pb.Value_Depset:
-		return decodeDepset[TReference, TMetadata](model_core.Nested(value, typedValue.Depset)), nil
-	case *model_starlark_pb.Value_ExecGroup:
-		return decodeExecGroup[TReference, TMetadata](typedValue.ExecGroup)
-	case *model_starlark_pb.Value_File:
-		return NewFile[TReference, TMetadata](model_core.Nested(value, typedValue.File)), nil
-	case *model_starlark_pb.Value_Label:
-		resolvedLabel, err := pg_label.NewResolvedLabel(typedValue.Label)
+	case model_starlark_pb.Value_Depset_case:
+		return decodeDepset[TReference, TMetadata](model_core.Nested(value, value.Message.GetDepset())), nil
+	case model_starlark_pb.Value_ExecGroup_case:
+		return decodeExecGroup[TReference, TMetadata](value.Message.GetExecGroup())
+	case model_starlark_pb.Value_File_case:
+		return NewFile[TReference, TMetadata](model_core.Nested(value, value.Message.GetFile())), nil
+	case model_starlark_pb.Value_Label_case:
+		resolvedLabel, err := pg_label.NewResolvedLabel(value.Message.GetLabel())
 		if err != nil {
-			return nil, fmt.Errorf("invalid label %#v: %w", typedValue.Label, err)
+			return nil, fmt.Errorf("invalid label %#v: %w", value.Message.GetLabel(), err)
 		}
 		options, err := getValueDecodingOptions[TReference](thread)
 		if err != nil {
@@ -170,15 +171,15 @@ func DecodeValue[TReference object.BasicReference, TMetadata model_core.Referenc
 			return NewLabel[TReference, TMetadata](resolvedLabel), nil
 		}
 		return options.LabelCreator(resolvedLabel)
-	case *model_starlark_pb.Value_Select:
-		return decodeSelect[TReference, TMetadata](thread, value, typedValue.Select)
-	case *model_starlark_pb.Value_Struct:
-		return DecodeStruct[TReference, TMetadata](thread, model_core.Nested(value, typedValue.Struct))
-	case *model_starlark_pb.Value_TargetReference:
-		return decodeTargetReference[TReference, TMetadata](value, typedValue.TargetReference)
-	case *model_starlark_pb.Value_ToolchainType:
-		return decodeToolchainType[TReference, TMetadata](typedValue.ToolchainType)
-	case nil:
+	case model_starlark_pb.Value_Select_case:
+		return decodeSelect[TReference, TMetadata](thread, value, value.Message.GetSelect())
+	case model_starlark_pb.Value_Struct_case:
+		return DecodeStruct[TReference, TMetadata](thread, model_core.Nested(value, value.Message.GetStruct()))
+	case model_starlark_pb.Value_TargetReference_case:
+		return decodeTargetReference[TReference, TMetadata](value, value.Message.GetTargetReference())
+	case model_starlark_pb.Value_ToolchainType_case:
+		return decodeToolchainType[TReference, TMetadata](value.Message.GetToolchainType())
+	case 0:
 		return nil, errors.New("value has no kind")
 	default:
 		return decodeFunctionValue[TReference, TMetadata](thread, value, currentIdentifier)
@@ -206,12 +207,12 @@ func (s *storedSequence[TReference, TMetadata]) Len(*eval.Thread) (int, error) {
 	if s.length < 0 {
 		count := uint64(0)
 		for _, element := range s.elements.Message {
-			switch level := element.Level.(type) {
-			case *model_starlark_pb.List_Element_Leaf:
+			switch element.WhichLevel() {
+			case model_starlark_pb.List_Element_Leaf_case:
 				count++
-			case *model_starlark_pb.List_Element_Parent_:
-				count += level.Parent.Count
-				if count < level.Parent.Count {
+			case model_starlark_pb.List_Element_Parent_case:
+				count += element.GetParent().GetCount()
+				if count < element.GetParent().GetCount() {
 					count = math.MaxUint64
 				}
 			default:
@@ -297,21 +298,21 @@ func (l *storedList[TReference, TMetadata]) Index(t *eval.Thread, i int) (eval.V
 descend:
 	for {
 		for _, element := range elements.Message {
-			switch level := element.Level.(type) {
-			case *model_starlark_pb.List_Element_Leaf:
+			switch element.WhichLevel() {
+			case model_starlark_pb.List_Element_Leaf_case:
 				if remaining == 0 {
-					return DecodeValue[TReference, TMetadata](t, model_core.Nested(elements, level.Leaf), nil)
+					return DecodeValue[TReference, TMetadata](t, model_core.Nested(elements, element.GetLeaf()), nil)
 				}
 				remaining--
-			case *model_starlark_pb.List_Element_Parent_:
-				if remaining < level.Parent.Count {
-					elements, err = model_parser.Dereference(t.Context(), options.Readers.List, model_core.Nested(elements, level.Parent.Reference))
+			case model_starlark_pb.List_Element_Parent_case:
+				if remaining < element.GetParent().GetCount() {
+					elements, err = model_parser.Dereference(t.Context(), options.Readers.List, model_core.Nested(elements, element.GetParent().GetReference()))
 					if err != nil {
 						return nil, err
 					}
 					continue descend
 				}
-				remaining -= level.Parent.Count
+				remaining -= element.GetParent().GetCount()
 			default:
 				return nil, errors.New("invalid list element level")
 			}
@@ -463,7 +464,7 @@ var _ eval.Dict = (*storedDict[object.LocalReference, model_core.NoopReferenceMe
 func (*storedDict[TReference, TMetadata]) Type() string { return "dict" }
 
 func (d *storedDict[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
-	return len(d.dict.Message.Entries) > 0, nil
+	return len(d.dict.Message.GetEntries()) > 0, nil
 }
 
 func (d *storedDict[TReference, TMetadata]) getIndex(t *eval.Thread) (eval.Dict, error) {

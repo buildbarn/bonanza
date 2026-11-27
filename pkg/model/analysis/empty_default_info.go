@@ -8,7 +8,6 @@ import (
 	"bonanza.build/pkg/model/evaluation"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
-	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 
 	"google.golang.org/protobuf/proto"
@@ -32,17 +31,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeEmptyDefaultInfoValue(ctx c
 	}
 
 	// Construct the provider object.
-	defaultInfoProviderValueKind, ok := defaultInfoProviderValue.Message.Global.GetKind().(*model_starlark_pb.Value_Provider)
-	if !ok {
+	defaultInfoProviderValueKind := defaultInfoProviderValue.Message.GetGlobal().GetProvider()
+	if defaultInfoProviderValueKind == nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("%#v is not a provider", defaultInfoProviderIdentifierStr)
 	}
-	defaultInfoProvider, err := model_starlark.DecodeProvider[TReference, TMetadata](model_core.Nested(defaultInfoProviderValue, defaultInfoProviderValueKind.Provider))
+	defaultInfoProvider, err := model_starlark.DecodeProvider[TReference, TMetadata](model_core.Nested(defaultInfoProviderValue, defaultInfoProviderValueKind))
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, fmt.Errorf("failed to decode provider %#v: %w", defaultInfoProviderIdentifierStr, err)
 	}
 
 	// Call into the DefaultInfo provider to create a new instance.
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedEmptyDefaultInfoValue[TMetadata]{}, err
 	}

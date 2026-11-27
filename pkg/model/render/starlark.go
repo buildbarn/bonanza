@@ -151,71 +151,72 @@ func (sr *StarlarkRenderer) renderMaybeInlineFileContents(contents model_core.Me
 }
 
 func (sr *StarlarkRenderer) renderValue(value model_core.Message[*model_starlark_pb.Value, object.LocalReference]) Doc {
-	switch kind := value.Message.GetKind().(type) {
-	case *model_starlark_pb.Value_Aspect:
-		return sr.renderAspect(model_core.Nested(value, kind.Aspect))
-	case *model_starlark_pb.Value_Attr:
-		return sr.renderAttr(model_core.Nested(value, kind.Attr))
-	case *model_starlark_pb.Value_Bool:
-		return starlarkBool(kind.Bool)
-	case *model_starlark_pb.Value_Builtin:
-		return starlarkOpaque("built-in function " + kind.Builtin)
-	case *model_starlark_pb.Value_Bytes:
-		return sr.renderMaybeInlineFileContents(model_core.Nested(value, kind.Bytes), "b", "bytes")
-	case *model_starlark_pb.Value_Depset:
-		return sr.renderDepset(model_core.Nested(value, kind.Depset))
-	case *model_starlark_pb.Value_Dict:
-		return sr.renderDictEntries(model_core.Nested(value, kind.Dict.GetEntries()))
-	case *model_starlark_pb.Value_ExecGroup:
-		return sr.renderExecGroup(kind.ExecGroup)
-	case *model_starlark_pb.Value_File:
-		return sr.renderFile(model_core.Nested(value, kind.File))
-	case *model_starlark_pb.Value_Function:
-		return sr.renderFunction(kind.Function)
-	case *model_starlark_pb.Value_Int:
-		return sr.renderInt(kind.Int)
-	case *model_starlark_pb.Value_Label:
-		return starlarkCall(starlarkCallee("Label", ""), []Doc{starlarkString(kind.Label)})
-	case *model_starlark_pb.Value_List:
-		return sr.renderListElements(Text("["), Text("]"), model_core.Nested(value, kind.List.GetElements()), false)
-	case *model_starlark_pb.Value_Macro:
-		return sr.renderMacro(model_core.Nested(value, kind.Macro))
-	case *model_starlark_pb.Value_ModuleExtension:
-		return sr.renderModuleExtension(model_core.Nested(value, kind.ModuleExtension))
-	case *model_starlark_pb.Value_None:
+	switch value.Message.WhichKind() {
+	case model_starlark_pb.Value_Aspect_case:
+		return sr.renderAspect(model_core.Nested(value, value.Message.GetAspect()))
+	case model_starlark_pb.Value_Attr_case:
+		return sr.renderAttr(model_core.Nested(value, value.Message.GetAttr()))
+	case model_starlark_pb.Value_Bool_case:
+		return starlarkBool(value.Message.GetBool())
+	case model_starlark_pb.Value_Builtin_case:
+		return starlarkOpaque("built-in function " + value.Message.GetBuiltin())
+	case model_starlark_pb.Value_Bytes_case:
+		return sr.renderMaybeInlineFileContents(model_core.Nested(value, value.Message.GetBytes()), "b", "bytes")
+	case model_starlark_pb.Value_Depset_case:
+		return sr.renderDepset(model_core.Nested(value, value.Message.GetDepset()))
+	case model_starlark_pb.Value_Dict_case:
+		return sr.renderDictEntries(model_core.Nested(value, value.Message.GetDict().GetEntries()))
+	case model_starlark_pb.Value_ExecGroup_case:
+		return sr.renderExecGroup(value.Message.GetExecGroup())
+	case model_starlark_pb.Value_File_case:
+		return sr.renderFile(model_core.Nested(value, value.Message.GetFile()))
+	case model_starlark_pb.Value_Function_case:
+		return sr.renderFunction(value.Message.GetFunction())
+	case model_starlark_pb.Value_Int_case:
+		return sr.renderInt(value.Message.GetInt())
+	case model_starlark_pb.Value_Label_case:
+		return starlarkCall(starlarkCallee("Label", ""), []Doc{starlarkString(value.Message.GetLabel())})
+	case model_starlark_pb.Value_List_case:
+		return sr.renderListElements(Text("["), Text("]"), model_core.Nested(value, value.Message.GetList().GetElements()), false)
+	case model_starlark_pb.Value_Macro_case:
+		return sr.renderMacro(model_core.Nested(value, value.Message.GetMacro()))
+	case model_starlark_pb.Value_ModuleExtension_case:
+		return sr.renderModuleExtension(model_core.Nested(value, value.Message.GetModuleExtension()))
+	case model_starlark_pb.Value_None_case:
 		return starlarkLiteral("None")
-	case *model_starlark_pb.Value_Provider:
-		return sr.renderProvider(model_core.Nested(value, kind.Provider))
-	case *model_starlark_pb.Value_RepositoryRule:
-		return sr.renderRepositoryRule(model_core.Nested(value, kind.RepositoryRule))
-	case *model_starlark_pb.Value_Rule:
-		return sr.renderRule(model_core.Nested(value, kind.Rule))
-	case *model_starlark_pb.Value_Select:
-		return sr.renderSelect(model_core.Nested(value, kind.Select))
-	case *model_starlark_pb.Value_Set:
+	case model_starlark_pb.Value_Provider_case:
+		return sr.renderProvider(model_core.Nested(value, value.Message.GetProvider()))
+	case model_starlark_pb.Value_RepositoryRule_case:
+		return sr.renderRepositoryRule(model_core.Nested(value, value.Message.GetRepositoryRule()))
+	case model_starlark_pb.Value_Rule_case:
+		return sr.renderRule(model_core.Nested(value, value.Message.GetRule()))
+	case model_starlark_pb.Value_Select_case:
+		return sr.renderSelect(model_core.Nested(value, value.Message.GetSelect()))
+	case model_starlark_pb.Value_Set_case:
 		return starlarkCall(
 			starlarkCallee("set", ""),
 			[]Doc{
-				sr.renderListElements(Text("["), Text("]"), model_core.Nested(value, kind.Set.GetElements()), false),
+				sr.renderListElements(Text("["), Text("]"), model_core.Nested(value, value.Message.GetSet().GetElements()), false),
 			},
 		)
-	case *model_starlark_pb.Value_Str:
-		return sr.renderMaybeInlineFileContents(model_core.Nested(value, kind.Str), "", "string")
-	case *model_starlark_pb.Value_Struct:
-		return sr.renderStruct(model_core.Nested(value, kind.Struct))
-	case *model_starlark_pb.Value_Subrule:
-		return sr.renderSubrule(model_core.Nested(value, kind.Subrule))
-	case *model_starlark_pb.Value_TagClass:
-		return sr.renderTagClass(model_core.Nested(value, kind.TagClass))
-	case *model_starlark_pb.Value_TargetReference:
-		return sr.renderTargetReference(model_core.Nested(value, kind.TargetReference))
-	case *model_starlark_pb.Value_ToolchainType:
-		return sr.renderToolchainType(kind.ToolchainType)
-	case *model_starlark_pb.Value_Transition:
-		return sr.renderTransition(kind.Transition)
-	case *model_starlark_pb.Value_Tuple:
-		elements := make([]Doc, 0, len(kind.Tuple.GetElements()))
-		for _, element := range kind.Tuple.GetElements() {
+	case model_starlark_pb.Value_Str_case:
+		return sr.renderMaybeInlineFileContents(model_core.Nested(value, value.Message.GetStr()), "", "string")
+	case model_starlark_pb.Value_Struct_case:
+		return sr.renderStruct(model_core.Nested(value, value.Message.GetStruct()))
+	case model_starlark_pb.Value_Subrule_case:
+		return sr.renderSubrule(model_core.Nested(value, value.Message.GetSubrule()))
+	case model_starlark_pb.Value_TagClass_case:
+		return sr.renderTagClass(model_core.Nested(value, value.Message.GetTagClass()))
+	case model_starlark_pb.Value_TargetReference_case:
+		return sr.renderTargetReference(model_core.Nested(value, value.Message.GetTargetReference()))
+	case model_starlark_pb.Value_ToolchainType_case:
+		return sr.renderToolchainType(value.Message.GetToolchainType())
+	case model_starlark_pb.Value_Transition_case:
+		return sr.renderTransition(value.Message.GetTransition())
+	case model_starlark_pb.Value_Tuple_case:
+		tupleElements := value.Message.GetTuple().GetElements()
+		elements := make([]Doc, 0, len(tupleElements))
+		for _, element := range tupleElements {
 			elements = append(elements, sr.renderValue(model_core.Nested(value, element)))
 		}
 		return Sequence(Text("("), Text(")"), elements, true, true)
@@ -236,9 +237,9 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 	if defaultValue := attr.Message.GetDefault(); defaultValue != nil {
 		arguments = append(arguments, starlarkKeywordArgument("default", sr.renderValue(model_core.Nested(attr, defaultValue))))
 	}
-	if !attr.Message.Configurable {
-		switch attr.Message.Type.(type) {
-		case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
+	if !attr.Message.GetConfigurable() {
+		switch attr.Message.WhichType() {
+		case model_starlark_pb.Attr_Output_case, model_starlark_pb.Attr_OutputList_case:
 			// Outputs are never configurable.
 		default:
 			arguments = append(arguments, starlarkKeywordArgument("configurable", starlarkBool(false)))
@@ -249,7 +250,7 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 		// that is the default. The original list of file
 		// extensions cannot be recovered from the pattern.
 		if allowFiles := labelOptions.GetAllowFiles(); allowFiles != nil {
-			if len(allowFiles.FilenamePattern) == 0 {
+			if len(allowFiles.GetFilenamePattern()) == 0 {
 				arguments = append(arguments, starlarkKeywordArgument(allowFilesKeyword, starlarkBool(true)))
 			} else {
 				arguments = append(arguments, starlarkKeywordArgument(allowFilesKeyword, starlarkOpaque("filename pattern")))
@@ -276,34 +277,34 @@ func (sr *StarlarkRenderer) renderAttr(attr model_core.Message[*model_starlark_p
 	if compositeOptions, ok := model_starlark.GetAttrCompositeOptions(attr.Message); ok && !compositeOptions.GetAllowEmpty() {
 		arguments = append(arguments, starlarkKeywordArgument("allow_empty", starlarkBool(false)))
 	}
-	switch attrType := attr.Message.GetType().(type) {
-	case *model_starlark_pb.Attr_Int:
-		if values := attrType.Int.Values; len(values) > 0 {
+	switch attr.Message.WhichType() {
+	case model_starlark_pb.Attr_Int_case:
+		if values := attr.Message.GetInt().GetValues(); len(values) > 0 {
 			elements := make([]Doc, 0, len(values))
 			for _, value := range values {
 				elements = append(elements, starlarkLiteral(fmt.Sprintf("%d", value)))
 			}
 			arguments = append(arguments, starlarkKeywordArgument("values", Sequence(Text("["), Text("]"), elements, true, false)))
 		}
-	case *model_starlark_pb.Attr_Label:
-		if attrType.Label.AllowSingleFile {
-			addLabelOptions(attrType.Label.ValueOptions, "allow_single_file")
+	case model_starlark_pb.Attr_Label_case:
+		if attr.Message.GetLabel().GetAllowSingleFile() {
+			addLabelOptions(attr.Message.GetLabel().GetValueOptions(), "allow_single_file")
 		} else {
-			addLabelOptions(attrType.Label.ValueOptions, "allow_files")
+			addLabelOptions(attr.Message.GetLabel().GetValueOptions(), "allow_files")
 		}
-		if attrType.Label.Executable {
+		if attr.Message.GetLabel().GetExecutable() {
 			arguments = append(arguments, starlarkKeywordArgument("executable", starlarkBool(true)))
 		}
-	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		addLabelOptions(attrType.LabelKeyedStringDict.DictKeyOptions, "allow_files")
-	case *model_starlark_pb.Attr_LabelList:
-		addLabelOptions(attrType.LabelList.ListValueOptions, "allow_files")
-	case *model_starlark_pb.Attr_String_:
-		if values := attrType.String_.Values; len(values) > 0 {
+	case model_starlark_pb.Attr_LabelKeyedStringDict_case:
+		addLabelOptions(attr.Message.GetLabelKeyedStringDict().GetDictKeyOptions(), "allow_files")
+	case model_starlark_pb.Attr_LabelList_case:
+		addLabelOptions(attr.Message.GetLabelList().GetListValueOptions(), "allow_files")
+	case model_starlark_pb.Attr_String__case:
+		if values := attr.Message.GetString().GetValues(); len(values) > 0 {
 			arguments = append(arguments, starlarkKeywordArgument("values", starlarkStringList(values)))
 		}
-	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		addLabelOptions(attrType.StringKeyedLabelDict.DictValueOptions, "allow_files")
+	case model_starlark_pb.Attr_StringKeyedLabelDict_case:
+		addLabelOptions(attr.Message.GetStringKeyedLabelDict().GetDictValueOptions(), "allow_files")
 	}
 
 	return starlarkCall(starlarkCallee("attr."+string(typeField.Name()), ""), arguments)
@@ -320,15 +321,15 @@ func (sr *StarlarkRenderer) renderDepset(depset model_core.Message[*model_starla
 }
 
 func (sr *StarlarkRenderer) renderDictEntry(entry model_core.Message[*model_starlark_pb.Dict_Entry, object.LocalReference]) Doc {
-	switch level := entry.Message.GetLevel().(type) {
-	case *model_starlark_pb.Dict_Entry_Leaf_:
+	switch entry.Message.WhichLevel() {
+	case model_starlark_pb.Dict_Entry_Leaf_case:
 		return Concat(
-			sr.renderValue(model_core.Nested(entry, level.Leaf.GetKey())),
+			sr.renderValue(model_core.Nested(entry, entry.Message.GetLeaf().GetKey())),
 			Text(": "),
-			sr.renderValue(model_core.Nested(entry, level.Leaf.GetValue())),
+			sr.renderValue(model_core.Nested(entry, entry.Message.GetLeaf().GetValue())),
 		)
-	case *model_starlark_pb.Dict_Entry_Parent_:
-		return sr.renderReference(model_core.Nested(entry, level.Parent.Reference), level.Parent, "more entries")
+	case model_starlark_pb.Dict_Entry_Parent_case:
+		return sr.renderReference(model_core.Nested(entry, entry.Message.GetParent().GetReference()), entry.Message.GetParent(), "more entries")
 	default:
 		return starlarkErrorf("Unknown dict entry level")
 	}
@@ -363,12 +364,12 @@ func (sr *StarlarkRenderer) renderDictEntries(entries model_core.Message[[]*mode
 
 func (sr *StarlarkRenderer) renderExecGroup(execGroup *model_starlark_pb.ExecGroup) Doc {
 	var arguments []Doc
-	if len(execGroup.GetExecCompatibleWith()) > 0 {
-		arguments = append(arguments, starlarkKeywordArgument("exec_compatible_with", starlarkStringList(execGroup.GetExecCompatibleWith())))
+	if execCompatibleWith := execGroup.GetExecCompatibleWith(); len(execCompatibleWith) > 0 {
+		arguments = append(arguments, starlarkKeywordArgument("exec_compatible_with", starlarkStringList(execCompatibleWith)))
 	}
-	if len(execGroup.GetToolchains()) > 0 {
-		toolchains := make([]Doc, 0, len(execGroup.GetToolchains()))
-		for _, toolchain := range execGroup.GetToolchains() {
+	if toolchainTypes := execGroup.GetToolchains(); len(toolchainTypes) > 0 {
+		toolchains := make([]Doc, 0, len(toolchainTypes))
+		for _, toolchain := range toolchainTypes {
 			toolchains = append(toolchains, sr.renderToolchainType(toolchain))
 		}
 		arguments = append(arguments, starlarkKeywordArgument("toolchains", Sequence(Text("["), Text("]"), toolchains, true, false)))
@@ -383,7 +384,7 @@ func (*StarlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.F
 	}
 
 	var kind string
-	switch owner.Type {
+	switch owner.GetType() {
 	case model_starlark_pb.File_Owner_DIRECTORY:
 		kind = "generated directory "
 	case model_starlark_pb.File_Owner_SYMLINK:
@@ -392,13 +393,13 @@ func (*StarlarkRenderer) renderFile(file model_core.Message[*model_starlark_pb.F
 		kind = "generated file "
 	}
 	description := Styled(RoleDim, "<"+kind+file.Message.GetLabel())
-	if variant := owner.Variant; variant.GetConfigurationReference() != nil {
+	if variant := owner.GetVariant(); variant.GetConfigurationReference() != nil {
 		// Provide a link to the configuration in which the
 		// file is built.
 		description = Concat(
 			description,
 			Styled(RoleDim, " in configuration "),
-			fieldReferenceLink(model_core.Nested(file, variant.ConfigurationReference), variant, "configuration_reference", Text("...")),
+			fieldReferenceLink(model_core.Nested(file, variant.GetConfigurationReference()), variant, "configuration_reference", Text("...")),
 		)
 	}
 	return Concat(description, Styled(RoleDim, ">"))
@@ -416,22 +417,22 @@ func (*StarlarkRenderer) renderInt(v []byte) Doc {
 }
 
 func (sr *StarlarkRenderer) renderListElement(element model_core.Message[*model_starlark_pb.List_Element, object.LocalReference]) Doc {
-	switch level := element.Message.GetLevel().(type) {
-	case *model_starlark_pb.List_Element_Leaf:
-		return sr.renderValue(model_core.Nested(element, level.Leaf))
-	case *model_starlark_pb.List_Element_Parent_:
-		return sr.renderListElementParent(model_core.Nested(element, level.Parent))
+	switch element.Message.WhichLevel() {
+	case model_starlark_pb.List_Element_Leaf_case:
+		return sr.renderValue(model_core.Nested(element, element.Message.GetLeaf()))
+	case model_starlark_pb.List_Element_Parent_case:
+		return sr.renderListElementParent(model_core.Nested(element, element.Message.GetParent()))
 	default:
 		return starlarkErrorf("Unknown list element level")
 	}
 }
 
 func (sr *StarlarkRenderer) renderListElementParent(parent model_core.Message[*model_starlark_pb.List_Element_Parent, object.LocalReference]) Doc {
-	description := fmt.Sprintf("%d more elements", parent.Message.Count)
-	if parent.Message.Count == 1 {
+	description := fmt.Sprintf("%d more elements", parent.Message.GetCount())
+	if parent.Message.GetCount() == 1 {
 		description = "1 more element"
 	}
-	return sr.renderReference(model_core.Nested(parent, parent.Message.Reference), parent.Message, description)
+	return sr.renderReference(model_core.Nested(parent, parent.Message.GetReference()), parent.Message, description)
 }
 
 func (sr *StarlarkRenderer) renderListElements(open, close Doc, elements model_core.Message[[]*model_starlark_pb.List_Element, object.LocalReference], singleElementNeedsComma bool) Doc {
@@ -462,11 +463,11 @@ func (sr *StarlarkRenderer) renderListElements(open, close Doc, elements model_c
 }
 
 func (sr *StarlarkRenderer) renderTestSuiteTest(test model_core.Message[*model_starlark_pb.TestSuite_Test, object.LocalReference]) Doc {
-	switch level := test.Message.GetLevel().(type) {
-	case *model_starlark_pb.TestSuite_Test_Leaf:
-		return starlarkString(level.Leaf)
-	case *model_starlark_pb.TestSuite_Test_Parent_:
-		return sr.renderReference(model_core.Nested(test, level.Parent.Reference), level.Parent, "more tests")
+	switch test.Message.WhichLevel() {
+	case model_starlark_pb.TestSuite_Test_Leaf_case:
+		return starlarkString(test.Message.GetLeaf())
+	case model_starlark_pb.TestSuite_Test_Parent_case:
+		return sr.renderReference(model_core.Nested(test, test.Message.GetParent().GetReference()), test.Message.GetParent(), "more tests")
 	default:
 		return starlarkErrorf("Unknown test level")
 	}
@@ -504,10 +505,10 @@ func (sr *StarlarkRenderer) renderTestSuiteTests(tests model_core.Message[[]*mod
 func (sr *StarlarkRenderer) renderSelectGroup(group model_core.Message[*model_starlark_pb.Select_Group, object.LocalReference]) Doc {
 	conditions := group.Message.GetConditions()
 	if len(conditions) == 0 {
-		if noMatchValue, ok := group.Message.GetNoMatch().(*model_starlark_pb.Select_Group_NoMatchValue); ok {
+		if noMatchValue := group.Message.GetNoMatchValue(); noMatchValue != nil {
 			// Group consisting of a single value that is not
 			// wrapped in a select().
-			return sr.renderValue(model_core.Nested(group, noMatchValue.NoMatchValue))
+			return sr.renderValue(model_core.Nested(group, noMatchValue))
 		}
 	}
 
@@ -523,22 +524,22 @@ func (sr *StarlarkRenderer) renderSelectGroup(group model_core.Message[*model_st
 		)
 	}
 	arguments := make([]Doc, 0, 2)
-	switch noMatch := group.Message.GetNoMatch().(type) {
-	case *model_starlark_pb.Select_Group_NoMatchValue:
+	switch group.Message.WhichNoMatch() {
+	case model_starlark_pb.Select_Group_NoMatchValue_case:
 		entries = append(
 			entries,
 			Concat(
 				starlarkString("//conditions:default"),
 				Text(": "),
-				sr.renderValue(model_core.Nested(group, noMatch.NoMatchValue)),
+				sr.renderValue(model_core.Nested(group, group.Message.GetNoMatchValue())),
 			),
 		)
 		arguments = append(arguments, Sequence(Text("{"), Text("}"), entries, true, false))
-	case *model_starlark_pb.Select_Group_NoMatchError:
+	case model_starlark_pb.Select_Group_NoMatchError_case:
 		arguments = append(
 			arguments,
 			Sequence(Text("{"), Text("}"), entries, true, false),
-			starlarkKeywordArgument("no_match_error", starlarkString(noMatch.NoMatchError)),
+			starlarkKeywordArgument("no_match_error", starlarkString(group.Message.GetNoMatchError())),
 		)
 	default:
 		arguments = append(arguments, Sequence(Text("{"), Text("}"), entries, true, false))
@@ -585,17 +586,17 @@ func (sr *StarlarkRenderer) renderStructFields(callee Doc, fields model_core.Mes
 	values := fields.Message.GetValues()
 	arguments := make([]Doc, 0, len(values))
 	for _, value := range values {
-		switch level := value.Level.(type) {
-		case *model_starlark_pb.List_Element_Leaf:
+		switch value.WhichLevel() {
+		case model_starlark_pb.List_Element_Leaf_case:
 			if len(keys) == 0 {
 				return starlarkErrorf("Struct has fewer keys than values")
 			}
-			arguments = append(arguments, starlarkKeywordArgument(keys[0], sr.renderValue(model_core.Nested(fields, level.Leaf))))
+			arguments = append(arguments, starlarkKeywordArgument(keys[0], sr.renderValue(model_core.Nested(fields, value.GetLeaf()))))
 			keys = keys[1:]
-		case *model_starlark_pb.List_Element_Parent_:
+		case model_starlark_pb.List_Element_Parent_case:
 			// Values are stored in a separate object. Display
 			// the range of keys whose values are stored there.
-			count := level.Parent.Count
+			count := value.GetParent().GetCount()
 			if count == 0 || uint64(len(keys)) < count {
 				return starlarkErrorf("Struct has fewer keys than values")
 			}
@@ -605,7 +606,7 @@ func (sr *StarlarkRenderer) renderStructFields(callee Doc, fields model_core.Mes
 			}
 			arguments = append(
 				arguments,
-				sr.renderReference(model_core.Nested(fields, level.Parent.Reference), level.Parent, description),
+				sr.renderReference(model_core.Nested(fields, value.GetParent().GetReference()), value.GetParent(), description),
 			)
 			keys = keys[count:]
 		default:
@@ -623,7 +624,7 @@ func (sr *StarlarkRenderer) renderStruct(structValue model_core.Message[*model_s
 	if properties := structValue.Message.GetProviderInstanceProperties(); properties != nil {
 		// Instance of a provider. Use the name of the provider
 		// as the name of the function that is called.
-		callee = starlarkCallee(starlarkIdentifierName(properties.ProviderIdentifier), properties.ProviderIdentifier)
+		callee = starlarkCallee(starlarkIdentifierName(properties.GetProviderIdentifier()), properties.GetProviderIdentifier())
 	}
 	return sr.renderStructFields(callee, model_core.Nested(structValue, structValue.Message.GetFields()))
 }
@@ -634,13 +635,14 @@ func (sr *StarlarkRenderer) renderTargetReference(targetReference model_core.Mes
 		return starlarkOpaque("unconfigured target " + targetReference.Message.GetOriginalLabel())
 	}
 
-	open := Styled(RoleDim, "<target "+configured.Label)
+	open := Styled(RoleDim, "<target "+configured.GetLabel())
 	close := Styled(RoleDim, ">")
-	if len(configured.Providers) == 0 {
+	configuredProviders := configured.GetProviders()
+	if len(configuredProviders) == 0 {
 		return Concat(open, close)
 	}
-	providers := make([]Doc, 0, len(configured.Providers))
-	for _, provider := range configured.Providers {
+	providers := make([]Doc, 0, len(configuredProviders))
+	for _, provider := range configuredProviders {
 		providers = append(providers, sr.renderStruct(model_core.Nested(targetReference, provider)))
 	}
 	return Sequence(
@@ -661,21 +663,21 @@ func (*StarlarkRenderer) renderToolchainType(toolchainType *model_starlark_pb.To
 }
 
 func (sr *StarlarkRenderer) renderTransition(transition *model_starlark_pb.Transition) Doc {
-	switch kind := transition.GetKind().(type) {
-	case *model_starlark_pb.Transition_ExecGroup:
+	switch transition.WhichKind() {
+	case model_starlark_pb.Transition_ExecGroup_case:
 		var arguments []Doc
-		if kind.ExecGroup != "" {
-			arguments = append(arguments, starlarkString(kind.ExecGroup))
+		if execGroup := transition.GetExecGroup(); execGroup != "" {
+			arguments = append(arguments, starlarkString(execGroup))
 		}
 		return starlarkCall(starlarkCallee("config.exec", ""), arguments)
-	case *model_starlark_pb.Transition_None:
+	case model_starlark_pb.Transition_None_case:
 		return starlarkCall(starlarkCallee("config.none", ""), nil)
-	case *model_starlark_pb.Transition_Target:
+	case model_starlark_pb.Transition_Target_case:
 		return starlarkCall(starlarkCallee("config.target", ""), nil)
-	case *model_starlark_pb.Transition_Unconfigured:
+	case model_starlark_pb.Transition_Unconfigured_case:
 		return starlarkOpaque("unconfigured transition")
-	case *model_starlark_pb.Transition_UserDefined_:
-		return sr.renderUserDefinedTransition(kind.UserDefined)
+	case model_starlark_pb.Transition_UserDefined_case:
+		return sr.renderUserDefinedTransition(transition.GetUserDefined())
 	default:
 		return starlarkErrorf("Unknown transition kind")
 	}
@@ -726,16 +728,16 @@ func (*StarlarkRenderer) renderBuildSetting(buildSetting *model_starlark_pb.Buil
 		return starlarkErrorf("Build setting has unknown type")
 	}
 	var arguments []Doc
-	if buildSetting.Flag {
+	if buildSetting.GetFlag() {
 		arguments = append(arguments, starlarkKeywordArgument("flag", starlarkBool(true)))
 	}
-	switch buildSettingType := buildSetting.Type.(type) {
-	case *model_starlark_pb.BuildSetting_LabelList:
-		if buildSettingType.LabelList.GetRepeatable() {
+	switch buildSetting.WhichType() {
+	case model_starlark_pb.BuildSetting_LabelList_case:
+		if buildSetting.GetLabelList().GetRepeatable() {
 			arguments = append(arguments, starlarkKeywordArgument("repeatable", starlarkBool(true)))
 		}
-	case *model_starlark_pb.BuildSetting_StringList:
-		if buildSettingType.StringList.GetRepeatable() {
+	case model_starlark_pb.BuildSetting_StringList_case:
+		if buildSetting.GetStringList().GetRepeatable() {
 			arguments = append(arguments, starlarkKeywordArgument("repeatable", starlarkBool(true)))
 		}
 	}
@@ -753,9 +755,9 @@ func (sr *StarlarkRenderer) renderModuleExtension(moduleExtension model_core.Mes
 			entries = append(
 				entries,
 				Concat(
-					starlarkString(namedTagClass.Name),
+					starlarkString(namedTagClass.GetName()),
 					Text(": "),
-					sr.renderTagClass(model_core.Nested(moduleExtension, namedTagClass.TagClass)),
+					sr.renderTagClass(model_core.Nested(moduleExtension, namedTagClass.GetTagClass())),
 				),
 			)
 		}
@@ -783,9 +785,9 @@ func (sr *StarlarkRenderer) renderProvider(provider model_core.Message[*model_st
 			entries = append(
 				entries,
 				Concat(
-					starlarkString(computedField.Name),
+					starlarkString(computedField.GetName()),
 					Text(": "),
-					sr.renderFunction(computedField.Function),
+					sr.renderFunction(computedField.GetFunction()),
 				),
 			)
 		}
@@ -801,17 +803,17 @@ func (sr *StarlarkRenderer) renderProvider(provider model_core.Message[*model_st
 }
 
 func (sr *StarlarkRenderer) renderRepositoryRule(repositoryRule model_core.Message[*model_starlark_pb.RepositoryRule, object.LocalReference]) Doc {
-	switch kind := repositoryRule.Message.GetKind().(type) {
-	case *model_starlark_pb.RepositoryRule_Reference:
-		return starlarkOpaqueIdentifier("repository_rule", kind.Reference)
-	case *model_starlark_pb.RepositoryRule_Definition_:
-		definition := kind.Definition
+	switch repositoryRule.Message.WhichKind() {
+	case model_starlark_pb.RepositoryRule_Reference_case:
+		return starlarkOpaqueIdentifier("repository_rule", repositoryRule.Message.GetReference())
+	case model_starlark_pb.RepositoryRule_Definition_case:
+		definition := repositoryRule.Message.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		if len(definition.Attrs) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(repositoryRule, definition.Attrs))))
+		if attrs := definition.GetAttrs(); len(attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(repositoryRule, attrs))))
 		}
 		return starlarkDefinitionCall("repository_rule", "", arguments)
 	default:
@@ -820,19 +822,19 @@ func (sr *StarlarkRenderer) renderRepositoryRule(repositoryRule model_core.Messa
 }
 
 func (sr *StarlarkRenderer) renderMacro(macro model_core.Message[*model_starlark_pb.Macro, object.LocalReference]) Doc {
-	switch kind := macro.Message.GetKind().(type) {
-	case *model_starlark_pb.Macro_Reference:
-		return starlarkOpaqueIdentifier("macro", kind.Reference)
-	case *model_starlark_pb.Macro_Definition_:
-		definition := kind.Definition
+	switch macro.Message.WhichKind() {
+	case model_starlark_pb.Macro_Reference_case:
+		return starlarkOpaqueIdentifier("macro", macro.Message.GetReference())
+	case model_starlark_pb.Macro_Definition_case:
+		definition := macro.Message.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		if len(definition.Attrs) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(macro, definition.Attrs))))
+		if attrs := definition.GetAttrs(); len(attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(macro, attrs))))
 		}
-		if definition.Finalizer {
+		if definition.GetFinalizer() {
 			arguments = append(arguments, starlarkKeywordArgument("finalizer", starlarkBool(true)))
 		}
 		return starlarkCall(starlarkCallee("macro", ""), arguments)
@@ -844,7 +846,7 @@ func (sr *StarlarkRenderer) renderMacro(macro model_core.Message[*model_starlark
 // isAnyProviderSets returns true if a list of provider sets only
 // contains a single empty set, meaning it is satisfied by any target.
 func isAnyProviderSets(providerSets []*model_starlark_pb.ProviderSet) bool {
-	return len(providerSets) == 1 && len(providerSets[0].ProviderIdentifiers) == 0
+	return len(providerSets) == 1 && len(providerSets[0].GetProviderIdentifiers()) == 0
 }
 
 // renderProviderSets renders a list of provider sets, as accepted by
@@ -853,52 +855,52 @@ func isAnyProviderSets(providerSets []*model_starlark_pb.ProviderSet) bool {
 func renderProviderSets(providerSets []*model_starlark_pb.ProviderSet) Doc {
 	elements := make([]Doc, 0, len(providerSets))
 	for _, providerSet := range providerSets {
-		elements = append(elements, starlarkIdentifierList("provider", providerSet.ProviderIdentifiers))
+		elements = append(elements, starlarkIdentifierList("provider", providerSet.GetProviderIdentifiers()))
 	}
 	return Sequence(Text("["), Text("]"), elements, true, false)
 }
 
 func (sr *StarlarkRenderer) renderAspect(aspect model_core.Message[*model_starlark_pb.Aspect, object.LocalReference]) Doc {
-	switch kind := aspect.Message.GetKind().(type) {
-	case *model_starlark_pb.Aspect_Reference:
-		return starlarkOpaqueIdentifier("aspect", kind.Reference)
-	case *model_starlark_pb.Aspect_Definition_:
-		definition := kind.Definition
+	switch aspect.Message.WhichKind() {
+	case model_starlark_pb.Aspect_Reference_case:
+		return starlarkOpaqueIdentifier("aspect", aspect.Message.GetReference())
+	case model_starlark_pb.Aspect_Definition_case:
+		definition := aspect.Message.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		if definition.ApplyToGeneratingRules {
+		if definition.GetApplyToGeneratingRules() {
 			arguments = append(arguments, starlarkKeywordArgument("apply_to_generating_rules", starlarkBool(true)))
 		}
-		if attrAspects := definition.AttrAspects; attrAspects != nil {
+		if attrAspects := definition.GetAttrAspects(); attrAspects != nil {
 			arguments = append(arguments, starlarkKeywordArgument("attr_aspects", sr.renderAspectPropagationEdges(attrAspects)))
 		}
-		if len(definition.Attrs) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(aspect, definition.Attrs))))
+		if attrs := definition.GetAttrs(); len(attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(aspect, attrs))))
 		}
-		if len(definition.ExecGroups) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(definition.ExecGroups)))
+		if execGroups := definition.GetExecGroups(); len(execGroups) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(execGroups)))
 		}
-		if propagationPredicate := definition.PropagationPredicate; propagationPredicate != nil {
+		if propagationPredicate := definition.GetPropagationPredicate(); propagationPredicate != nil {
 			arguments = append(arguments, starlarkKeywordArgument("propagation_predicate", sr.renderFunction(propagationPredicate)))
 		}
-		if len(definition.Provides) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("provides", starlarkIdentifierList("provider", definition.Provides)))
+		if provides := definition.GetProvides(); len(provides) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("provides", starlarkIdentifierList("provider", provides)))
 		}
-		if providerSets := definition.RequiredAspectProviders; len(providerSets) > 0 {
+		if providerSets := definition.GetRequiredAspectProviders(); len(providerSets) > 0 {
 			arguments = append(arguments, starlarkKeywordArgument("required_aspect_providers", renderProviderSets(providerSets)))
 		}
-		if providerSets := definition.RequiredProviders; !isAnyProviderSets(providerSets) {
+		if providerSets := definition.GetRequiredProviders(); !isAnyProviderSets(providerSets) {
 			arguments = append(arguments, starlarkKeywordArgument("required_providers", renderProviderSets(providerSets)))
 		}
-		if len(definition.Requires) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("requires", starlarkIdentifierList("aspect", definition.Requires)))
+		if requires := definition.GetRequires(); len(requires) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("requires", starlarkIdentifierList("aspect", requires)))
 		}
-		if len(definition.SubruleIdentifiers) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", definition.SubruleIdentifiers)))
+		if subruleIdentifiers := definition.GetSubruleIdentifiers(); len(subruleIdentifiers) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", subruleIdentifiers)))
 		}
-		if toolchainsAspects := definition.ToolchainsAspects; toolchainsAspects != nil {
+		if toolchainsAspects := definition.GetToolchainsAspects(); toolchainsAspects != nil {
 			arguments = append(arguments, starlarkKeywordArgument("toolchains_aspects", sr.renderAspectPropagationEdges(toolchainsAspects)))
 		}
 		return starlarkDefinitionCall("aspect", "", arguments)
@@ -910,13 +912,13 @@ func (sr *StarlarkRenderer) renderAspect(aspect model_core.Message[*model_starla
 // renderAspectPropagationEdges renders the edges along which an aspect
 // propagates in the form in which they are provided to aspect().
 func (sr *StarlarkRenderer) renderAspectPropagationEdges(propagationEdges *model_starlark_pb.Aspect_PropagationEdges) Doc {
-	switch kind := propagationEdges.Kind.(type) {
-	case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
-		return starlarkStringList(kind.Fixed.Names)
-	case *model_starlark_pb.Aspect_PropagationEdges_All:
+	switch propagationEdges.WhichKind() {
+	case model_starlark_pb.Aspect_PropagationEdges_Fixed_case:
+		return starlarkStringList(propagationEdges.GetFixed().GetNames())
+	case model_starlark_pb.Aspect_PropagationEdges_All_case:
 		return starlarkStringList([]string{"*"})
-	case *model_starlark_pb.Aspect_PropagationEdges_Function:
-		return sr.renderFunction(kind.Function)
+	case model_starlark_pb.Aspect_PropagationEdges_Function_case:
+		return sr.renderFunction(propagationEdges.GetFunction())
 	default:
 		return starlarkOpaque("propagation_edges")
 	}
@@ -930,9 +932,9 @@ func (sr *StarlarkRenderer) renderNamedExecGroups(namedExecGroups []*model_starl
 		entries = append(
 			entries,
 			Concat(
-				starlarkString(namedExecGroup.Name),
+				starlarkString(namedExecGroup.GetName()),
 				Text(": "),
-				sr.renderExecGroup(namedExecGroup.ExecGroup),
+				sr.renderExecGroup(namedExecGroup.GetExecGroup()),
 			),
 		)
 	}
@@ -940,41 +942,41 @@ func (sr *StarlarkRenderer) renderNamedExecGroups(namedExecGroups []*model_starl
 }
 
 func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_pb.Rule, object.LocalReference]) Doc {
-	switch kind := rule.Message.GetKind().(type) {
-	case *model_starlark_pb.Rule_Reference:
-		return starlarkOpaqueIdentifier("rule", kind.Reference)
-	case *model_starlark_pb.Rule_Definition_:
-		definition := kind.Definition
+	switch rule.Message.WhichKind() {
+	case model_starlark_pb.Rule_Reference_case:
+		return starlarkOpaqueIdentifier("rule", rule.Message.GetReference())
+	case model_starlark_pb.Rule_Definition_case:
+		definition := rule.Message.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		switch definition.Type {
+		switch definition.GetType() {
 		case model_starlark_pb.Rule_Definition_EXECUTABLE:
 			arguments = append(arguments, starlarkKeywordArgument("executable", starlarkBool(true)))
 		case model_starlark_pb.Rule_Definition_TEST:
 			arguments = append(arguments, starlarkKeywordArgument("test", starlarkBool(true)))
 		}
-		if len(definition.Attrs) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(rule, definition.Attrs))))
+		if attrs := definition.GetAttrs(); len(attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(rule, attrs))))
 		}
-		if buildSetting := definition.BuildSetting; buildSetting != nil {
+		if buildSetting := definition.GetBuildSetting(); buildSetting != nil {
 			arguments = append(arguments, starlarkKeywordArgument("build_setting", sr.renderBuildSetting(buildSetting)))
 		}
-		if cfg := definition.CfgTransition; cfg != nil {
+		if cfg := definition.GetCfgTransition(); cfg != nil {
 			arguments = append(arguments, starlarkKeywordArgument("cfg", sr.renderUserDefinedTransition(cfg)))
 		}
-		if len(definition.ExecGroups) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(definition.ExecGroups)))
+		if execGroups := definition.GetExecGroups(); len(execGroups) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("exec_groups", sr.renderNamedExecGroups(execGroups)))
 		}
-		if initializer := definition.Initializer; initializer != nil {
+		if initializer := definition.GetInitializer(); initializer != nil {
 			arguments = append(arguments, starlarkKeywordArgument("initializer", sr.renderFunction(initializer)))
 		}
-		if len(definition.Provides) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("provides", starlarkIdentifierList("provider", definition.Provides)))
+		if provides := definition.GetProvides(); len(provides) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("provides", starlarkIdentifierList("provider", provides)))
 		}
-		if len(definition.SubruleIdentifiers) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", definition.SubruleIdentifiers)))
+		if subruleIdentifiers := definition.GetSubruleIdentifiers(); len(subruleIdentifiers) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", subruleIdentifiers)))
 		}
 		return starlarkDefinitionCall("rule", "", arguments)
 	default:
@@ -983,20 +985,20 @@ func (sr *StarlarkRenderer) renderRule(rule model_core.Message[*model_starlark_p
 }
 
 func (sr *StarlarkRenderer) renderSubrule(subrule model_core.Message[*model_starlark_pb.Subrule, object.LocalReference]) Doc {
-	switch kind := subrule.Message.GetKind().(type) {
-	case *model_starlark_pb.Subrule_Reference:
-		return starlarkOpaqueIdentifier("subrule", kind.Reference)
-	case *model_starlark_pb.Subrule_Definition_:
-		definition := kind.Definition
+	switch subrule.Message.WhichKind() {
+	case model_starlark_pb.Subrule_Reference_case:
+		return starlarkOpaqueIdentifier("subrule", subrule.Message.GetReference())
+	case model_starlark_pb.Subrule_Definition_case:
+		definition := subrule.Message.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
-		if len(definition.Attrs) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(subrule, definition.Attrs))))
+		if attrs := definition.GetAttrs(); len(attrs) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("attrs", sr.renderNamedAttrs(model_core.Nested(subrule, attrs))))
 		}
-		if len(definition.SubruleIdentifiers) > 0 {
-			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", definition.SubruleIdentifiers)))
+		if subruleIdentifiers := definition.GetSubruleIdentifiers(); len(subruleIdentifiers) > 0 {
+			arguments = append(arguments, starlarkKeywordArgument("subrules", starlarkIdentifierList("subrule", subruleIdentifiers)))
 		}
 		return starlarkDefinitionCall("subrule", "", arguments)
 	default:
@@ -1013,19 +1015,19 @@ func (sr *StarlarkRenderer) renderTagClass(tagClass model_core.Message[*model_st
 }
 
 func (sr *StarlarkRenderer) renderUserDefinedTransition(transition *model_starlark_pb.Transition_UserDefined) Doc {
-	switch kind := transition.GetKind().(type) {
-	case *model_starlark_pb.Transition_UserDefined_Identifier:
-		return starlarkOpaqueIdentifier("transition", kind.Identifier)
-	case *model_starlark_pb.Transition_UserDefined_Definition_:
-		definition := kind.Definition
+	switch transition.WhichKind() {
+	case model_starlark_pb.Transition_UserDefined_Identifier_case:
+		return starlarkOpaqueIdentifier("transition", transition.GetIdentifier())
+	case model_starlark_pb.Transition_UserDefined_Definition_case:
+		definition := transition.GetDefinition()
 		var arguments []Doc
-		if implementation := definition.Implementation; implementation != nil {
+		if implementation := definition.GetImplementation(); implementation != nil {
 			arguments = append(arguments, starlarkKeywordArgument("implementation", sr.renderFunction(implementation)))
 		}
 		arguments = append(
 			arguments,
-			starlarkKeywordArgument("inputs", starlarkStringList(definition.Inputs)),
-			starlarkKeywordArgument("outputs", starlarkStringList(definition.Outputs)),
+			starlarkKeywordArgument("inputs", starlarkStringList(definition.GetInputs())),
+			starlarkKeywordArgument("outputs", starlarkStringList(definition.GetOutputs())),
 		)
 		return starlarkDefinitionCall("transition", "", arguments)
 	default:

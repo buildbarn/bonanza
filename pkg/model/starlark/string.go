@@ -16,6 +16,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // MaybeInlineFileContentsReader is used to read the contents of large
@@ -44,11 +46,9 @@ func encodeString[TReference any, TMetadata model_core.ReferenceMetadata](s stri
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Value, error) {
-		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Str{
-				Str: contents.Merge(patcher),
-			},
-		}, nil
+		return model_starlark_pb.Value_builder{
+			Str: proto.ValueOrDefault(contents.Merge(patcher)),
+		}.Build(), nil
 	})
 }
 

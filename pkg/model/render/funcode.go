@@ -13,13 +13,14 @@ import (
 // functions nested inside it. It returns nil if the code is malformed,
 // so that its raw contents are displayed instead.
 func renderFunctionEntryLeaf(leaf *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf) Doc {
-	if leaf.Code == nil {
+	code := leaf.GetCode()
+	if code == nil {
 		return nil
 	}
 	// The line at which the function is declared is not stored in
 	// this message. Display lines relative to it, with the
 	// declaration being on line 1.
-	funcode, err := model_starlark.DecodeFuncode(leaf.Code, leaf.Name.GetName(), 1)
+	funcode, err := model_starlark.DecodeFuncode(code, leaf.GetName().GetName(), 1)
 	if err != nil {
 		return nil
 	}

@@ -15,6 +15,8 @@ import (
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // encodableFunction is implemented by functions that are backed by
@@ -65,10 +67,7 @@ func EncodeFunction[TReference any, TMetadata model_core.ReferenceMetadata](thre
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 	var closure *model_starlark_pb.Function_Closure
 	if len(defaults) > 0 || len(freeVars) > 0 {
-		closure = &model_starlark_pb.Function_Closure{
-			DefaultParameters: make([]*model_starlark_pb.Function_Closure_DefaultParameter, 0, len(defaults)),
-			FreeVariables:     make([]*model_starlark_pb.Value, 0, len(freeVars)),
-		}
+		defaultParameters := make([]*model_starlark_pb.Function_Closure_DefaultParameter, 0, len(defaults))
 		for index, defaultValue := range defaults {
 			defaultParameter := &model_starlark_pb.Function_Closure_DefaultParameter{}
 			if defaultValue != eval.Mandatory {
@@ -77,26 +76,31 @@ func EncodeFunction[TReference any, TMetadata model_core.ReferenceMetadata](thre
 					patcher.Discard()
 					return model_core.PatchedMessage[*model_starlark_pb.Function, TMetadata]{}, fmt.Errorf("default parameter %d: %w", index, err)
 				}
-				defaultParameter.Value = encodedDefaultValue.Merge(patcher)
+				defaultParameter.SetValue(encodedDefaultValue.Merge(patcher))
 			}
-			closure.DefaultParameters = append(closure.DefaultParameters, defaultParameter)
+			defaultParameters = append(defaultParameters, defaultParameter)
 		}
+		freeVariables := make([]*model_starlark_pb.Value, 0, len(freeVars))
 		for index, freeVar := range freeVars {
 			encodedFreeVar, err := EncodeValue(thread, freeVar.Value(), path, nil, options)
 			if err != nil {
 				patcher.Discard()
 				return model_core.PatchedMessage[*model_starlark_pb.Function, TMetadata]{}, fmt.Errorf("free variable %d: %w", index, err)
 			}
-			closure.FreeVariables = append(closure.FreeVariables, encodedFreeVar.Merge(patcher))
+			freeVariables = append(freeVariables, encodedFreeVar.Merge(patcher))
 		}
+		closure = model_starlark_pb.Function_Closure_builder{
+			DefaultParameters: defaultParameters,
+			FreeVariables:     freeVariables,
+		}.Build()
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Function{
+		model_starlark_pb.Function_builder{
 			Filename: module.Filename(),
 			NamePath: encodedNamePath,
 			Closure:  closure,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -107,11 +111,9 @@ func encodeFunctionValue[TReference any, TMetadata model_core.ReferenceMetadata]
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Function{
-				Function: encodedFunction.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Function: proto.ValueOrDefault(encodedFunction.Message),
+		}.Build(),
 		encodedFunction.Patcher,
 	), nil
 }
@@ -119,30 +121,15 @@ func encodeFunctionValue[TReference any, TMetadata model_core.ReferenceMetadata]
 // encodeFuncode converts the code of a function to a Funcode message.
 // The code of nested functions is stored inside the message.
 func encodeFuncode(funcode *compile.Funcode) (*model_starlark_pb.Funcode, error) {
-	message := &model_starlark_pb.Funcode{
-		Column:               uint32(funcode.Pos.Column),
-		Code:                 funcode.Code,
-		LineTable:            funcode.LineTable,
-		StringConstants:      make([][]byte, 0, len(funcode.StringConstants)),
-		IntConstants:         make([][]byte, 0, len(funcode.IntConstants)),
-		FloatConstants:       funcode.FloatConstants,
-		Names:                funcode.Names,
-		Imports:              make([]string, 0, len(funcode.Imports)),
-		Locals:               funcode.Locals,
-		Cells:                make([]uint32, 0, len(funcode.Cells)),
-		FreeVariables:        funcode.FreeVars,
-		NumParams:            uint32(funcode.NumParams),
-		NumKeywordOnlyParams: uint32(funcode.NumKeywordOnlyParams),
-		HasArgs:              funcode.HasArgs,
-		HasKwargs:            funcode.HasKwargs,
-		MaxStack:             uint32(funcode.MaxStack),
-	}
+	stringConstants := make([][]byte, 0, len(funcode.StringConstants))
 	for _, constant := range funcode.StringConstants {
-		message.StringConstants = append(message.StringConstants, []byte(constant))
+		stringConstants = append(stringConstants, []byte(constant))
 	}
+	intConstants := make([][]byte, 0, len(funcode.IntConstants))
 	for _, constant := range funcode.IntConstants {
-		message.IntConstants = append(message.IntConstants, EncodeInt(constant))
+		intConstants = append(intConstants, EncodeInt(constant))
 	}
+	imports := make([]string, 0, len(funcode.Imports))
 	for _, imp := range funcode.Imports {
 		filename, err := pg_label.NewCanonicalLabel(imp.Module)
 		if err != nil {
@@ -152,31 +139,51 @@ func encodeFuncode(funcode *compile.Funcode) (*model_starlark_pb.Funcode, error)
 		if err != nil {
 			return nil, fmt.Errorf("loaded symbol %#v of module %#v is not a valid identifier: %w", imp.Name, imp.Module, err)
 		}
-		message.Imports = append(message.Imports, filename.AppendStarlarkIdentifier(identifier).String())
+		imports = append(imports, filename.AppendStarlarkIdentifier(identifier).String())
 	}
+	cells := make([]uint32, 0, len(funcode.Cells))
 	for _, cell := range funcode.Cells {
-		message.Cells = append(message.Cells, uint32(cell))
+		cells = append(cells, uint32(cell))
 	}
 
+	functions := make([]*model_starlark_pb.Funcode_NestedFunction, 0, len(funcode.Functions))
 	for i, nestedFuncode := range funcode.Functions {
 		encodedNestedFuncode, err := encodeFuncode(nestedFuncode)
 		if err != nil {
 			return nil, err
 		}
-		message.Functions = append(message.Functions, &model_starlark_pb.Funcode_NestedFunction{
+		functions = append(functions, model_starlark_pb.Funcode_NestedFunction_builder{
 			Name:         funcode.GetNestedFunctionName(i).Name,
 			Funcode:      encodedNestedFuncode,
 			RelativeLine: uint32(nestedFuncode.Pos.Line - funcode.Pos.Line),
-		})
+		}.Build())
 	}
-	return message, nil
+	return model_starlark_pb.Funcode_builder{
+		Column:               uint32(funcode.Pos.Column),
+		Code:                 funcode.Code,
+		LineTable:            funcode.LineTable,
+		StringConstants:      stringConstants,
+		IntConstants:         intConstants,
+		FloatConstants:       funcode.FloatConstants,
+		Names:                funcode.Names,
+		Imports:              imports,
+		Functions:            functions,
+		Locals:               funcode.Locals,
+		Cells:                cells,
+		FreeVariables:        funcode.FreeVars,
+		NumParams:            uint32(funcode.NumParams),
+		NumKeywordOnlyParams: uint32(funcode.NumKeywordOnlyParams),
+		HasArgs:              funcode.HasArgs,
+		HasKwargs:            funcode.HasKwargs,
+		MaxStack:             uint32(funcode.MaxStack),
+	}.Build(), nil
 }
 
 func encodeFunctionName(name compile.FunctionName) *model_starlark_pb.Function_Name {
-	return &model_starlark_pb.Function_Name{
+	return model_starlark_pb.Function_Name_builder{
 		Name:                name.Name,
 		DisambiguationIndex: int32(name.DisambiguationIndex),
-	}
+	}.Build()
 }
 
 func decodeFunctionName(name *model_starlark_pb.Function_Name) compile.FunctionName {
@@ -239,11 +246,11 @@ func getTopLevelFuncode[TReference object.BasicReference](thread *eval.Thread, f
 		options.Readers.CompiledProgramFunctions,
 		model_core.Nested(compiledProgram, compiledProgram.Message.GetFunctions()),
 		func(entry model_core.Message[*model_starlark_pb.CompiledProgram_FunctionEntry, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
-			case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_:
-				return name.Compare(decodeFunctionName(level.Leaf.Name)), nil
-			case *model_starlark_pb.CompiledProgram_FunctionEntry_Parent_:
-				return name.Compare(decodeFunctionName(level.Parent.FirstName)), level.Parent.Reference
+			switch entry.Message.WhichLevel() {
+			case model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_case:
+				return name.Compare(decodeFunctionName(entry.Message.GetLeaf().GetName())), nil
+			case model_starlark_pb.CompiledProgram_FunctionEntry_Parent_case:
+				return name.Compare(decodeFunctionName(entry.Message.GetParent().GetFirstName())), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -257,15 +264,15 @@ func getTopLevelFuncode[TReference object.BasicReference](thread *eval.Thread, f
 	if err != nil {
 		return nil, err
 	}
-	leaf, ok := entry.Message.GetLevel().(*model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_)
-	if !ok || leaf.Leaf.Code == nil {
+	code := entry.Message.GetLeaf().GetCode()
+	if code == nil {
 		return nil, fmt.Errorf("code of function does not exist in file %#v", filename.String())
 	}
 	lines := compiledProgram.Message.GetTopLevelFunctionLines()
 	if index >= uint64(len(lines)) {
 		return nil, fmt.Errorf("line of function does not exist in file %#v", filename.String())
 	}
-	funcode, err := DecodeFuncode(leaf.Leaf.Code, name.Name, int32(lines[index]))
+	funcode, err := DecodeFuncode(code, name.Name, int32(lines[index]))
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +284,7 @@ func getTopLevelFuncode[TReference object.BasicReference](thread *eval.Thread, f
 // contained in an entry of the B-tree of functions.
 func getFunctionEntryCount(entry *model_starlark_pb.CompiledProgram_FunctionEntry) uint64 {
 	if parent := entry.GetParent(); parent != nil {
-		return uint64(parent.FunctionCount)
+		return uint64(parent.GetFunctionCount())
 	}
 	return 1
 }
@@ -290,33 +297,38 @@ func DecodeFuncode(m *model_starlark_pb.Funcode, name string, line int32) (*comp
 	if name == "" {
 		name = compile.LambdaName
 	}
+	stringConstants := m.GetStringConstants()
+	intConstants := m.GetIntConstants()
+	imports := m.GetImports()
+	functions := m.GetFunctions()
+	cells := m.GetCells()
 	funcode := &compile.Funcode{
 		Name:                 name,
-		Pos:                  syntax.Position{Line: line, Column: int32(m.Column)},
-		Code:                 m.Code,
-		LineTable:            m.LineTable,
-		StringConstants:      make([]string, 0, len(m.StringConstants)),
-		IntConstants:         make([]*big.Int, 0, len(m.IntConstants)),
-		FloatConstants:       m.FloatConstants,
-		Names:                m.Names,
-		Imports:              make([]compile.Import, 0, len(m.Imports)),
-		Functions:            make([]*compile.Funcode, 0, len(m.Functions)),
-		Locals:               m.Locals,
-		Cells:                make([]int, 0, len(m.Cells)),
-		FreeVars:             m.FreeVariables,
-		NumParams:            int(m.NumParams),
-		NumKeywordOnlyParams: int(m.NumKeywordOnlyParams),
-		HasArgs:              m.HasArgs,
-		HasKwargs:            m.HasKwargs,
-		MaxStack:             int(m.MaxStack),
+		Pos:                  syntax.Position{Line: line, Column: int32(m.GetColumn())},
+		Code:                 m.GetCode(),
+		LineTable:            m.GetLineTable(),
+		StringConstants:      make([]string, 0, len(stringConstants)),
+		IntConstants:         make([]*big.Int, 0, len(intConstants)),
+		FloatConstants:       m.GetFloatConstants(),
+		Names:                m.GetNames(),
+		Imports:              make([]compile.Import, 0, len(imports)),
+		Functions:            make([]*compile.Funcode, 0, len(functions)),
+		Locals:               m.GetLocals(),
+		Cells:                make([]int, 0, len(cells)),
+		FreeVars:             m.GetFreeVariables(),
+		NumParams:            int(m.GetNumParams()),
+		NumKeywordOnlyParams: int(m.GetNumKeywordOnlyParams()),
+		HasArgs:              m.GetHasArgs(),
+		HasKwargs:            m.GetHasKwargs(),
+		MaxStack:             int(m.GetMaxStack()),
 	}
-	for _, constant := range m.StringConstants {
+	for _, constant := range stringConstants {
 		funcode.StringConstants = append(funcode.StringConstants, string(constant))
 	}
-	for _, constant := range m.IntConstants {
+	for _, constant := range intConstants {
 		funcode.IntConstants = append(funcode.IntConstants, DecodeInt(constant))
 	}
-	for _, imp := range m.Imports {
+	for _, imp := range imports {
 		identifier, err := pg_label.NewCanonicalStarlarkIdentifier(imp)
 		if err != nil {
 			return nil, fmt.Errorf("invalid import %#v: %w", imp, err)
@@ -326,20 +338,21 @@ func DecodeFuncode(m *model_starlark_pb.Funcode, name string, line int32) (*comp
 			Name:   identifier.GetStarlarkIdentifier().String(),
 		})
 	}
-	for _, cell := range m.Cells {
-		if cell >= uint32(len(m.Locals)) {
+	for _, cell := range cells {
+		if cell >= uint32(len(funcode.Locals)) {
 			return nil, fmt.Errorf("cell %d refers to a local variable that does not exist", cell)
 		}
 		funcode.Cells = append(funcode.Cells, int(cell))
 	}
-	if m.NumParams > uint32(len(m.Locals)) || m.MaxStack > math.MaxInt32 {
+	if m.GetNumParams() > uint32(len(funcode.Locals)) || m.GetMaxStack() > math.MaxInt32 {
 		return nil, errors.New("function has invalid properties")
 	}
-	for i, nestedFunction := range m.Functions {
-		if nestedFunction.Funcode == nil {
+	for i, nestedFunction := range functions {
+		nestedFunctionFuncode := nestedFunction.GetFuncode()
+		if nestedFunctionFuncode == nil {
 			return nil, fmt.Errorf("nested function %d has no code", i)
 		}
-		nestedFuncode, err := DecodeFuncode(nestedFunction.Funcode, nestedFunction.Name, line+int32(nestedFunction.RelativeLine))
+		nestedFuncode, err := DecodeFuncode(nestedFunctionFuncode, nestedFunction.GetName(), line+int32(nestedFunction.GetRelativeLine()))
 		if err != nil {
 			return nil, fmt.Errorf("nested function %d: %w", i, err)
 		}
@@ -444,10 +457,11 @@ func (f *storedFunction[TReference, TMetadata]) Defaults(thread *eval.Thread) ([
 		encodedDefaults := f.message.Message.GetClosure().GetDefaultParameters()
 		defaults := make([]eval.Value, 0, len(encodedDefaults))
 		for index, defaultParameter := range encodedDefaults {
-			if defaultParameter.Value == nil {
+			encodedValue := defaultParameter.GetValue()
+			if encodedValue == nil {
 				defaults = append(defaults, eval.Mandatory)
 			} else {
-				value, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(f.message, defaultParameter.Value), nil)
+				value, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(f.message, encodedValue), nil)
 				if err != nil {
 					return nil, fmt.Errorf("default parameter %d: %w", index, err)
 				}

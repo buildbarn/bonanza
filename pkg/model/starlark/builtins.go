@@ -17,6 +17,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/util"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // allowFilesUnpackerInto can be used to unpack allow_files arguments,
@@ -43,9 +45,9 @@ func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst 
 		if err != nil {
 			return err
 		}
-		*dst = &model_starlark_pb.Attr_AllowFiles{
+		*dst = model_starlark_pb.Attr_AllowFiles_builder{
 			FilenamePattern: nfa.Bytes(),
-		}
+		}.Build()
 	}
 	return nil
 }
@@ -59,7 +61,7 @@ func (allowFilesUnpackerInto) UnpackInto(thread *eval.Thread, v eval.Value, dst 
 // file extensions, which is equivalent to setting allow_files = True.
 // File targets remain prohibited if allow_files is not set.
 func applyAllowFilesFlags(allowFiles *model_starlark_pb.Attr_AllowFiles, flags []string) *model_starlark_pb.Attr_AllowFiles {
-	if allowFiles != nil && len(allowFiles.FilenamePattern) > 0 && slices.Contains(flags, "SKIP_ANALYSIS_TIME_FILETYPE_CHECK") {
+	if allowFiles != nil && len(allowFiles.GetFilenamePattern()) > 0 && slices.Contains(flags, "SKIP_ANALYSIS_TIME_FILETYPE_CHECK") {
 		return &model_starlark_pb.Attr_AllowFiles{}
 	}
 	return allowFiles
@@ -151,18 +153,16 @@ func labelSetting[TReference object.BasicReference, TMetadata model_core.Referen
 	return eval.None, targetRegistrar.registerExplicitTarget(
 		name,
 		model_core.NewPatchedMessage(
-			&model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_LabelSetting{
-					LabelSetting: &model_starlark_pb.LabelSetting{
-						BuildSettingDefault: buildSettingDefault,
-						Flag:                flag,
-						OnLeaveScope:        onLeaveScope,
-						Scope:               scope,
-						SingletonList:       singletonList,
-						Visibility:          visibilityPackageGroup.Message,
-					},
-				},
-			},
+			model_starlark_pb.Target_Definition_builder{
+				LabelSetting: model_starlark_pb.LabelSetting_builder{
+					BuildSettingDefault: buildSettingDefault,
+					Flag:                flag,
+					OnLeaveScope:        onLeaveScope,
+					Scope:               scope,
+					SingletonList:       singletonList,
+					Visibility:          visibilityPackageGroup.Message,
+				}.Build(),
+			}.Build(),
 			visibilityPackageGroup.Patcher,
 		),
 	)
@@ -197,11 +197,11 @@ var (
 // newSingleProviderSets returns a list of sets of providers that only
 // requires a single provider to be present.
 func newSingleProviderSets(providerIdentifier string) []*model_starlark_pb.ProviderSet {
-	return []*model_starlark_pb.ProviderSet{{
+	return []*model_starlark_pb.ProviderSet{model_starlark_pb.ProviderSet_builder{
 		ProviderIdentifiers: []string{
 			util.Must(pg_label.NewCanonicalStarlarkIdentifier(providerIdentifier)).String(),
 		},
-	}}
+	}.Build()}
 }
 
 // convertFragmentsToAttr converts a list of fragment dependencies of a
@@ -248,13 +248,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 	transitionDefinitionUnpackerInto := unpack.IfNotNone(NewTransitionDefinitionUnpackerInto[TReference, TMetadata]())
 
 	noneTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
-		model_core.NewSimpleMessage[TReference](&NoneTransition),
+		model_core.NewSimpleMessage[TReference](NoneTransition),
 	)
 	targetTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
-		model_core.NewSimpleMessage[TReference](&TargetTransition),
+		model_core.NewSimpleMessage[TReference](TargetTransition),
 	)
 	unconfiguredTransitionDefinition := NewProtoTransitionDefinition[TReference, TMetadata](
-		model_core.NewSimpleMessage[TReference](&UnconfiguredTransition),
+		model_core.NewSimpleMessage[TReference](UnconfiguredTransition),
 	)
 
 	configurationAttr := NewAttr[TReference, TMetadata](
@@ -1104,11 +1104,9 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return NewTransition(
 						NewProtoTransitionDefinition[TReference, TMetadata](
 							model_core.NewSimpleMessage[TReference](
-								&model_starlark_pb.Transition{
-									Kind: &model_starlark_pb.Transition_ExecGroup{
-										ExecGroup: execGroup,
-									},
-								},
+								model_starlark_pb.Transition_builder{
+									ExecGroup: proto.String(execGroup),
+								}.Build(),
 							),
 						),
 					), nil
@@ -1443,14 +1441,12 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return eval.None, targetRegistrar.registerExplicitTarget(
 						name,
 						model_core.NewPatchedMessage(
-							&model_starlark_pb.Target_Definition{
-								Kind: &model_starlark_pb.Target_Definition_Alias{
-									Alias: &model_starlark_pb.Alias{
-										Actual:     actualGroups.Message[0],
-										Visibility: visibilityPackageGroup.Message,
-									},
-								},
-							},
+							model_starlark_pb.Target_Definition_builder{
+								Alias: model_starlark_pb.Alias_builder{
+									Actual:     actualGroups.Message[0],
+									Visibility: visibilityPackageGroup.Message,
+								}.Build(),
+							}.Build(),
 							patcher,
 						),
 					)
@@ -1516,11 +1512,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						visibilityPackageGroup, err := visibility.getTargetVisibility(
 							targetRegistrar,
 							thread,
-							&model_starlark_pb.PackageGroup{
-								Tree: &model_starlark_pb.PackageGroup_Subpackages{
+							model_starlark_pb.PackageGroup_builder{
+								Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
 									IncludeSubpackages: true,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						)
 						if err != nil {
 							return nil, err
@@ -1529,13 +1525,11 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						if err := targetRegistrar.registerExplicitTarget(
 							src,
 							model_core.NewPatchedMessage(
-								&model_starlark_pb.Target_Definition{
-									Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-										SourceFileTarget: &model_starlark_pb.SourceFileTarget{
-											Visibility: visibilityPackageGroup.Message,
-										},
-									},
-								},
+								model_starlark_pb.Target_Definition_builder{
+									SourceFileTarget: model_starlark_pb.SourceFileTarget_builder{
+										Visibility: visibilityPackageGroup.Message,
+									}.Build(),
+								}.Build(),
 								visibilityPackageGroup.Patcher,
 							),
 						); err != nil {
@@ -1619,18 +1613,16 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 					return eval.None, targetRegistrar.registerExplicitTarget(
 						name,
 						model_core.NewSimplePatchedMessage[TMetadata](
-							&model_starlark_pb.Target_Definition{
-								Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-									PackageGroup: &model_starlark_pb.PackageGroup{
-										// TODO: Properly respect "packages"
-										// instead of always using "public".
-										Tree: &model_starlark_pb.PackageGroup_Subpackages{
-											IncludeSubpackages: true,
-										},
-										IncludePackageGroups: slices.Compact(includes),
-									},
-								},
-							},
+							model_starlark_pb.Target_Definition_builder{
+								PackageGroup: model_starlark_pb.PackageGroup_builder{
+									// TODO: Properly respect "packages"
+									// instead of always using "public".
+									Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+										IncludeSubpackages: true,
+									}.Build(),
+									IncludePackageGroups: slices.Compact(includes),
+								}.Build(),
+							}.Build(),
 						),
 					)
 				},
@@ -1824,15 +1816,13 @@ func GetBuiltins[TReference object.BasicReference, TMetadata model_core.Referenc
 						testsList.Discard()
 						return nil, err
 					}
-					testSuite.Tests = testsList.Message
-					testSuite.Visibility = visibilityPackageGroup.Message
+					testSuite.SetTests(testsList.Message)
+					testSuite.SetVisibility(visibilityPackageGroup.Message)
 					testsList.Patcher.Merge(visibilityPackageGroup.Patcher)
 					target := model_core.NewPatchedMessage(
-						&model_starlark_pb.Target_Definition{
-							Kind: &model_starlark_pb.Target_Definition_TestSuite{
-								TestSuite: testSuite,
-							},
-						},
+						model_starlark_pb.Target_Definition_builder{
+							TestSuite: proto.ValueOrDefault(testSuite),
+						}.Build(),
 						testsList.Patcher,
 					)
 					// If no tests are listed, the tests

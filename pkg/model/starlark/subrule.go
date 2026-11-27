@@ -13,6 +13,8 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Subrule corresponds to a Starlark value of a subrule. Subrules are
@@ -144,17 +146,11 @@ func (sr *Subrule[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path 
 	if currentIdentifier == nil || *currentIdentifier != *sr.Identifier {
 		// Not the canonical identifier under which this subrule
 		// is known. Emit a reference.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Subrule{
-					Subrule: &model_starlark_pb.Subrule{
-						Kind: &model_starlark_pb.Subrule_Reference{
-							Reference: sr.Identifier.String(),
-						},
-					},
-				},
-			},
-		), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Subrule: model_starlark_pb.Subrule_builder{
+				Reference: proto.String(sr.Identifier.String()),
+			}.Build(),
+		}.Build()), nil
 	}
 
 	definition, err := sr.definition.Encode(thread, path, options)
@@ -162,15 +158,11 @@ func (sr *Subrule[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path 
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Subrule{
-				Subrule: &model_starlark_pb.Subrule{
-					Kind: &model_starlark_pb.Subrule_Definition_{
-						Definition: definition.Message,
-					},
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Subrule: model_starlark_pb.Subrule_builder{
+				Definition: proto.ValueOrDefault(definition.Message),
+			}.Build(),
+		}.Build(),
 		definition.Patcher,
 	), nil
 }
@@ -227,11 +219,11 @@ func (sd *starlarkSubruleDefinition[TReference, TMetadata]) Encode(thread *eval.
 	sort.Strings(subruleIdentifiers)
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Subrule_Definition{
+		model_starlark_pb.Subrule_Definition_builder{
 			Attrs:              namedAttrs.Message,
 			Implementation:     implementation.Message,
 			SubruleIdentifiers: slices.Compact(subruleIdentifiers),
-		},
+		}.Build(),
 		patcher,
 	), nil
 }

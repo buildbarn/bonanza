@@ -11,6 +11,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -22,17 +24,13 @@ func TestGeneratingRuleAspects(t *testing.T) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: identifier}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Aspect{
-					Aspect: &model_starlark_pb.Aspect{
-						Kind: &model_starlark_pb.Aspect_Definition_{
-							Definition: &model_starlark_pb.Aspect_Definition{
-								ApplyToGeneratingRules: applyToGeneratingRules,
-							},
-						},
-					},
-				},
-			},
+			Global: model_starlark_pb.Value_builder{
+				Aspect: model_starlark_pb.Aspect_builder{
+					Definition: model_starlark_pb.Aspect_Definition_builder{
+						ApplyToGeneratingRules: applyToGeneratingRules,
+					}.Build(),
+				}.Build(),
+			}.Build(),
 		}))
 	}
 	const (
@@ -76,9 +74,9 @@ func TestGeneratingRuleAspects(t *testing.T) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: aspect1}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Bool{Bool: true},
-			},
+			Global: model_starlark_pb.Value_builder{
+				Bool: proto.Bool(true),
+			}.Build(),
 		}))
 
 		_, err := bct.computer.ComputeGeneratingRuleAspectsValue(ctx, &model_analysis_pb.GeneratingRuleAspects_Key{

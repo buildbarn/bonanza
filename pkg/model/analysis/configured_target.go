@@ -58,43 +58,43 @@ func constraintValuesToConstraints[TReference object.BasicReference, TMetadata m
 		for key, value := range model_starlark.AllStructFields(ctx, valueReaders.List, constrainValueInfoProvider, &errIter) {
 			switch key {
 			case "constraint":
-				constraintSettingInfoProvider, ok := value.Message.Kind.(*model_starlark_pb.Value_Struct)
-				if !ok {
+				constraintSettingInfoProvider := value.Message.GetStruct()
+				if constraintSettingInfoProvider == nil {
 					return nil, fmt.Errorf("field \"constraint\" of ConstraintValueInfo provider of target %#v is not a struct", constraintValue)
 				}
 				var errIter error
 				for key, value := range model_starlark.AllStructFields(
 					ctx,
 					valueReaders.List,
-					model_core.Nested(value, constraintSettingInfoProvider.Struct.Fields),
+					model_core.Nested(value, constraintSettingInfoProvider.GetFields()),
 					&errIter,
 				) {
 					switch key {
 					case "default_constraint_value":
-						switch v := value.Message.Kind.(type) {
-						case *model_starlark_pb.Value_Label:
-							defaultConstraintValue = &v.Label
-						case *model_starlark_pb.Value_None:
+						switch value.Message.WhichKind() {
+						case model_starlark_pb.Value_Label_case:
+							defaultConstraintValue = proto.String(value.Message.GetLabel())
+						case model_starlark_pb.Value_None_case:
 						default:
 							return nil, fmt.Errorf("field \"constraint.default_constraint_value\" of ConstraintValueInfo provider of target %#v is not a Label or None", constraintValue)
 						}
 					case "label":
-						v, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
-						if !ok {
+						v := value.Message.GetLabel()
+						if v == "" {
 							return nil, fmt.Errorf("field \"constraint.label\" of ConstraintValueInfo provider of target %#v is not a Label", constraintValue)
 						}
-						actualConstraintSetting = &v.Label
+						actualConstraintSetting = &v
 					}
 				}
 				if errIter != nil {
 					return nil, err
 				}
 			case "label":
-				v, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
-				if !ok {
+				v := value.Message.GetLabel()
+				if v == "" {
 					return nil, fmt.Errorf("field \"label\" of ConstraintValueInfo provider of target %#v is not a Label", constraintValue)
 				}
-				actualConstraintValue = &v.Label
+				actualConstraintValue = &v
 			}
 		}
 		if errIter != nil {
@@ -181,10 +181,10 @@ func (c *baseComputer[TReference, TMetadata]) mapStructFields(
 	patcher := encodedFields.Patcher
 	patcher.Merge(providerInstanceProperties.Patcher)
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Struct{
+		model_starlark_pb.Struct_builder{
 			ProviderInstanceProperties: providerInstanceProperties.Message,
 			Fields:                     encodedFields.Message,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -213,15 +213,11 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 						[]any{
 							model_core.Nested(
 								file,
-								&model_starlark_pb.List_Element{
-									Level: &model_starlark_pb.List_Element_Leaf{
-										Leaf: &model_starlark_pb.Value{
-											Kind: &model_starlark_pb.Value_File{
-												File: file.Message,
-											},
-										},
-									},
-								},
+								model_starlark_pb.List_Element_builder{
+									Leaf: model_starlark_pb.Value_builder{
+										File: file.Message,
+									}.Build(),
+								}.Build(),
 							),
 						},
 						model_starlark_pb.Depset_DEFAULT,
@@ -229,25 +225,23 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 					identifierGenerator,
 				), nil
 			case "files_to_run":
-				filesToRun, ok := value.Message.Kind.(*model_starlark_pb.Value_Struct)
-				if !ok {
+				filesToRun := value.Message.GetStruct()
+				if filesToRun == nil {
 					return nil, errors.New("not a FilesToRunProvider")
 				}
 				patchedFilesToRun, err := c.mapStructFields(
 					ctx,
 					e,
 					starlarkValueEncoders,
-					model_core.Nested(value, filesToRun.Struct),
+					model_core.Nested(value, filesToRun),
 					func(name string, value model_core.Message[*model_starlark_pb.Value, TReference]) (any, error) {
 						switch name {
 						case "executable":
 							return model_core.Nested(
 								file,
-								&model_starlark_pb.Value{
-									Kind: &model_starlark_pb.Value_File{
-										File: file.Message,
-									},
-								},
+								model_starlark_pb.Value_builder{
+									File: file.Message,
+								}.Build(),
 							), nil
 						default:
 							return value, nil
@@ -260,11 +254,9 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 				newFilesToRun := model_core.Unpatch(e, patchedFilesToRun).Decay()
 				return model_core.Nested(
 					newFilesToRun,
-					&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Struct{
-							Struct: newFilesToRun.Message,
-						},
-					},
+					model_starlark_pb.Value_builder{
+						Struct: newFilesToRun.Message,
+					}.Build(),
 				), nil
 			default:
 				return value, nil
@@ -289,7 +281,7 @@ func (c *baseComputer[TReference, TMetadata]) getSingleFileConfiguredTargetValue
 // computeConfiguredTargetValueWithAspects applies the last aspect in
 // the list of aspects provided in the key to the target.
 func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAspects(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
-	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
+	targetLabel, err := label.NewCanonicalLabel(key.Message.GetLabel())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
@@ -299,13 +291,13 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 	if !targetValue.IsSet() {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	if targetValue.Message.GetDefinition() == nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
 	}
 
-	aspects := key.Message.Variant.GetAspects()
-	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	aspects := key.Message.GetVariant().GetAspects()
+	switch targetValue.Message.GetDefinition().WhichKind() {
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		// Aspects never apply to file targets. However, aspects
 		// that set apply_to_generating_rules are applied to the
 		// rule target that generates the output file instead,
@@ -342,7 +334,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		// the aspects with those of the output file target.
 		aspectIdentifiers := make([]string, 0, len(aspects))
 		for _, aspect := range aspects {
-			aspectIdentifiers = append(aspectIdentifiers, aspect.Identifier)
+			aspectIdentifiers = append(aspectIdentifiers, aspect.GetIdentifier())
 		}
 		generatingRuleAspectsValue := e.GetGeneratingRuleAspectsValue(&model_analysis_pb.GeneratingRuleAspects_Key{
 			AspectIdentifiers: aspectIdentifiers,
@@ -350,7 +342,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		if !generatingRuleAspectsValue.IsSet() {
 			return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		aspectIndices := generatingRuleAspectsValue.Message.AspectIndices
+		aspectIndices := generatingRuleAspectsValue.Message.GetAspectIndices()
 		if len(aspectIndices) == 0 || aspectIndices[len(aspectIndices)-1] != uint32(len(aspects)-1) {
 			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
 		}
@@ -359,7 +351,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 			generatingRuleAspects = append(generatingRuleAspects, aspects[aspectIndex])
 		}
 
-		ownerTargetName, err := label.NewTargetName(targetKind.PredeclaredOutputFileTarget.OwnerTargetName)
+		ownerTargetName, err := label.NewTargetName(targetValue.Message.GetDefinition().GetPredeclaredOutputFileTarget().GetOwnerTargetName())
 		if err != nil {
 			return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid owner target name: %w", err)
 		}
@@ -368,7 +360,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 				return &model_analysis_pb.ConfiguredTarget_Key{
 					Label: targetLabel.GetCanonicalPackage().AppendTargetName(ownerTargetName).String(),
 					Variant: newTargetVariant(
-						model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
+						model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, generatingRuleAspects)).Merge(patcher),
 					),
 				}
@@ -379,12 +371,12 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 		}
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Value {
 			return &model_analysis_pb.ConfiguredTarget_Value{
-				ProviderInstances: model_core.PatchList(e, model_core.Nested(ownerConfiguredTarget, ownerConfiguredTarget.Message.ProviderInstances)).Merge(patcher),
+				ProviderInstances: model_core.PatchList(e, model_core.Nested(ownerConfiguredTarget, ownerConfiguredTarget.Message.GetProviderInstances())).Merge(patcher),
 			}
 		}), nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		return c.computeAspectTargetValue(ctx, key, e, targetLabel, model_core.Nested(targetValue, targetKind.RuleTarget))
-	case *model_starlark_pb.Target_Definition_TestSuite:
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		return c.computeAspectTargetValue(ctx, key, e, targetLabel, model_core.Nested(targetValue, targetValue.Message.GetDefinition().GetRuleTarget()))
+	case model_starlark_pb.Target_Definition_TestSuite_case:
 		// TODO: Add support for applying aspects to test suites.
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("applying aspects to test suites is not supported yet")
 	default:
@@ -399,7 +391,7 @@ func (c *baseComputer[TReference, TMetadata]) computeConfiguredTargetValueWithAs
 type ConfiguredTargetEnvironmentForTesting ConfiguredTargetEnvironment[model_core.CreatedObjectTree, model_core.CreatedObjectTree]
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredTarget_Key, TReference], e ConfiguredTargetEnvironment[TReference, TMetadata]) (PatchedConfiguredTargetValue[TMetadata], error) {
-	if len(key.Message.Variant.GetAspects()) > 0 {
+	if len(key.Message.GetVariant().GetAspects()) > 0 {
 		return c.computeConfiguredTargetValueWithAspects(ctx, key, e)
 	}
 
@@ -411,7 +403,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
 
-	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
+	targetLabel, err := label.NewCanonicalLabel(key.Message.GetLabel())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
@@ -422,46 +414,46 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 	if !emptyDefaultInfoValue.IsSet() || !targetValue.IsSet() || !gotAnalysisEncoders || !gotStarlarkValueEncoders {
 		return PatchedConfiguredTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	if targetValue.Message.GetDefinition() == nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("target does not exist")
 	}
 
-	emptyDefaultInfo := model_core.Nested(emptyDefaultInfoValue, emptyDefaultInfoValue.Message.DefaultInfo)
+	emptyDefaultInfo := model_core.Nested(emptyDefaultInfoValue, emptyDefaultInfoValue.Message.GetDefaultInfo())
 
-	switch targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_PackageGroup, *model_starlark_pb.Target_Definition_SourceFileTarget:
+	switch targetValue.Message.GetDefinition().WhichKind() {
+	case model_starlark_pb.Target_Definition_PackageGroup_case, model_starlark_pb.Target_Definition_SourceFileTarget_case:
 		// The incoming edge transition of these targets, as
 		// computed by TargetIncomingEdgeTransition, yields the
 		// empty configuration, as their properties don't depend
 		// on it.
-		if key.Message.Variant != nil {
+		if key.Message.GetVariant() != nil {
 			return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("package groups and source file targets cannot be configured with a configuration")
 		}
 	}
 
-	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_PackageGroup:
+	switch targetValue.Message.GetDefinition().WhichKind() {
+	case model_starlark_pb.Target_Definition_PackageGroup_case:
 		patchedDefaultInfo := model_core.Patch(e, emptyDefaultInfo)
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.ConfiguredTarget_Value{
 				ProviderInstances: []*model_starlark_pb.Struct{
 					patchedDefaultInfo.Message,
-					{
-						ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+					model_starlark_pb.Struct_builder{
+						ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 							ProviderIdentifier: packageSpecificationInfoProviderIdentifier.String(),
-						},
+						}.Build(),
 						Fields: &model_starlark_pb.Struct_Fields{},
-					},
+					}.Build(),
 				},
 			},
 			patchedDefaultInfo.Patcher,
 		), nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		// The incoming edge transition of a predeclared output
 		// file is that of the rule target that owns it, so the
 		// configuration is also that of the owner.
-		ownerTargetNameStr := targetKind.PredeclaredOutputFileTarget.OwnerTargetName
-		ownerVariant := model_core.Nested(key, key.Message.Variant)
+		ownerTargetNameStr := targetValue.Message.GetDefinition().GetPredeclaredOutputFileTarget().GetOwnerTargetName()
+		ownerVariant := model_core.Nested(key, key.Message.GetVariant())
 
 		// Handcraft a DefaultInfo provider for this output file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
@@ -476,30 +468,30 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			emptyDefaultInfo,
 			model_core.Nested(
 				ownerVariant,
-				&model_starlark_pb.File{
-					Owner: &model_starlark_pb.File_Owner{
+				model_starlark_pb.File_builder{
+					Owner: model_starlark_pb.File_Owner_builder{
 						Variant:    ownerVariant.Message,
 						TargetName: ownerTargetNameStr,
 						Type:       model_starlark_pb.File_Owner_FILE,
-					},
+					}.Build(),
 					Label: targetLabel.String(),
-				},
+				}.Build(),
 			),
 			identifierGenerator,
 		)
-	case *model_starlark_pb.Target_Definition_RuleTarget:
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
 		return c.computeRuleTargetValue(
 			ctx,
 			key,
 			e,
 			targetLabel,
-			model_core.Nested(targetValue, targetKind.RuleTarget),
+			model_core.Nested(targetValue, targetValue.Message.GetDefinition().GetRuleTarget()),
 			analysisEncoders,
 			starlarkValueEncoders,
 			valueEncodingOptionsFactory,
 			emptyDefaultInfo,
 		)
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
+	case model_starlark_pb.Target_Definition_SourceFileTarget_case:
 		// Handcraft a DefaultInfo provider for this source file.
 		identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 		if err != nil {
@@ -511,13 +503,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredTargetValue(ctx c
 			starlarkValueEncoders,
 			emptyDefaultInfo,
 			model_core.NewSimpleMessage[TReference](
-				&model_starlark_pb.File{
+				model_starlark_pb.File_builder{
 					Label: targetLabel.String(),
-				},
+				}.Build(),
 			),
 			identifierGenerator,
 		)
-	case *model_starlark_pb.Target_Definition_TestSuite:
+	case model_starlark_pb.Target_Definition_TestSuite_case:
 		// Test suites don't produce any files. They are only
 		// used to select tests to run.
 		//

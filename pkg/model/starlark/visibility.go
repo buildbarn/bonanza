@@ -78,7 +78,7 @@ func (v topLevelVisibilityArgument[TReference, TMetadata]) getTargetVisibility(t
 	// package() in the BUILD.bazel file.
 	return model_core.Patch(
 		tr.objectManager,
-		model_core.Nested(tr.defaultInheritableAttrs, tr.defaultInheritableAttrs.Message.Visibility),
+		model_core.Nested(tr.defaultInheritableAttrs, tr.defaultInheritableAttrs.Message.GetVisibility()),
 	), nil
 }
 

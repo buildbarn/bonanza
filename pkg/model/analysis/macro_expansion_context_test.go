@@ -37,7 +37,7 @@ func TestMacroExpansionContext(t *testing.T) {
 		return value.Message, nil
 	}
 	newMacroExpansionContextDefinition := func(nameSuffix string) *model_starlark_pb.MacroExpansionContext_Definition {
-		return newMacroExpansionContextDeclaration(nameSuffix).GetLeaf().Definition
+		return newMacroExpansionContextDeclaration(nameSuffix).GetLeaf().GetDefinition()
 	}
 
 	t.Run("TopLevel", func(t *testing.T) {

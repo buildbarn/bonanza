@@ -46,11 +46,11 @@ func newLabelAttrFiles[TReference object.BasicReference, TMetadata model_core.Re
 func (f *labelAttrFiles[TReference, TMetadata]) newAttr(namedAttr *model_starlark_pb.NamedAttr) *labelAttrFilesCollector[TReference, TMetadata] {
 	c := &labelAttrFilesCollector[TReference, TMetadata]{
 		files:    f,
-		attrName: namedAttr.Name,
+		attrName: namedAttr.GetName(),
 	}
-	if attrType, ok := namedAttr.Attr.GetType().(*model_starlark_pb.Attr_Label); ok {
-		c.allowSingleFile = attrType.Label.AllowSingleFile
-		c.executable = attrType.Label.Executable
+	if attrType := namedAttr.GetAttr().GetLabel(); attrType != nil {
+		c.allowSingleFile = attrType.GetAllowSingleFile()
+		c.executable = attrType.GetExecutable()
 	}
 	return c
 }
@@ -88,7 +88,7 @@ func (c *labelAttrFilesCollector[TReference, TMetadata]) addTarget(
 	if err != nil {
 		return err
 	}
-	for _, element := range filesDepset.Message.Elements {
+	for _, element := range filesDepset.Message.GetElements() {
 		c.filesDepsetElements = append(c.filesDepsetElements, model_core.Nested(filesDepset, element))
 	}
 
@@ -97,15 +97,15 @@ func (c *labelAttrFilesCollector[TReference, TMetadata]) addTarget(
 		if err != nil {
 			return fmt.Errorf("failed to obtain field \"files_to_run\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
 		}
-		filesToRunStructValue, ok := filesToRun.Message.Kind.(*model_starlark_pb.Value_Struct)
-		if !ok {
+		filesToRunStructValue := filesToRun.Message.GetStruct()
+		if filesToRunStructValue == nil {
 			return fmt.Errorf("field \"files_to_run\" of DefaultInfo provider of target with label %#v is not a struct", resolvedLabel)
 		}
-		filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue.Struct)
+		filesToRunStruct := model_core.Nested(filesToRun, filesToRunStructValue)
 		executableField, err := model_starlark.GetStructFieldValue(
 			ctx,
 			valueReaders.List,
-			model_core.Nested(filesToRunStruct, filesToRunStruct.Message.Fields),
+			model_core.Nested(filesToRunStruct, filesToRunStruct.Message.GetFields()),
 			"executable",
 		)
 		if err != nil {

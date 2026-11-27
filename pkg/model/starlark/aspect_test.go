@@ -109,24 +109,24 @@ ARGS = {
     "toolchains_aspects": ["//:z_type", "//:toolchain_type"],
 }`)
 		require.True(t, definition.GetApplyToGeneratingRules())
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps", "srcs"}}}}, definition.GetAttrAspects())
+		testutil.RequireEqualProto(t, model_starlark_pb.Aspect_PropagationEdges_builder{Fixed: model_starlark_pb.Aspect_PropagationEdges_Fixed_builder{Names: []string{"deps", "srcs"}}.Build()}.Build(), definition.GetAttrAspects())
 		require.Equal(t, []string{"__configuration", "__default_toolchains", "__fragments", "__target_platform", "_tool", "count", "flag", "mode"}, attrNames(definition))
 		require.NotNil(t, definition.GetPropagationPredicate())
 		require.Equal(t, []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}, definition.GetProvides())
 		require.Len(t, definition.GetRequiredAspectProviders(), 2)
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}}, definition.GetRequiredAspectProviders()[0])
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%C"}}, definition.GetRequiredAspectProviders()[1])
+		testutil.RequireEqualProto(t, model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A", "@@rules+//:defs.bzl%B"}}.Build(), definition.GetRequiredAspectProviders()[0])
+		testutil.RequireEqualProto(t, model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%C"}}.Build(), definition.GetRequiredAspectProviders()[1])
 		require.Len(t, definition.GetRequiredProviders(), 1)
-		testutil.RequireEqualProto(t, &model_starlark_pb.ProviderSet{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A"}}, definition.GetRequiredProviders()[0])
+		testutil.RequireEqualProto(t, model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: []string{"@@rules+//:defs.bzl%A"}}.Build(), definition.GetRequiredProviders()[0])
 		require.Equal(t, []string{"@@rules+//:defs.bzl%_dep"}, definition.GetRequires())
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"@@rules+//:toolchain_type", "@@rules+//:z_type"}}}}, definition.GetToolchainsAspects())
+		testutil.RequireEqualProto(t, model_starlark_pb.Aspect_PropagationEdges_builder{Fixed: model_starlark_pb.Aspect_PropagationEdges_Fixed_builder{Names: []string{"@@rules+//:toolchain_type", "@@rules+//:z_type"}}.Build()}.Build(), definition.GetToolchainsAspects())
 		require.Len(t, definition.GetExecGroups(), 1)
 		require.Len(t, definition.GetExecGroups()[0].GetExecGroup().GetToolchains(), 1)
 	})
 
 	t.Run("AttrAspectsWildcard", func(t *testing.T) {
 		definition := encodeAspect(t, `ARGS = {"attr_aspects": ["*"]}`)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.GetAttrAspects())
+		testutil.RequireEqualProto(t, model_starlark_pb.Aspect_PropagationEdges_builder{All: &emptypb.Empty{}}.Build(), definition.GetAttrAspects())
 
 		_, err := exec(t, `ASPECT = aspect(implementation = _impl, attr_aspects = ["*", "deps"])`)
 		require.ErrorContains(t, err, "for parameter attr_aspects: at index 0: invalid Starlark identifier")
@@ -134,7 +134,7 @@ ARGS = {
 
 	t.Run("ToolchainsAspectsWildcard", func(t *testing.T) {
 		definition := encodeAspect(t, `ARGS = {"toolchains_aspects": ["*"]}`)
-		testutil.RequireEqualProto(t, &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}}, definition.GetToolchainsAspects())
+		testutil.RequireEqualProto(t, model_starlark_pb.Aspect_PropagationEdges_builder{All: &emptypb.Empty{}}.Build(), definition.GetToolchainsAspects())
 	})
 
 	t.Run("PropagationFunctions", func(t *testing.T) {

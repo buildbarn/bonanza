@@ -23,19 +23,19 @@ func getAspectDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TRef
 	if !aspectValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Aspect_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	v, ok := aspectValue.Message.Global.GetKind().(*model_starlark_pb.Value_Aspect)
-	if !ok {
+	v := aspectValue.Message.GetGlobal().GetAspect()
+	if v == nil {
 		return model_core.Message[*model_starlark_pb.Aspect_Definition, TReference]{}, fmt.Errorf("%#v is not an aspect", aspectIdentifierStr)
 	}
-	d, ok := v.Aspect.Kind.(*model_starlark_pb.Aspect_Definition_)
-	if !ok {
+	d := v.GetDefinition()
+	if d == nil {
 		return model_core.Message[*model_starlark_pb.Aspect_Definition, TReference]{}, fmt.Errorf("%#v is not an aspect definition", aspectIdentifierStr)
 	}
-	return model_core.Nested(aspectValue, d.Definition), nil
+	return model_core.Nested(aspectValue, d), nil
 }
 
 func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredAspect_Key, TReference], e ConfiguredAspectEnvironment[TReference, TMetadata]) (PatchedConfiguredAspectValue[TMetadata], error) {
-	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.Identifier)
+	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.GetIdentifier())
 	if err != nil {
 		return PatchedConfiguredAspectValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier: %w", err)
 	}
@@ -48,7 +48,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx con
 		return PatchedConfiguredAspectValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 
 	// Resolve the toolchains and execution platforms of all exec
 	// groups, and obtain the definitions of all subrules. Labels
@@ -59,10 +59,10 @@ func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx con
 		e,
 		valueReaders,
 		aspectPackage,
-		aspectDefinition.Message.ExecGroups,
+		aspectDefinition.Message.GetExecGroups(),
 		configurationReference,
 	)
-	subruleDefinitions, subrulesErr := getSubruleDefinitions(e, aspectDefinition.Message.SubruleIdentifiers)
+	subruleDefinitions, subrulesErr := getSubruleDefinitions(e, aspectDefinition.Message.GetSubruleIdentifiers())
 	for _, err := range []error{execGroupsErr, subrulesErr} {
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedConfiguredAspectValue[TMetadata]{}, err
@@ -96,26 +96,26 @@ func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx con
 		// and cannot use user-defined transitions, meaning that
 		// the labels contained in them can be resolved here.
 		var labelAttrs []*model_analysis_pb.IndexedConfiguredLabelAttr
-		for attrIndex, namedAttr := range aspectDefinition.Message.Attrs {
-			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
+		for attrIndex, namedAttr := range aspectDefinition.Message.GetAttrs() {
+			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr())
 			if !isLabelAttr {
 				continue
 			}
 			if labelOptions == nil {
-				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.Name)
+				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.GetName())
 			}
-			if !strings.HasPrefix(namedAttr.Name, "_") {
-				return nil, fmt.Errorf("attr %#v is a public label attr, which aspects cannot have", namedAttr.Name)
+			if !strings.HasPrefix(namedAttr.GetName(), "_") {
+				return nil, fmt.Errorf("attr %#v is a public label attr, which aspects cannot have", namedAttr.GetName())
 			}
-			defaultValue := namedAttr.Attr.GetDefault()
+			defaultValue := namedAttr.GetAttr().GetDefault()
 			if defaultValue == nil {
-				return nil, fmt.Errorf("attr %#v does not have a default value", namedAttr.Name)
+				return nil, fmt.Errorf("attr %#v does not have a default value", namedAttr.GetName())
 			}
 			configuredAttr, err := configureBuiltinTransitionLabelAttr(
 				ctx,
 				e,
 				valueReaders,
-				model_core.Nested(aspectDefinition, labelOptions.Cfg),
+				model_core.Nested(aspectDefinition, labelOptions.GetCfg()),
 				model_core.Nested(aspectDefinition, defaultValue),
 				aspectPackage,
 				configurationReference,
@@ -127,7 +127,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeConfiguredAspectValue(ctx con
 					missingDependencies = true
 					continue
 				}
-				return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+				return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 			labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{
 				AttrIndex:  uint32(attrIndex),

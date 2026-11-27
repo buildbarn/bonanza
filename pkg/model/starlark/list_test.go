@@ -11,6 +11,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestAllListLeafElements(t *testing.T) {
@@ -18,8 +20,8 @@ func TestAllListLeafElements(t *testing.T) {
 		return newStringValue(s)
 	}
 	rootList := model_core.NewSimpleMessage[object.LocalReference]([]*model_starlark_pb.List_Element{
-		{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("a")}},
-		{Level: &model_starlark_pb.List_Element_Leaf{Leaf: strValue("b")}},
+		model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("a"))}.Build(),
+		model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(strValue("b"))}.Build(),
 		{},
 	})
 
@@ -67,9 +69,9 @@ func newStringValue(s string) *model_starlark_pb.Value {
 	if s != "" {
 		contents.SetContentsInline([]byte(s))
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{Str: contents},
-	}
+	return model_starlark_pb.Value_builder{
+		Str: proto.ValueOrDefault(contents),
+	}.Build()
 }
 
 // mustGetString returns the contents of a Value message containing a

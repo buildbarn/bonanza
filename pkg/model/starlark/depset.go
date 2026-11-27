@@ -14,6 +14,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func deduplicateAndAddDirect(thread *eval.Thread, children *[]any, direct iter.Seq2[int, eval.Value], valuesSeen *valueSet) error {
@@ -40,15 +42,15 @@ func deduplicateAndAddTransitive[TReference object.BasicReference, TMetadata mod
 				*children = append(*children, v)
 			}
 		case model_core.Message[*model_starlark_pb.List_Element, TReference]:
-			switch level := v.Message.Level.(type) {
-			case *model_starlark_pb.List_Element_Leaf:
+			switch v.Message.WhichLevel() {
+			case model_starlark_pb.List_Element_Leaf_case:
 				// Encoded child. These get deduplicated
 				// during encoding.
 				*children = append(*children, v)
-			case *model_starlark_pb.List_Element_Parent_:
+			case model_starlark_pb.List_Element_Parent_case:
 				// Multiple encoded children. Deduplicate
 				// them by list object reference.
-				listReference, err := model_core.FlattenDecodableReference(model_core.Nested(v, level.Parent.Reference))
+				listReference, err := model_core.FlattenDecodableReference(model_core.Nested(v, v.Message.GetParent().GetReference()))
 				if err != nil {
 					return err
 				}
@@ -166,7 +168,7 @@ func newDepsetContentsFromChildren[TReference object.BasicReference, TMetadata m
 		case model_core.Message[*model_starlark_pb.List_Element, TReference]:
 			// Only track the order if the depset contains
 			// multiple elements.
-			if level, ok := v.Message.Level.(*model_starlark_pb.List_Element_Parent_); ok && level.Parent.Count > 1 {
+			if level := v.Message.GetParent(); level != nil && level.GetCount() > 1 {
 				return &DepsetContents[TReference, TMetadata]{
 					children: v,
 					order:    order,
@@ -236,11 +238,9 @@ func (e *depsetChildrenEncoder[TReference, TMetadata]) encode(children any) erro
 		}
 		if err := e.pushUniqueElement(
 			model_core.NewPatchedMessage(
-				&model_starlark_pb.List_Element{
-					Level: &model_starlark_pb.List_Element_Leaf{
-						Leaf: encodedValue.Message,
-					},
-				},
+				model_starlark_pb.List_Element_builder{
+					Leaf: proto.ValueOrDefault(encodedValue.Message),
+				}.Build(),
 				encodedValue.Patcher,
 			),
 		); err != nil {
@@ -371,11 +371,11 @@ func (d *Depset[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.
 		return model_core.PatchedMessage[*model_starlark_pb.Depset, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Depset{
+		model_starlark_pb.Depset_builder{
 			Elements:   elements.Message,
 			Order:      d.order,
 			Identifier: d.referenceEqual.identifier,
-		},
+		}.Build(),
 		elements.Patcher,
 	), nil
 }
@@ -399,11 +399,9 @@ func (d *Depset[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Depset{
-				Depset: encodedDepset.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Depset: proto.ValueOrDefault(encodedDepset.Message),
+		}.Build(),
 		encodedDepset.Patcher,
 	), nil
 }
@@ -635,15 +633,16 @@ func (listToDepsetUnpackerInto[TReference, TMetadata]) GetConcatenationOperator(
 }
 
 func decodeDepset[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](depset model_core.Message[*model_starlark_pb.Depset, TReference]) *Depset[TReference, TMetadata] {
-	children := make([]any, 0, len(depset.Message.Elements))
-	for _, element := range depset.Message.Elements {
+	elements := depset.Message.GetElements()
+	children := make([]any, 0, len(elements))
+	for _, element := range elements {
 		children = append(children, model_core.Nested(depset, element))
 	}
-	identifier := depset.Message.Identifier
+	identifier := depset.Message.GetIdentifier()
 	return NewDepset(
 		NewDepsetContentsFromList[TReference, TMetadata](
 			children,
-			depset.Message.Order,
+			depset.Message.GetOrder(),
 		),
 		func() []byte { return identifier },
 	)

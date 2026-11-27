@@ -12,6 +12,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Label value in the form of a Starlark object.
@@ -172,13 +174,9 @@ func (l Label[TReference, TMetadata]) GetLabel() pg_label.ResolvedLabel {
 // EncodeValue converts a Starlark label object to a Protobuf message,
 // so that it can be written to storage.
 func (l Label[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Label{
-				Label: l.value.String(),
-			},
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+		Label: proto.String(l.value.String()),
+	}.Build()), nil
 }
 
 // VisitLabels reports any labels contained within a Starlark value. As

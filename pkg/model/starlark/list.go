@@ -19,9 +19,9 @@ func mapListElementsToValues[TReference any](
 ) iter.Seq[model_core.Message[*model_starlark_pb.Value, TReference]] {
 	return func(yield func(model_core.Message[*model_starlark_pb.Value, TReference]) bool) {
 		base(func(entry model_core.Message[*model_starlark_pb.List_Element, TReference]) bool {
-			switch level := entry.Message.Level.(type) {
-			case *model_starlark_pb.List_Element_Leaf:
-				return yield(model_core.Nested(entry, level.Leaf))
+			switch entry.Message.WhichLevel() {
+			case model_starlark_pb.List_Element_Leaf_case:
+				return yield(model_core.Nested(entry, entry.Message.GetLeaf()))
 			default:
 				*errOut = errors.New("not a valid leaf entry")
 				return false

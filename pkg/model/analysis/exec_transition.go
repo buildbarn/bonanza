@@ -17,6 +17,8 @@ import (
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type createInitialConfigurationEnvironment[TReference any, TMetadata model_core.ReferenceMetadata] interface {
@@ -138,14 +140,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	analysisReaders := &analysisEncoders.Readers
 	valueReaders := &starlarkValueEncoders.Readers
 
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("invalid root module name: %w", err)
 	}
 	rootPackage := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo().GetRootPackage()
 
 	// Determine the new target platform.
-	apparentTargetPlatform, err := label.NewApparentLabel(key.Message.PlatformLabel)
+	apparentTargetPlatform, err := label.NewApparentLabel(key.Message.GetPlatformLabel())
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, fmt.Errorf("invalid target platform: %w", err)
 	}
@@ -160,7 +162,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 
 	// Obtain the identifier of the Starlark transition that is used
 	// for exec transitions.
-	inputConfigurationReference := model_core.Nested(key, key.Message.InputConfigurationReference)
+	inputConfigurationReference := model_core.Nested(key, key.Message.GetInputConfigurationReference())
 	execConfigCommandLineOption := "@@bazel_tools+//command_line_option:experimental_exec_config"
 	execConfigValue, err := c.getBuildSettingValue(
 		ctx,
@@ -183,7 +185,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 	}
 
 	// Invoke the exec transition.
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedExecTransitionValue[TMetadata]{}, err
 	}
@@ -193,13 +195,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeExecTransitionValue(ctx con
 		analysisReaders,
 		valueReaders,
 		thread,
-		model_core.NewSimpleMessage[TReference](
-			&model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: execConfigStr,
-				},
-			},
-		),
+		model_core.NewSimpleMessage[TReference](model_starlark_pb.Transition_UserDefined_builder{
+			Identifier: proto.String(execConfigStr),
+		}.Build()),
 		inputConfigurationReference,
 		stubbedTransitionAttr{},
 	)

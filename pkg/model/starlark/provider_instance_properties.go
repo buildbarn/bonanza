@@ -41,20 +41,20 @@ func (pip *ProviderInstanceProperties[TReference, TMetadata]) Encode(thread *eva
 			patcher.Discard()
 			return model_core.PatchedMessage[*model_starlark_pb.Provider_InstanceProperties, TMetadata]{}, err
 		}
-		computedFields = append(computedFields, &model_starlark_pb.Provider_InstanceProperties_ComputedField{
+		computedFields = append(computedFields, model_starlark_pb.Provider_InstanceProperties_ComputedField_builder{
 			Name:     name,
 			Function: function.Message,
-		})
+		}.Build())
 		patcher.Merge(function.Patcher)
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Provider_InstanceProperties{
+		model_starlark_pb.Provider_InstanceProperties_builder{
 			ProviderIdentifier: pip.Identifier.String(),
 			DictLike:           pip.dictLike,
 			ComputedFields:     computedFields,
 			TypeName:           pip.typeName,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -74,15 +74,16 @@ func NewProviderInstanceProperties[TReference any, TMetadata model_core.Referenc
 }
 
 func decodeProviderInstanceProperties[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](m model_core.Message[*model_starlark_pb.Provider_InstanceProperties, TReference]) (*ProviderInstanceProperties[TReference, TMetadata], error) {
-	providerIdentifier, err := pg_label.NewCanonicalStarlarkIdentifier(m.Message.ProviderIdentifier)
+	providerIdentifier, err := pg_label.NewCanonicalStarlarkIdentifier(m.Message.GetProviderIdentifier())
 	if err != nil {
 		return nil, err
 	}
 
-	computedFields := make(map[string]eval.Function, len(m.Message.ComputedFields))
-	for _, computedField := range m.Message.ComputedFields {
-		computedFields[computedField.Name] = DecodeFunction[TReference, TMetadata](model_core.Nested(m, computedField.Function))
+	encodedComputedFields := m.Message.GetComputedFields()
+	computedFields := make(map[string]eval.Function, len(encodedComputedFields))
+	for _, computedField := range encodedComputedFields {
+		computedFields[computedField.GetName()] = DecodeFunction[TReference, TMetadata](model_core.Nested(m, computedField.GetFunction()))
 	}
 
-	return NewProviderInstanceProperties[TReference, TMetadata](&providerIdentifier, m.Message.DictLike, computedFields, m.Message.TypeName), nil
+	return NewProviderInstanceProperties[TReference, TMetadata](&providerIdentifier, m.Message.GetDictLike(), computedFields, m.Message.GetTypeName()), nil
 }

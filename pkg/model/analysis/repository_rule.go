@@ -31,19 +31,19 @@ func getRepositoryRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGet
 			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, nil
 		}
 
-		v, ok := repositoryRuleValue.Message.Global.GetKind().(*model_starlark_pb.Value_RepositoryRule)
-		if !ok {
+		v := repositoryRuleValue.Message.GetGlobal().GetRepositoryRule()
+		if v == nil {
 			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, errors.New("global value is not a repository rule")
 		}
-		switch kind := v.RepositoryRule.Kind.(type) {
-		case *model_starlark_pb.RepositoryRule_Definition_:
-			return model_core.Nested(repositoryRuleValue, kind.Definition), nil
-		case *model_starlark_pb.RepositoryRule_Reference:
+		switch v.WhichKind() {
+		case model_starlark_pb.RepositoryRule_Definition_case:
+			return model_core.Nested(repositoryRuleValue, v.GetDefinition()), nil
+		case model_starlark_pb.RepositoryRule_Reference_case:
 			// When use_repo_rule() is used, the repository
 			// rule identifier may still refer to a global
 			// that refers to the actual repository rule
 			// object.
-			identifier = kind.Reference
+			identifier = v.GetReference()
 		default:
 			return model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]{}, errors.New("unknown kind of repository rule")
 		}
@@ -53,14 +53,15 @@ func getRepositoryRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGet
 // decodeRepositoryRule decodes the definition of a repository rule, so
 // that its implementation function can be invoked.
 func (*baseComputer[TReference, TMetadata]) decodeRepositoryRule(thread *eval.Thread, definition model_core.Message[*model_starlark_pb.RepositoryRule_Definition, TReference]) (eval.Value, AttrsDict[TReference, TMetadata], error) {
-	attrs, err := decodeAttrsDict[TReference, TMetadata](thread, model_core.Nested(definition, definition.Message.Attrs))
+	attrs, err := decodeAttrsDict[TReference, TMetadata](thread, model_core.Nested(definition, definition.Message.GetAttrs()))
 	if err != nil {
 		return nil, AttrsDict[TReference, TMetadata]{}, err
 	}
-	if definition.Message.Implementation == nil {
+	implementation := definition.Message.GetImplementation()
+	if implementation == nil {
 		return nil, AttrsDict[TReference, TMetadata]{}, errors.New("repository rule does not have an implementation function")
 	}
-	return model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(definition, definition.Message.Implementation)), attrs, nil
+	return model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(definition, implementation)), attrs, nil
 }
 
 // PublicAttr contains information on a public attribute accepted by a
@@ -83,24 +84,24 @@ func decodeAttrsDict[TReference object.BasicReference, TMetadata model_core.Refe
 		Private: map[string]eval.Value{},
 	}
 	for _, namedAttr := range encodedAttrs.Message {
-		attrType, err := model_starlark.DecodeAttrType[TReference, TMetadata](model_core.Nested(encodedAttrs, namedAttr.Attr))
+		attrType, err := model_starlark.DecodeAttrType[TReference, TMetadata](model_core.Nested(encodedAttrs, namedAttr.GetAttr()))
 		if err != nil {
-			return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid type for attribute %#v: %w", namedAttr.Name, err)
+			return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid type for attribute %#v: %w", namedAttr.GetName(), err)
 		}
 
-		if strings.HasPrefix(namedAttr.Name, "_") {
+		if strings.HasPrefix(namedAttr.GetName(), "_") {
 			value, err := model_starlark.DecodeValue[TReference, TMetadata](
-				thread, model_core.Nested(encodedAttrs, namedAttr.Attr.GetDefault()),
+				thread, model_core.Nested(encodedAttrs, namedAttr.GetAttr().GetDefault()),
 				/* currentIdentifier = */ nil,
 			)
 			if err != nil {
-				return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
+				return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.GetName(), err)
 			}
-			attrsDict.Private[namedAttr.Name] = value
+			attrsDict.Private[namedAttr.GetName()] = value
 		} else {
 
 			var defaultAttr eval.Value
-			if d := namedAttr.Attr.GetDefault(); d != nil {
+			if d := namedAttr.GetAttr().GetDefault(); d != nil {
 				// TODO: Call into attr type to validate
 				// the value!
 				defaultAttr, err = model_starlark.DecodeValue[TReference, TMetadata](
@@ -108,11 +109,11 @@ func decodeAttrsDict[TReference object.BasicReference, TMetadata model_core.Refe
 					/* currentIdentifier = */ nil,
 				)
 				if err != nil {
-					return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.Name, err)
+					return AttrsDict[TReference, TMetadata]{}, fmt.Errorf("invalid default value for attribute %#v: %w", namedAttr.GetName(), err)
 				}
 			}
 			attrsDict.Public = append(attrsDict.Public, PublicAttr[TReference, TMetadata]{
-				Name:     namedAttr.Name,
+				Name:     namedAttr.GetName(),
 				Default:  defaultAttr,
 				AttrType: attrType,
 			})

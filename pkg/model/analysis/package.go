@@ -24,6 +24,8 @@ import (
 	"bonanza.build/pkg/starlark/resolve"
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputePackageValue(ctx context.Context, key *model_analysis_pb.Package_Key, e PackageEnvironment[TReference, TMetadata]) (PatchedPackageValue[TMetadata], error) {
@@ -195,27 +197,25 @@ func (c *baseComputer[TReference, TMetadata]) newPackageTargetsTreeBuilder(ctx c
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, capturer, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.Package_Value_Target, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.Package_Value_Target, TMetadata] {
 				var firstName, lastName string
-				switch firstElement := childNodes.Message[0].Level.(type) {
+				switch childNodes.Message[0].GetLevel().(type) {
 				case *model_analysis_pb.Package_Value_Target_Leaf:
-					firstName = firstElement.Leaf.Name
+					firstName = childNodes.Message[0].GetLeaf().GetName()
 				case *model_analysis_pb.Package_Value_Target_Parent_:
-					firstName = firstElement.Parent.FirstName
+					firstName = childNodes.Message[0].GetParent().GetFirstName()
 				}
-				switch lastElement := childNodes.Message[len(childNodes.Message)-1].Level.(type) {
+				switch xmsg := childNodes.Message[len(childNodes.Message)-1]; xmsg.GetLevel().(type) {
 				case *model_analysis_pb.Package_Value_Target_Leaf:
-					lastName = lastElement.Leaf.Name
+					lastName = xmsg.GetLeaf().GetName()
 				case *model_analysis_pb.Package_Value_Target_Parent_:
-					lastName = lastElement.Parent.LastName
+					lastName = xmsg.GetParent().GetLastName()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.Package_Value_Target {
 					return &model_analysis_pb.Package_Value_Target{
-						Level: &model_analysis_pb.Package_Value_Target_Parent_{
-							Parent: &model_analysis_pb.Package_Value_Target_Parent{
-								Reference: patcher.AddDecodableReference(createdObject),
-								FirstName: firstName,
-								LastName:  lastName,
-							},
-						},
+						Level: &model_analysis_pb.Package_Value_Target_Parent_{Parent: &model_analysis_pb.Package_Value_Target_Parent{
+							Reference: patcher.AddDecodableReference(createdObject),
+							FirstName: firstName,
+							LastName:  lastName,
+						}},
 					}
 				})
 			}),
@@ -233,12 +233,10 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 		target := targetRegistrar.GetAndRemoveTarget(name)
 		if err := targetsBuilder.PushChild(model_core.NewPatchedMessage(
 			&model_analysis_pb.Package_Value_Target{
-				Level: &model_analysis_pb.Package_Value_Target_Leaf{
-					Leaf: &model_starlark_pb.Target{
-						Name:       name,
-						Definition: target.Message,
-					},
-				},
+				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+					Name:       name,
+					Definition: target.Message,
+				}.Build()},
 			},
 			target.Patcher,
 		)); err != nil {
@@ -255,11 +253,9 @@ func (c *baseComputer[TReference, TMetadata]) buildPackageDeclarations(ctx conte
 	for _, name := range targetRegistrar.GetMacroExpansionContextNames() {
 		macroExpansionContext := targetRegistrar.GetAndRemoveMacroExpansionContext(name)
 		if err := macroExpansionContextsBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_starlark_pb.MacroExpansionContext_Entry{
-				Level: &model_starlark_pb.MacroExpansionContext_Entry_Leaf{
-					Leaf: macroExpansionContext.Message,
-				},
-			},
+			model_starlark_pb.MacroExpansionContext_Entry_builder{
+				Leaf: proto.ValueOrDefault(macroExpansionContext.Message),
+			}.Build(),
 			macroExpansionContext.Patcher,
 		)); err != nil {
 			targets.Discard()
@@ -333,24 +329,22 @@ func decodeMacroAttrValue[TReference object.BasicReference, TMetadata model_core
 	defaultValue model_core.Message[*model_starlark_pb.Value, TReference],
 	thread *eval.Thread,
 ) (eval.Value, error) {
-	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].Conditions) == 0 {
-		if _, ok := groups[0].GetNoMatchValue().GetKind().(*model_starlark_pb.Value_None); ok {
+	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].GetConditions()) == 0 {
+		if groups[0].GetNoMatchValue().GetNone() != nil {
 			// No value provided. Use the default value of
 			// the attribute.
-			if _, ok := defaultValue.Message.GetKind().(*model_starlark_pb.Value_None); ok || !defaultValue.IsSet() {
+			if defaultValue.Message.GetNone() != nil || !defaultValue.IsSet() {
 				return eval.None, nil
 			}
-			valueParts = model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{{
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-					NoMatchValue: defaultValue.Message,
-				},
-			}})
+			valueParts = model_core.Nested(defaultValue, []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+				NoMatchValue: proto.ValueOrDefault(defaultValue.Message),
+			}.Build()})
 		}
 	}
 
 	if !configurable {
 		groups := valueParts.Message
-		if len(groups) != 1 || len(groups[0].Conditions) != 0 || groups[0].GetNoMatchValue() == nil {
+		if len(groups) != 1 || len(groups[0].GetConditions()) != 0 || groups[0].GetNoMatchValue() == nil {
 			return nil, errors.New("value of attribute that is not configurable depends on select()")
 		}
 		return model_starlark.DecodeValue[TReference, TMetadata](
@@ -402,24 +396,24 @@ func (r *existingRulesResolver[TReference, TMetadata]) ForEachExistingRule(yield
 	for entry := range btree.AllLeaves(
 		r.context,
 		r.analysisReaders.PackageValueTarget,
-		model_core.Nested(packageTargets, packageTargets.Message.Targets),
+		model_core.Nested(packageTargets, packageTargets.Message.GetTargets()),
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
-			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {
-				return level.Parent.Reference, nil
+			if level := entry.Message.GetParent(); level != nil {
+				return level.GetReference(), nil
 			}
 			return nil, nil
 		},
 		&errIter,
 	) {
-		level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Leaf)
-		if !ok {
+		level := entry.Message.GetLeaf()
+		if level == nil {
 			return errors.New("not a valid leaf entry")
 		}
-		targetName, err := label.NewTargetName(level.Leaf.Name)
+		targetName, err := label.NewTargetName(level.GetName())
 		if err != nil {
-			return fmt.Errorf("invalid target name %#v: %w", level.Leaf.Name, err)
+			return fmt.Errorf("invalid target name %#v: %w", level.GetName(), err)
 		}
-		if err := yield(targetName, model_core.Nested(entry, level.Leaf.Definition)); err != nil {
+		if err := yield(targetName, model_core.Nested(entry, level.GetDefinition())); err != nil {
 			return err
 		}
 	}
@@ -450,20 +444,20 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	if !macroExpansionContextValue.IsSet() {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	macroExpansionContextDefinition := model_core.Nested(macroExpansionContextValue, macroExpansionContextValue.Message.Definition)
+	macroExpansionContextDefinition := model_core.Nested(macroExpansionContextValue, macroExpansionContextValue.Message.GetDefinition())
 	rootMacroInstanceDefinition := model_core.Nested(macroExpansionContextDefinition, macroExpansionContextDefinition.Message.GetRootMacroInstanceDefinition())
 	if rootMacroInstanceDefinition.Message.GetInheritableAttrs().GetVisibility() == nil {
 		return PatchedPackageValue[TMetadata]{}, errors.New("does not have a visibility")
 	}
-	for _, suffix := range macroExpansionContextDefinition.Message.ReferencedTargetNameSuffixes {
+	for _, suffix := range macroExpansionContextDefinition.Message.GetReferencedTargetNameSuffixes() {
 		if name := macroInstanceName + suffix; !model_starlark.IsValidMacroDeclarationName(macroInstanceName, name) {
 			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid referenced target name suffix %#v", suffix)
 		}
 	}
 
-	macroIdentifier, err := label.NewCanonicalStarlarkIdentifier(rootMacroInstanceDefinition.Message.MacroIdentifier)
+	macroIdentifier, err := label.NewCanonicalStarlarkIdentifier(rootMacroInstanceDefinition.Message.GetMacroIdentifier())
 	if err != nil {
-		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid macro identifier %#v: %w", rootMacroInstanceDefinition.Message.MacroIdentifier, err)
+		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("invalid macro identifier %#v: %w", rootMacroInstanceDefinition.Message.GetMacroIdentifier(), err)
 	}
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	macroValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
@@ -472,12 +466,12 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	if !allBuiltinsModulesNames.IsSet() || !macroValue.IsSet() {
 		return PatchedPackageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	macroDefinition, err := model_starlark.GetMacroDefinition(model_core.Nested(macroValue, macroValue.Message.Global))
+	macroDefinition, err := model_starlark.GetMacroDefinition(model_core.Nested(macroValue, macroValue.Message.GetGlobal()))
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, fmt.Errorf("identifier %#v: %w", macroIdentifier.String(), err)
 	}
 
-	builtinsModuleNames := allBuiltinsModulesNames.Message.BuiltinsModuleNames
+	builtinsModuleNames := allBuiltinsModulesNames.Message.GetBuiltinsModuleNames()
 	valueReaders := &starlarkValueEncoders.Readers
 	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, builtinsModuleNames)
 	if err != nil {
@@ -487,7 +481,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	valueEncodingOptions := valueEncodingOptionsFactory.newValueEncodingOptions(ctx, nil)
 	thread.SetLocal(model_starlark.ValueEncodingOptionsKey, valueEncodingOptions)
 	thread.SetLocal(model_starlark.GlobalResolverKey, newGlobalResolver(ctx, e, valueReaders, builtinsModuleNames))
-	if rootMacroInstanceDefinition.Message.Finalizer == model_starlark_pb.MacroInstance_FINALIZER {
+	if rootMacroInstanceDefinition.Message.GetFinalizer() == model_starlark_pb.MacroInstance_FINALIZER {
 		// Finalizers may observe the targets in the package
 		// that are not declared by finalizers.
 		thread.SetLocal(model_starlark.ExistingRulesResolverKey, &existingRulesResolver[TReference, TMetadata]{
@@ -523,20 +517,20 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 	for entry := range btree.AllLeaves(
 		ctx,
 		analysisReaders.MacroInstanceEntry,
-		model_core.Nested(macroExpansionContextDefinition, macroExpansionContextDefinition.Message.NestedMacroInstances),
+		model_core.Nested(macroExpansionContextDefinition, macroExpansionContextDefinition.Message.GetNestedMacroInstances()),
 		func(entry model_core.Message[*model_starlark_pb.MacroInstance_Entry, TReference]) (*model_core_pb.DecodableReference, error) {
-			if level, ok := entry.Message.Level.(*model_starlark_pb.MacroInstance_Entry_Parent_); ok {
-				return level.Parent.Reference, nil
+			if level := entry.Message.GetParent(); level != nil {
+				return level.GetReference(), nil
 			}
 			return nil, nil
 		},
 		&errIter,
 	) {
-		level, ok := entry.Message.Level.(*model_starlark_pb.MacroInstance_Entry_Leaf)
-		if !ok {
+		level := entry.Message.GetLeaf()
+		if level == nil {
 			return PatchedPackageValue[TMetadata]{}, errors.New("not a valid leaf entry")
 		}
-		if err := targetRegistrar.RegisterNestedMacroInstance(model_core.Patch(e, model_core.Nested(entry, level.Leaf))); err != nil {
+		if err := targetRegistrar.RegisterNestedMacroInstance(model_core.Patch(e, model_core.Nested(entry, level))); err != nil {
 			return PatchedPackageValue[TMetadata]{}, err
 		}
 	}
@@ -549,18 +543,18 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 		{Name: "name", Value: eval.String(macroInstanceName)},
 		{Name: "visibility", Value: model_starlark.MacroVisibility{}},
 	}
-	publicAttrValues := rootMacroInstanceDefinition.Message.PublicAttrValues
-	for _, namedAttr := range macroDefinition.Message.Attrs {
-		attr := namedAttr.Attr
+	publicAttrValues := rootMacroInstanceDefinition.Message.GetPublicAttrValues()
+	for _, namedAttr := range macroDefinition.Message.GetAttrs() {
+		attr := namedAttr.GetAttr()
 		if attr == nil {
-			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: missing message", namedAttr.Name)
+			return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: missing message", namedAttr.GetName())
 		}
 		var defaultValue model_core.Message[*model_starlark_pb.Value, TReference]
-		if attr.Default != nil {
-			defaultValue = model_core.Nested(macroDefinition, attr.Default)
+		if attrDefault := attr.GetDefault(); attrDefault != nil {
+			defaultValue = model_core.Nested(macroDefinition, attrDefault)
 		}
 		var value eval.Value
-		if strings.HasPrefix(namedAttr.Name, "_") {
+		if strings.HasPrefix(namedAttr.GetName(), "_") {
 			// Private attributes cannot be set by the
 			// caller. Provide the default value.
 			value = eval.None
@@ -569,7 +563,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 					thread, defaultValue, nil,
 				)
 				if err != nil {
-					return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+					return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 				}
 			}
 		} else {
@@ -581,20 +575,20 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 
 			attrType, err := model_starlark.DecodeAttrType[TReference, TMetadata](model_core.Nested(macroDefinition, attr))
 			if err != nil {
-				return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+				return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 			value, err = decodeMacroAttrValue[TReference, TMetadata](
-				model_core.Nested(rootMacroInstanceDefinition, publicAttrValue.ValueParts),
-				attr.Configurable,
+				model_core.Nested(rootMacroInstanceDefinition, publicAttrValue.GetValueParts()),
+				attr.GetConfigurable(),
 				attrType.GetCanonicalizer(canonicalPackage).GetConcatenationOperator(),
 				defaultValue,
 				thread,
 			)
 			if err != nil {
-				return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+				return PatchedPackageValue[TMetadata]{}, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 		}
-		kwargs = append(kwargs, eval.NamedArg{Name: namedAttr.Name, Value: value})
+		kwargs = append(kwargs, eval.NamedArg{Name: namedAttr.GetName(), Value: value})
 	}
 	if len(publicAttrValues) != 0 {
 		return PatchedPackageValue[TMetadata]{}, errors.New("has more public attr values than the macro definition has public attrs")
@@ -602,7 +596,7 @@ func (c *baseComputer[TReference, TMetadata]) computeMacroInstancePackageValue(c
 
 	// Invoke the implementation function, so that all targets and
 	// macro instances declared by the macro are registered.
-	returnValue, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(macroDefinition, macroDefinition.Message.Implementation)), eval.Args{Positional: /* args = */ nil, Named: kwargs})
+	returnValue, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(macroDefinition, macroDefinition.Message.GetImplementation())), eval.Args{Positional: /* args = */ nil, Named: kwargs})
 	if err != nil {
 		return PatchedPackageValue[TMetadata]{}, formatStarlarkError(err)
 	}

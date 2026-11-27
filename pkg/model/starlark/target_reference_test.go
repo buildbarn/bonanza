@@ -29,12 +29,12 @@ func TestTargetReferenceProviders(t *testing.T) {
 		util.Must(label.NewResolvedLabel("@@main+//:target")),
 		model_starlark.NewConfiguredTargetReference[object.LocalReference, model_core.NoopReferenceMetadata](
 			util.Must(label.NewCanonicalLabel("@@main+//:target")),
-			model_core.NewSimpleMessage[object.LocalReference]([]*model_starlark_pb.Struct{{
+			model_core.NewSimpleMessage[object.LocalReference]([]*model_starlark_pb.Struct{model_starlark_pb.Struct_builder{
 				Fields: &model_starlark_pb.Struct_Fields{},
-				ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+				ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 					ProviderIdentifier: "@@rules+//:defs.bzl%FooInfo",
-				},
-			}}),
+				}.Build(),
+			}.Build()}),
 		),
 	)
 

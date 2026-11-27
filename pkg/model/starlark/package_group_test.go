@@ -42,9 +42,9 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.NoError(t, err)
-			testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{
+			testutil.RequireEqualProto(t, model_starlark_pb.PackageGroup_builder{
 				Tree: &model_starlark_pb.PackageGroup_Subpackages{},
-			}, packageGroup.Message)
+			}.Build(), packageGroup.Message)
 		})
 
 		t.Run("Duplicate", func(t *testing.T) {
@@ -80,11 +80,11 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 				NewMockObjectManagerForTesting(ctrl),
 			)
 			require.NoError(t, err)
-			testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{
-				Tree: &model_starlark_pb.PackageGroup_Subpackages{
+			testutil.RequireEqualProto(t, model_starlark_pb.PackageGroup_builder{
+				Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
 					IncludeSubpackages: true,
-				},
-			}, packageGroup.Message)
+				}.Build(),
+			}.Build(), packageGroup.Message)
 		})
 
 		t.Run("Duplicate", func(t *testing.T) {
@@ -149,125 +149,111 @@ func TestNewPackageGroupFromVisibility(t *testing.T) {
 			objectManager,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.PackageGroup{
-			Tree: &model_starlark_pb.PackageGroup_Subpackages{
-				Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-					OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-						Packages: []*model_starlark_pb.PackageGroup_Package{
-							{
-								Component: "collapse1+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: []*model_starlark_pb.PackageGroup_Package{
-												{
-													Component:      "foo",
-													IncludePackage: true,
-													Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-														IncludeSubpackages: true,
-													},
-												},
-											},
-										},
+		testutil.RequireEqualProto(t, model_starlark_pb.PackageGroup_builder{
+			Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+				OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+					Packages: []*model_starlark_pb.PackageGroup_Package{
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component: "collapse1+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: []*model_starlark_pb.PackageGroup_Package{
+										model_starlark_pb.PackageGroup_Package_builder{
+											Component:      "foo",
+											IncludePackage: true,
+											Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+												IncludeSubpackages: true,
+											}.Build(),
+										}.Build(),
 									},
-								},
-							},
-							{
-								Component: "collapse2+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: []*model_starlark_pb.PackageGroup_Package{
-												{
-													Component:      "foo",
-													IncludePackage: true,
-													Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-														IncludeSubpackages: true,
-													},
-												},
-											},
-										},
+								}.Build(),
+							}.Build(),
+						}.Build(),
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component: "collapse2+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: []*model_starlark_pb.PackageGroup_Package{
+										model_starlark_pb.PackageGroup_Package_builder{
+											Component:      "foo",
+											IncludePackage: true,
+											Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+												IncludeSubpackages: true,
+											}.Build(),
+										}.Build(),
 									},
-								},
-							},
-							{
-								Component: "nested+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: []*model_starlark_pb.PackageGroup_Package{
-												{
-													Component:      "foo",
-													IncludePackage: true,
-													Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-														Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-															OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-																Packages: []*model_starlark_pb.PackageGroup_Package{
-																	{
-																		Component:      "bar",
-																		IncludePackage: true,
-																		Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
-																	},
-																},
-															},
-														},
+								}.Build(),
+							}.Build(),
+						}.Build(),
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component: "nested+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: []*model_starlark_pb.PackageGroup_Package{
+										model_starlark_pb.PackageGroup_Package_builder{
+											Component:      "foo",
+											IncludePackage: true,
+											Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+												OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+													Packages: []*model_starlark_pb.PackageGroup_Package{
+														model_starlark_pb.PackageGroup_Package_builder{
+															Component:      "bar",
+															IncludePackage: true,
+															Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
+														}.Build(),
 													},
-												},
-											},
-										},
+												}.Build(),
+											}.Build(),
+										}.Build(),
 									},
-								},
-							},
-							{
-								Component: "skip+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: []*model_starlark_pb.PackageGroup_Package{
-												{
-													Component: "foo",
-													Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-														Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-															OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-																Packages: []*model_starlark_pb.PackageGroup_Package{
-																	{
-																		Component:      "bar",
-																		IncludePackage: true,
-																		Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
-																	},
-																},
-															},
-														},
+								}.Build(),
+							}.Build(),
+						}.Build(),
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component: "skip+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: []*model_starlark_pb.PackageGroup_Package{
+										model_starlark_pb.PackageGroup_Package_builder{
+											Component: "foo",
+											Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+												OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+													Packages: []*model_starlark_pb.PackageGroup_Package{
+														model_starlark_pb.PackageGroup_Package_builder{
+															Component:      "bar",
+															IncludePackage: true,
+															Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
+														}.Build(),
 													},
-												},
-											},
-										},
+												}.Build(),
+											}.Build(),
+										}.Build(),
 									},
-								},
-							},
-							{
-								Component:      "toplevel1+",
-								IncludePackage: true,
-								Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
-							},
-							{
-								Component:      "toplevel2+",
-								IncludePackage: true,
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									IncludeSubpackages: true,
-								},
-							},
-						},
+								}.Build(),
+							}.Build(),
+						}.Build(),
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component:      "toplevel1+",
+							IncludePackage: true,
+							Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
+						}.Build(),
+						model_starlark_pb.PackageGroup_Package_builder{
+							Component:      "toplevel2+",
+							IncludePackage: true,
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								IncludeSubpackages: true,
+							}.Build(),
+						}.Build(),
 					},
-				},
-			},
+				}.Build(),
+			}.Build(),
 			IncludePackageGroups: []string{
 				"@@packagegroups+//:group1",
 				"@@packagegroups+//:group2",
 				"@@packagegroups+//:group3",
 				"@@packagegroups+//:group4",
 			},
-		}, packageGroup.Message)
+		}.Build(), packageGroup.Message)
 	})
 }
 
@@ -365,14 +351,14 @@ func TestAddPackageToPackageGroup(t *testing.T) {
 		// Overrides that are stored in separate objects should
 		// be loaded, so that the package can be added to them.
 		packageGroup := model_core.NewMessage(
-			&model_starlark_pb.PackageGroup{
-				Tree: &model_starlark_pb.PackageGroup_Subpackages{
-					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{OverridesExternal: model_core_pb.DecodableReference_builder{
+			model_starlark_pb.PackageGroup_builder{
+				Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+					OverridesExternal: model_core_pb.DecodableReference_builder{
 						Reference: model_core_pb.Reference_builder{Index: 1}.Build(),
-					}.Build()},
-				},
+					}.Build(),
+				}.Build(),
 				IncludePackageGroups: []string{"@@a+//:group"},
-			},
+			}.Build(),
 			object.OutgoingReferencesList[object.LocalReference]{
 				object.MustNewSHA256V1LocalReference("629db2c2c2a8ae9445ffed22cbf2f3b5a89d7062a7eb4cbdf369217b10e99838", 1337, 0, 0, 0),
 			},

@@ -11,7 +11,7 @@ import (
 
 func TestProviderSetsSatisfiedBy(t *testing.T) {
 	newProviderSet := func(providerIdentifiers ...string) *model_starlark_pb.ProviderSet {
-		return &model_starlark_pb.ProviderSet{ProviderIdentifiers: providerIdentifiers}
+		return model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: providerIdentifiers}.Build()
 	}
 	providerIdentifiers := []string{"A", "C", "D"}
 

@@ -23,9 +23,10 @@ import (
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
-	"google.golang.org/protobuf/types/known/emptypb"
-
 	"github.com/buildbarn/bb-storage/pkg/util"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var commandLineOptionRepoRootPackage = util.Must(label.NewCanonicalPackage("@@bazel_tools+"))
@@ -56,17 +57,13 @@ type getExpectedTransitionOutputEnvironment[TReference any, TMetadata model_core
 // build_setting_default to a Starlark value.
 func stringToStarlarkLabelOrNone(v string) *model_starlark_pb.Value {
 	if v == "" {
-		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_None{
-				None: &emptypb.Empty{},
-			},
-		}
+		return model_starlark_pb.Value_builder{
+			None: &emptypb.Empty{},
+		}.Build()
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Label{
-			Label: v,
-		},
-	}
+	return model_starlark_pb.Value_builder{
+		Label: proto.String(v),
+	}.Build()
 }
 
 func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](e getExpectedTransitionOutputEnvironment[TReference, TMetadata], transitionPackage label.CanonicalPackage, apparentBuildSettingLabel label.ApparentLabel) (expectedTransitionOutput[TReference], error) {
@@ -78,18 +75,16 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 		return expectedTransitionOutput[TReference]{}, err
 	}
 	visibleTargetValue := e.GetVisibleTargetValue(
-		model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Key{
-				FromPackage:        canonicalBuildSettingLabel.GetCanonicalPackage().String(),
-				ToLabel:            canonicalBuildSettingLabel.String(),
-				StopAtLabelSetting: true,
-			},
-		),
+		model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Key{
+			FromPackage:        canonicalBuildSettingLabel.GetCanonicalPackage().String(),
+			ToLabel:            canonicalBuildSettingLabel.String(),
+			StopAtLabelSetting: true,
+		}),
 	)
 	if !visibleTargetValue.IsSet() {
 		return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 	}
-	visibleBuildSettingLabel := visibleTargetValue.Message.Label
+	visibleBuildSettingLabel := visibleTargetValue.Message.GetLabel()
 
 	// Determine how values associated with this build
 	// setting need to be canonicalized.
@@ -99,55 +94,56 @@ func getExpectedTransitionOutput[TReference object.BasicReference, TMetadata mod
 	if !targetValue.IsSet() {
 		return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	definition := targetValue.Message.GetDefinition()
+	if definition == nil {
 		return expectedTransitionOutput[TReference]{}, fmt.Errorf("build setting %#v does not exist", visibleBuildSettingLabel)
 	}
-	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_LabelSetting:
+	switch definition.WhichKind() {
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
 		// Build setting is a label_setting() or label_flag().
 		return expectedTransitionOutput[TReference]{
 			label: visibleBuildSettingLabel,
 			canonicalizer: model_starlark.NewLabelBuildSettingCanonicalizer[TReference, TMetadata](
 				transitionPackage,
-				targetKind.LabelSetting.SingletonList,
+				definition.GetLabelSetting().GetSingletonList(),
 			),
 			defaultValue: model_core.NewSimpleMessage[TReference](
-				stringToStarlarkLabelOrNone(targetKind.LabelSetting.BuildSettingDefault),
+				stringToStarlarkLabelOrNone(definition.GetLabelSetting().GetBuildSettingDefault()),
 			),
-			isFlag: targetKind.LabelSetting.Flag,
+			isFlag: definition.GetLabelSetting().GetFlag(),
 		}, nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
 		// Build setting is written in Starlark.
-		if targetKind.RuleTarget.BuildSetting == nil {
-			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by label setting %#v does not have \"build_setting\" set", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
+		if definition.GetRuleTarget().GetBuildSetting() == nil {
+			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by label setting %#v does not have \"build_setting\" set", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
 		ruleValue := e.GetCompiledBzlFileGlobalValue(&model_analysis_pb.CompiledBzlFileGlobal_Key{
-			Identifier: targetKind.RuleTarget.RuleIdentifier,
+			Identifier: definition.GetRuleTarget().GetRuleIdentifier(),
 		})
 		if !ruleValue.IsSet() {
 			return expectedTransitionOutput[TReference]{}, evaluation.ErrMissingDependency
 		}
-		rule, ok := ruleValue.Message.Global.Kind.(*model_starlark_pb.Value_Rule)
-		if !ok {
-			return expectedTransitionOutput[TReference]{}, fmt.Errorf("identifier %#v used by build setting %#v is not a rule", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
+		rule := ruleValue.Message.GetGlobal().GetRule()
+		if rule == nil {
+			return expectedTransitionOutput[TReference]{}, fmt.Errorf("identifier %#v used by build setting %#v is not a rule", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
-		ruleDefinition, ok := rule.Rule.Kind.(*model_starlark_pb.Rule_Definition_)
-		if !ok {
-			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have a definition", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
+		ruleDefinition := rule.GetDefinition()
+		if ruleDefinition == nil {
+			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have a definition", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
-		buildSetting := ruleDefinition.Definition.BuildSetting
+		buildSetting := ruleDefinition.GetBuildSetting()
 		if buildSetting == nil {
-			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have \"build_setting\" set", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
+			return expectedTransitionOutput[TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have \"build_setting\" set", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
 		buildSettingType, err := model_starlark.DecodeBuildSettingType[TReference, TMetadata](buildSetting)
 		if err != nil {
-			return expectedTransitionOutput[TReference]{}, fmt.Errorf("failed to decode build setting type for rule %#v used by build setting %#v: %w", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel, err)
+			return expectedTransitionOutput[TReference]{}, fmt.Errorf("failed to decode build setting type for rule %#v used by build setting %#v: %w", definition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel, err)
 		}
 		return expectedTransitionOutput[TReference]{
 			label:         visibleBuildSettingLabel,
 			canonicalizer: buildSettingType.GetCanonicalizer(transitionPackage),
-			defaultValue:  model_core.Nested(targetValue, targetKind.RuleTarget.BuildSetting.Default),
-			isFlag:        buildSetting.Flag,
+			defaultValue:  model_core.Nested(targetValue, definition.GetRuleTarget().GetBuildSetting().GetDefault()),
+			isFlag:        buildSetting.GetFlag(),
 		}, nil
 	default:
 		return expectedTransitionOutput[TReference]{}, fmt.Errorf("target %#v is not a label setting or rule target", visibleBuildSettingLabel)
@@ -391,7 +387,7 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 	if !visibleTargetValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 	}
-	visibleBuildSettingLabel := visibleTargetValue.Message.Label
+	visibleBuildSettingLabel := visibleTargetValue.Message.GetLabel()
 
 	// Determine the current value of the build setting.
 	if buildSettingOverride, err := btree.Find(
@@ -399,11 +395,11 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		analysisReaders.BuildSettingOverride,
 		getBuildSettingOverridesFromReference(configurationReference),
 		func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
+			switch entry.Message.GetLevel().(type) {
 			case *model_analysis_pb.BuildSettingOverride_Leaf_:
-				return strings.Compare(visibleBuildSettingLabel, level.Leaf.Label), nil
+				return strings.Compare(visibleBuildSettingLabel, entry.Message.GetLeaf().GetLabel()), nil
 			case *model_analysis_pb.BuildSettingOverride_Parent_:
-				return strings.Compare(visibleBuildSettingLabel, level.Parent.FirstLabel), level.Parent.Reference
+				return strings.Compare(visibleBuildSettingLabel, entry.Message.GetParent().GetFirstLabel()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -414,11 +410,11 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		// Configuration contains an override for the
 		// build setting. Use the value contained in the
 		// configuration.
-		level, ok := buildSettingOverride.Message.Level.(*model_analysis_pb.BuildSettingOverride_Leaf_)
-		if !ok {
+		level := buildSettingOverride.Message.GetLeaf()
+		if level == nil {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("build setting override for label setting %#v is not a valid leaf", visibleBuildSettingLabel)
 		}
-		return model_core.Nested(buildSettingOverride, level.Leaf.Value), nil
+		return model_core.Nested(buildSettingOverride, level.GetValue()), nil
 	}
 
 	// No override present. Obtain the default value
@@ -429,32 +425,29 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 	if !targetValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	targetValueDefinition := targetValue.Message.GetDefinition()
+	if targetValueDefinition == nil {
 		return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("build setting %#v does not exist", visibleBuildSettingLabel)
 	}
-	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_LabelSetting:
+	switch targetValueDefinition.WhichKind() {
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
 		// Build setting is a label_setting() or
 		// label_flag().
-		buildSettingDefault := stringToStarlarkLabelOrNone(targetKind.LabelSetting.BuildSettingDefault)
-		if targetKind.LabelSetting.SingletonList {
-			buildSettingDefault = &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_List{
-					List: &model_starlark_pb.List{
-						Elements: []*model_starlark_pb.List_Element{{
-							Level: &model_starlark_pb.List_Element_Leaf{
-								Leaf: buildSettingDefault,
-							},
-						}},
-					},
-				},
-			}
+		buildSettingDefault := stringToStarlarkLabelOrNone(targetValueDefinition.GetLabelSetting().GetBuildSettingDefault())
+		if targetValueDefinition.GetLabelSetting().GetSingletonList() {
+			buildSettingDefault = model_starlark_pb.Value_builder{
+				List: model_starlark_pb.List_builder{
+					Elements: []*model_starlark_pb.List_Element{model_starlark_pb.List_Element_builder{
+						Leaf: proto.ValueOrDefault(buildSettingDefault),
+					}.Build()},
+				}.Build(),
+			}.Build()
 		}
 		return model_core.NewSimpleMessage[TReference](buildSettingDefault), nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		if bs := targetKind.RuleTarget.BuildSetting; bs != nil {
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		if bs := targetValueDefinition.GetRuleTarget().GetBuildSetting(); bs != nil {
 			// Build setting that is written in Starlark.
-			return model_core.Nested(targetValue, bs.Default), nil
+			return model_core.Nested(targetValue, bs.GetDefault()), nil
 		}
 
 		// Not a build setting, but the target may provide
@@ -472,9 +465,9 @@ func (*baseComputer[TReference, TMetadata]) getBuildSettingValue(ctx context.Con
 		if !featureFlagProvider.IsSet() {
 			return model_core.Message[*model_starlark_pb.Value, TReference]{}, evaluation.ErrMissingDependency
 		}
-		featureFlagProviderFields := featureFlagProvider.Message.Fields
+		featureFlagProviderFields := featureFlagProvider.Message.GetFields()
 		if featureFlagProviderFields == nil {
-			return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have \"build_setting\" set, nor does it yield provider FeatureFlagInfo", targetKind.RuleTarget.RuleIdentifier, visibleBuildSettingLabel)
+			return model_core.Message[*model_starlark_pb.Value, TReference]{}, fmt.Errorf("rule %#v used by build setting %#v does not have \"build_setting\" set, nor does it yield provider FeatureFlagInfo", targetValueDefinition.GetRuleTarget().GetRuleIdentifier(), visibleBuildSettingLabel)
 		}
 		featureFlagValue, err := model_starlark.GetStructFieldValue(
 			ctx,
@@ -515,9 +508,9 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	}
 
 	var transitionDefinition model_core.Message[*model_starlark_pb.Transition_UserDefined_Definition, TReference]
-	switch t := transition.Message.Kind.(type) {
-	case *model_starlark_pb.Transition_UserDefined_Identifier:
-		transitionIdentifier, err := label.NewCanonicalStarlarkIdentifier(t.Identifier)
+	switch transition.Message.WhichKind() {
+	case model_starlark_pb.Transition_UserDefined_Identifier_case:
+		transitionIdentifier, err := label.NewCanonicalStarlarkIdentifier(transition.Message.GetIdentifier())
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid transition identifier: %w", err)
 		}
@@ -528,26 +521,26 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 		if !transitionValue.IsSet() {
 			return nil, nil, evaluation.ErrMissingDependency
 		}
-		tv, ok := transitionValue.Message.Global.GetKind().(*model_starlark_pb.Value_Transition)
-		if !ok {
+		tv := transitionValue.Message.GetGlobal().GetTransition()
+		if tv == nil {
 			return nil, nil, fmt.Errorf("%#v is not a transition", transitionIdentifier.String())
 		}
-		udt, ok := tv.Transition.Kind.(*model_starlark_pb.Transition_UserDefined_)
-		if !ok {
+		udt := tv.GetUserDefined()
+		if udt == nil {
 			return nil, nil, fmt.Errorf("%#v is not a user-defined transition", transitionIdentifier.String())
 		}
-		udtd, ok := udt.UserDefined.Kind.(*model_starlark_pb.Transition_UserDefined_Definition_)
-		if !ok {
+		udtd := udt.GetDefinition()
+		if udtd == nil {
 			return nil, nil, fmt.Errorf("%#v is not a user-defined transition definition", transitionIdentifier.String())
 		}
-		transitionDefinition = model_core.Nested(transitionValue, udtd.Definition)
-	case *model_starlark_pb.Transition_UserDefined_Definition_:
-		transitionDefinition = model_core.Nested(transition, t.Definition)
+		transitionDefinition = model_core.Nested(transitionValue, udtd)
+	case model_starlark_pb.Transition_UserDefined_Definition_case:
+		transitionDefinition = model_core.Nested(transition, transition.Message.GetDefinition())
 	default:
 		return nil, nil, errors.New("user-defined transition has an unknown type")
 	}
 
-	transitionPackageStr := transitionDefinition.Message.CanonicalPackage
+	transitionPackageStr := transitionDefinition.Message.GetCanonicalPackage()
 	transitionPackage, err := label.NewCanonicalPackage(transitionPackageStr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid canonical package %#v: %w", transitionPackageStr, err)
@@ -557,7 +550,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	// Collect inputs to provide to the implementation function.
 	missingDependencies := false
 	inputs := eval.NewDict()
-	for _, input := range transitionDefinition.Message.Inputs {
+	for _, input := range transitionDefinition.Message.GetInputs() {
 		// Resolve the actual build setting target corresponding
 		// to the string value provided as part of the
 		// transition definition.
@@ -607,9 +600,10 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	}
 
 	// Preprocess the outputs that we expect to see.
-	expectedOutputs := make([]namedExpectedTransitionOutput[TReference], 0, len(transitionDefinition.Message.Outputs))
-	expectedOutputLabels := make(map[string]string, len(transitionDefinition.Message.Outputs))
-	for _, output := range transitionDefinition.Message.Outputs {
+	definedOutputs := transitionDefinition.Message.GetOutputs()
+	expectedOutputs := make([]namedExpectedTransitionOutput[TReference], 0, len(definedOutputs))
+	expectedOutputLabels := make(map[string]string, len(definedOutputs))
+	for _, output := range definedOutputs {
 		apparentBuildSettingLabel, err := getApparentBuildSettingLabel(transitionPackage, output)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid build setting label %#v: %w", output, err)
@@ -643,7 +637,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransition(
 	}
 
 	// Invoke transition implementation function.
-	outputs, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(transitionDefinition, transitionDefinition.Message.Implementation)), eval.Args{Positional: /* args = */ []eval.Value{
+	outputs, err := eval.Call(thread, model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(transitionDefinition, transitionDefinition.Message.GetImplementation())), eval.Args{Positional: /* args = */ []eval.Value{
 		inputs,
 		attrParameter,
 	}, Named:/* kwargs = */ nil})
@@ -778,8 +772,8 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	attrParameter eval.Value,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
-	switch t := transition.Message.Kind.(type) {
-	case *model_starlark_pb.Transition_UserDefined_Identifier:
+	switch transition.Message.WhichKind() {
+	case model_starlark_pb.Transition_UserDefined_Identifier_case:
 		// First attempt to call into the UserDefinedTransition
 		// function. This function is capable of computing transitions
 		// that don't depend on the "attr" parameter.
@@ -787,7 +781,7 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 		transitionValue := e.GetUserDefinedTransitionValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.UserDefinedTransition_Key{
-					TransitionIdentifier:        t.Identifier,
+					TransitionIdentifier:        transition.Message.GetIdentifier(),
 					InputConfigurationReference: patchedConfigurationReference.Message,
 				},
 				patchedConfigurationReference.Patcher,
@@ -797,17 +791,17 @@ func (c *baseComputer[TReference, TMetadata]) performUserDefinedTransitionCached
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
-		switch result := transitionValue.Message.Result.(type) {
+		switch transitionValue.Message.GetResult().(type) {
 		case *model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs:
 			// It turns out this user defined transition
 			// accesses the "attr" parameter. This prevents
 			// it from getting cached.
 		case *model_analysis_pb.UserDefinedTransition_Value_Success_:
-			return model_core.Patch(e, model_core.Nested(transitionValue, result.Success)), nil
+			return model_core.Patch(e, model_core.Nested(transitionValue, transitionValue.Message.GetSuccess())), nil
 		default:
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("unexpected user defined transition result type")
 		}
-	case *model_starlark_pb.Transition_UserDefined_Definition_:
+	case model_starlark_pb.Transition_UserDefined_Definition_case:
 		// User defined transition was declared inline, meaning
 		// it does not have an identifier. This prevents us from
 		// calling the UserDefinedTransition function, as it
@@ -843,13 +837,13 @@ func (c *baseComputer[TReference, TMetadata]) performTransition(
 	attrParameter eval.Value,
 	execGroupPlatformLabels map[string]string,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], bool, error) {
-	if tr, ok := transition.Message.GetKind().(*model_starlark_pb.Transition_UserDefined_); ok {
+	if tr := transition.Message.GetUserDefined(); tr != nil {
 		configurationReferences, err := c.performUserDefinedTransitionCached(
 			ctx,
 			e,
 			analysisEncoders,
 			starlarkValueEncoders,
-			model_core.Nested(transition, tr.UserDefined),
+			model_core.Nested(transition, tr),
 			configurationReference,
 			attrParameter,
 		)
@@ -874,11 +868,11 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 	configurationReference model_core.Message[*model_core_pb.DecodableReference, TReference],
 	execGroupPlatformLabels map[string]string,
 ) (performAndApplyUserDefinedTransitionResult[TMetadata], error) {
-	switch tr := transition.Message.GetKind().(type) {
-	case *model_starlark_pb.Transition_ExecGroup:
-		platformLabel, ok := execGroupPlatformLabels[tr.ExecGroup]
+	switch transition.Message.WhichKind() {
+	case model_starlark_pb.Transition_ExecGroup_case:
+		platformLabel, ok := execGroupPlatformLabels[transition.Message.GetExecGroup()]
 		if !ok {
-			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, fmt.Errorf("unknown exec group %#v", tr.ExecGroup)
+			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, fmt.Errorf("unknown exec group %#v", transition.Message.GetExecGroup())
 		}
 
 		inputConfigurationReference := model_core.Patch(e, configurationReference)
@@ -895,7 +889,7 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 			return performAndApplyUserDefinedTransitionResult[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 
-		outputConfigurationReference := model_core.Patch(e, model_core.Nested(execTransition, execTransition.Message.OutputConfigurationReference))
+		outputConfigurationReference := model_core.Patch(e, model_core.Nested(execTransition, execTransition.Message.GetOutputConfigurationReference()))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.UserDefinedTransition_Value_Success{
 				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{
@@ -904,14 +898,12 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 			},
 			outputConfigurationReference.Patcher,
 		), nil
-	case *model_starlark_pb.Transition_None:
+	case model_starlark_pb.Transition_None_case:
 		// Use the empty configuration.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.UserDefinedTransition_Value_Success{
-				Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{}},
-			},
-		), nil
-	case *model_starlark_pb.Transition_Target:
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.UserDefinedTransition_Value_Success{
+			Entries: []*model_analysis_pb.UserDefinedTransition_Value_Success_Entry{{}},
+		}), nil
+	case model_starlark_pb.Transition_Target_case:
 		// Don't transition. Use the current target.
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		return model_core.NewPatchedMessage(
@@ -922,12 +914,12 @@ func performBuiltinTransition[TReference object.BasicReference, TMetadata model_
 			},
 			patchedConfigurationReference.Patcher,
 		), nil
-	case *model_starlark_pb.Transition_Unconfigured:
+	case model_starlark_pb.Transition_Unconfigured_case:
 		// Leave targets unconfigured.
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			&model_analysis_pb.UserDefinedTransition_Value_Success{},
 		), nil
-	case *model_starlark_pb.Transition_UserDefined_:
+	case model_starlark_pb.Transition_UserDefined_case:
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("user-defined transitions cannot be used in this context")
 	default:
 		return performAndApplyUserDefinedTransitionResult[TMetadata]{}, errors.New("unknown transition type")
@@ -946,14 +938,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 		e,
 		analysisEncoders,
 		starlarkValueEncoders,
-		model_core.NewSimpleMessage[TReference](
-			&model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: key.Message.TransitionIdentifier,
-				},
-			},
-		),
-		model_core.Nested(key, key.Message.InputConfigurationReference),
+		model_core.NewSimpleMessage[TReference](model_starlark_pb.Transition_UserDefined_builder{
+			Identifier: proto.String(key.Message.GetTransitionIdentifier()),
+		}.Build()),
+		model_core.Nested(key, key.Message.GetInputConfigurationReference()),
 		stubbedTransitionAttr{},
 	)
 	if err != nil {
@@ -962,22 +950,16 @@ func (c *baseComputer[TReference, TMetadata]) ComputeUserDefinedTransitionValue(
 			// the rule in which it is referenced. Return
 			// this to the caller, so that it can apply the
 			// transition directly.
-			return model_core.NewSimplePatchedMessage[TMetadata](
-				&model_analysis_pb.UserDefinedTransition_Value{
-					Result: &model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs{
-						TransitionDependsOnAttrs: &emptypb.Empty{},
-					},
-				},
-			), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.UserDefinedTransition_Value{
+				Result: &model_analysis_pb.UserDefinedTransition_Value_TransitionDependsOnAttrs{TransitionDependsOnAttrs: &emptypb.Empty{}},
+			}), nil
 		}
 		return PatchedUserDefinedTransitionValue[TMetadata]{}, err
 	}
 
 	return model_core.NewPatchedMessage(
 		&model_analysis_pb.UserDefinedTransition_Value{
-			Result: &model_analysis_pb.UserDefinedTransition_Value_Success_{
-				Success: entries.Message,
-			},
+			Result: &model_analysis_pb.UserDefinedTransition_Value_Success_{Success: entries.Message},
 		},
 		entries.Patcher,
 	), nil

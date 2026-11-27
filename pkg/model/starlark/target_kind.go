@@ -13,27 +13,27 @@ import (
 // Examples include "cc_library rule", "source file" and "generated
 // file".
 func GetTargetKind(definition *model_starlark_pb.Target_Definition) (string, error) {
-	switch kind := definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
+	switch definition.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
 		return "alias rule", nil
-	case *model_starlark_pb.Target_Definition_LabelSetting:
-		if kind.LabelSetting.Flag {
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
+		if definition.GetLabelSetting().GetFlag() {
 			return "label_flag rule", nil
 		}
 		return "label_setting rule", nil
-	case *model_starlark_pb.Target_Definition_PackageGroup:
+	case model_starlark_pb.Target_Definition_PackageGroup_case:
 		return "package group", nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		return "generated file", nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(kind.RuleTarget.RuleIdentifier)
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(definition.GetRuleTarget().GetRuleIdentifier())
 		if err != nil {
-			return "", fmt.Errorf("invalid rule identifier %#v: %w", kind.RuleTarget.RuleIdentifier, err)
+			return "", fmt.Errorf("invalid rule identifier %#v: %w", definition.GetRuleTarget().GetRuleIdentifier(), err)
 		}
 		return ruleIdentifier.GetStarlarkIdentifier().String() + " rule", nil
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
+	case model_starlark_pb.Target_Definition_SourceFileTarget_case:
 		return "source file", nil
-	case *model_starlark_pb.Target_Definition_TestSuite:
+	case model_starlark_pb.Target_Definition_TestSuite_case:
 		return "test_suite rule", nil
 	default:
 		return "", errors.New("unknown target kind")

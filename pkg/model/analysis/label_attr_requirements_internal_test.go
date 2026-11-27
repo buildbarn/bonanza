@@ -13,28 +13,26 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestLabelAttrRequirementsAllowFiles(t *testing.T) {
 	newRequirements := func(t *testing.T, allowFiles *model_starlark_pb.Attr_AllowFiles, allowSingleFile bool) *labelAttrRequirements[object.LocalReference, model_core.CreatedObjectTree] {
-		labelOptions := &model_starlark_pb.Attr_LabelOptions{
+		labelOptions := model_starlark_pb.Attr_LabelOptions_builder{
 			AllowFiles: allowFiles,
 			Providers:  []*model_starlark_pb.ProviderSet{{}},
-		}
-		attr := &model_starlark_pb.Attr{
-			Type: &model_starlark_pb.Attr_LabelList{
-				LabelList: &model_starlark_pb.Attr_LabelListType{
-					ListValueOptions: labelOptions,
-				},
-			},
-		}
+		}.Build()
+		attr := model_starlark_pb.Attr_builder{
+			LabelList: model_starlark_pb.Attr_LabelListType_builder{
+				ListValueOptions: labelOptions,
+			}.Build(),
+		}.Build()
 		if allowSingleFile {
-			attr.Type = &model_starlark_pb.Attr_Label{
-				Label: &model_starlark_pb.Attr_LabelType{
-					ValueOptions:    labelOptions,
-					AllowSingleFile: true,
-				},
-			}
+			attr.SetLabel(model_starlark_pb.Attr_LabelType_builder{
+				ValueOptions:    labelOptions,
+				AllowSingleFile: true,
+			}.Build())
 		}
 		valueReaders := &model_starlark.ValueReaders[object.LocalReference]{}
 		thread := eval.NewThread(t.Context(), eval.Universe())
@@ -62,51 +60,45 @@ func TestLabelAttrRequirementsAllowFiles(t *testing.T) {
 	newProviderInstances := func(files ...*model_starlark_pb.File) []*model_starlark_pb.Struct {
 		elements := make([]*model_starlark_pb.List_Element, 0, len(files))
 		for _, file := range files {
-			elements = append(elements, &model_starlark_pb.List_Element{
-				Level: &model_starlark_pb.List_Element_Leaf{
-					Leaf: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_File{File: file},
-					},
-				},
-			})
+			elements = append(elements, model_starlark_pb.List_Element_builder{
+				Leaf: model_starlark_pb.Value_builder{
+					File: proto.ValueOrDefault(file),
+				}.Build(),
+			}.Build())
 		}
-		return []*model_starlark_pb.Struct{{
-			Fields: &model_starlark_pb.Struct_Fields{
+		return []*model_starlark_pb.Struct{model_starlark_pb.Struct_builder{
+			Fields: model_starlark_pb.Struct_Fields_builder{
 				Keys: []string{"files"},
-				Values: []*model_starlark_pb.List_Element{{
-					Level: &model_starlark_pb.List_Element_Leaf{
-						Leaf: &model_starlark_pb.Value{
-							Kind: &model_starlark_pb.Value_Depset{
-								Depset: &model_starlark_pb.Depset{Elements: elements},
-							},
-						},
-					},
-				}},
-			},
-			ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+				Values: []*model_starlark_pb.List_Element{model_starlark_pb.List_Element_builder{
+					Leaf: model_starlark_pb.Value_builder{
+						Depset: model_starlark_pb.Depset_builder{Elements: elements}.Build(),
+					}.Build(),
+				}.Build()},
+			}.Build(),
+			ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 				ProviderIdentifier: defaultInfoProviderIdentifier.String(),
-			},
-		}}
+			}.Build(),
+		}.Build()}
 	}
 	newOutputFile := func(fileLabel string, fileType model_starlark_pb.File_Owner_Type) *model_starlark_pb.File {
-		return &model_starlark_pb.File{
+		return model_starlark_pb.File_builder{
 			Label: fileLabel,
-			Owner: &model_starlark_pb.File_Owner{
+			Owner: model_starlark_pb.File_Owner_builder{
 				TargetName: "rule",
 				Type:       fileType,
-			},
-		}
+			}.Build(),
+		}.Build()
 	}
 
 	// Provider instances of a file target, whose DefaultInfo.files
 	// only contains the file itself.
 	newSourceFileProviderInstances := func(fileLabel string) []*model_starlark_pb.Struct {
-		return newProviderInstances(&model_starlark_pb.File{Label: fileLabel})
+		return newProviderInstances(model_starlark_pb.File_builder{Label: fileLabel}.Build())
 	}
 	newSuffixes := func(suffixes ...string) *model_starlark_pb.Attr_AllowFiles {
-		return &model_starlark_pb.Attr_AllowFiles{
+		return model_starlark_pb.Attr_AllowFiles_builder{
 			FilenamePattern: util.Must(glob.NewNFAFromSuffixes(suffixes)).Bytes(),
-		}
+		}.Build()
 	}
 
 	t.Run("NoFiles", func(t *testing.T) {
@@ -211,9 +203,9 @@ func TestLabelAttrRequirementsAllowFiles(t *testing.T) {
 		// Like Bazel, file targets are not checked against
 		// the required providers.
 		r := newRequirements(t, &model_starlark_pb.Attr_AllowFiles{}, false)
-		r.requiredProviders = []*model_starlark_pb.ProviderSet{{
+		r.requiredProviders = []*model_starlark_pb.ProviderSet{model_starlark_pb.ProviderSet_builder{
 			ProviderIdentifiers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"},
-		}}
+		}.Build()}
 		require.NoError(t, check(r, "@@main+//:foo.cc", true, newSourceFileProviderInstances("@@main+//:foo.cc")))
 		require.EqualError(
 			t,

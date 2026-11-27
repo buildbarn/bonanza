@@ -20,53 +20,39 @@ import (
 // target that only contains the fields needed by
 // model_starlark.GetTargetKind().
 func pruneQueryTargetDefinition(definition *model_starlark_pb.Target_Definition) (*model_starlark_pb.Target_Definition, error) {
-	switch kind := definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_Alias{
-				Alias: &model_starlark_pb.Alias{},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_LabelSetting:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{
-				LabelSetting: &model_starlark_pb.LabelSetting{
-					Flag: kind.LabelSetting.Flag,
-				},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_PackageGroup:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-				PackageGroup: &model_starlark_pb.PackageGroup{},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
-				PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: kind.RuleTarget.RuleIdentifier,
-				},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-			},
-		}, nil
-	case *model_starlark_pb.Target_Definition_TestSuite:
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{
-				TestSuite: &model_starlark_pb.TestSuite{},
-			},
-		}, nil
+	switch definition.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
+		return model_starlark_pb.Target_Definition_builder{
+			Alias: &model_starlark_pb.Alias{},
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
+		return model_starlark_pb.Target_Definition_builder{
+			LabelSetting: model_starlark_pb.LabelSetting_builder{
+				Flag: definition.GetLabelSetting().GetFlag(),
+			}.Build(),
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_PackageGroup_case:
+		return model_starlark_pb.Target_Definition_builder{
+			PackageGroup: &model_starlark_pb.PackageGroup{},
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
+		return model_starlark_pb.Target_Definition_builder{
+			PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{},
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		return model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: definition.GetRuleTarget().GetRuleIdentifier(),
+			}.Build(),
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_SourceFileTarget_case:
+		return model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build(), nil
+	case model_starlark_pb.Target_Definition_TestSuite_case:
+		return model_starlark_pb.Target_Definition_builder{
+			TestSuite: &model_starlark_pb.TestSuite{},
+		}.Build(), nil
 	default:
 		return nil, errors.New("unknown target kind")
 	}
@@ -119,33 +105,32 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 		// Only the label is needed, meaning there is no need to
 		// load the target.
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{
-				Leaf: &model_analysis_pb.QueryTarget_Leaf{
-					Label: targetLabel,
-				},
-			},
+			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+				Label: targetLabel,
+			}},
 		}), nil
 	}
 
-	target := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: targetLabel})
+	target := e.GetTargetValue(&model_analysis_pb.Target_Key{
+		Label: targetLabel,
+	})
 	if !target.IsSet() {
 		return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if target.Message.Definition == nil {
+	targetDefinition := target.Message.GetDefinition()
+	if targetDefinition == nil {
 		return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("target %#v does not exist", targetLabel)
 	}
 	if definitionDetail == model_analysis_pb.QueryTarget_KIND {
-		definition, err := pruneQueryTargetDefinition(target.Message.Definition)
+		definition, err := pruneQueryTargetDefinition(targetDefinition)
 		if err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, err
 		}
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{
-				Leaf: &model_analysis_pb.QueryTarget_Leaf{
-					Label:      targetLabel,
-					Definition: definition,
-				},
-			},
+			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+				Label:      targetLabel,
+				Definition: definition,
+			}},
 		}), nil
 	}
 
@@ -153,30 +138,28 @@ func newQueryTargetLeaf[TReference object.BasicReference, TMetadata model_core.R
 	// attributes of the rule, so that clients can display the
 	// values of the attributes.
 	var publicAttrNames []string
-	if ruleTarget, ok := target.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget); ok {
-		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.RuleTarget.RuleIdentifier)
+	if ruleTarget := targetDefinition.GetRuleTarget(); ruleTarget != nil {
+		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.GetRuleIdentifier())
 		if err != nil {
-			return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.RuleTarget.RuleIdentifier, err)
+			return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.GetRuleIdentifier(), err)
 		}
 		ruleDefinition, err := getQueryRuleDefinition(e, ruleIdentifier)
 		if err != nil {
 			return model_core.PatchedMessage[*model_analysis_pb.QueryTarget, TMetadata]{}, err
 		}
-		for _, namedAttr := range ruleDefinition.Message.Attrs {
-			if !strings.HasPrefix(namedAttr.Name, "_") {
-				publicAttrNames = append(publicAttrNames, namedAttr.Name)
+		for _, namedAttr := range ruleDefinition.Message.GetAttrs() {
+			if !strings.HasPrefix(namedAttr.GetName(), "_") {
+				publicAttrNames = append(publicAttrNames, namedAttr.GetName())
 			}
 		}
 	}
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.QueryTarget {
 		return &model_analysis_pb.QueryTarget{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{
-				Leaf: &model_analysis_pb.QueryTarget_Leaf{
-					Label:           targetLabel,
-					Definition:      model_core.Patch(e, model_core.Nested(target, target.Message.Definition)).Merge(patcher),
-					PublicAttrNames: publicAttrNames,
-				},
-			},
+			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+				Label:           targetLabel,
+				Definition:      model_core.Patch(e, model_core.Nested(target, target.Message.GetDefinition())).Merge(patcher),
+				PublicAttrNames: publicAttrNames,
+			}},
 		}
 	}), nil
 }

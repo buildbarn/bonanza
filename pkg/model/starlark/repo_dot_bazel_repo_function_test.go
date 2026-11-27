@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"bonanza.build/pkg/dotbazel"
-
 	"bonanza.build/pkg/label"
 	model_core "bonanza.build/pkg/model/core"
 	"bonanza.build/pkg/model/core/inlinedtree"
@@ -54,7 +53,7 @@ func parseRepoDotBazel[TMetadata model_core.ReferenceMetadata](
 		return model_core.PatchedMessage[*model_starlark_pb.InheritableAttrs, TMetadata]{}, err
 	}
 	if !defaultAttrs.IsSet() {
-		defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](&model_starlark.DefaultInheritableAttrs)
+		defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](model_starlark.DefaultInheritableAttrs)
 	}
 	return defaultAttrs, nil
 }
@@ -79,7 +78,7 @@ func TestNewRepoDotBazelRepoFunction(t *testing.T) {
 			labelResolver,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
+		testutil.RequireEqualProto(t, model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
 	})
 
 	t.Run("NoArguments", func(t *testing.T) {
@@ -96,7 +95,7 @@ func TestNewRepoDotBazelRepoFunction(t *testing.T) {
 			labelResolver,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
+		testutil.RequireEqualProto(t, model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
 	})
 
 	t.Run("IgnoreDirectories", func(t *testing.T) {
@@ -112,7 +111,7 @@ func TestNewRepoDotBazelRepoFunction(t *testing.T) {
 			labelResolver,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
+		testutil.RequireEqualProto(t, model_starlark.DefaultInheritableAttrs, defaultAttrs.Message)
 	})
 
 	t.Run("RedundantCalls", func(t *testing.T) {
@@ -170,36 +169,32 @@ func TestNewRepoDotBazelRepoFunction(t *testing.T) {
 			labelResolver,
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.InheritableAttrs{
+		testutil.RequireEqualProto(t, model_starlark_pb.InheritableAttrs_builder{
 			Deprecation: "All code in this repository is deprecated.",
 			PackageMetadata: []string{
 				"@@foo+//:metadata",
 			},
 			Testonly: true,
-			Visibility: &model_starlark_pb.PackageGroup{
-				Tree: &model_starlark_pb.PackageGroup_Subpackages{
-					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-						OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-							Packages: []*model_starlark_pb.PackageGroup_Package{{
-								Component: "foo+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: []*model_starlark_pb.PackageGroup_Package{
-												{
-													Component:      "somepackage",
-													IncludePackage: true,
-													Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
-												},
-											},
-										},
+			Visibility: model_starlark_pb.PackageGroup_builder{
+				Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+					OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+						Packages: []*model_starlark_pb.PackageGroup_Package{model_starlark_pb.PackageGroup_Package_builder{
+							Component: "foo+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: []*model_starlark_pb.PackageGroup_Package{
+										model_starlark_pb.PackageGroup_Package_builder{
+											Component:      "somepackage",
+											IncludePackage: true,
+											Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
+										}.Build(),
 									},
-								},
-							}},
-						},
-					},
-				},
-			},
-		}, defaultAttrs.Message)
+								}.Build(),
+							}.Build(),
+						}.Build()},
+					}.Build(),
+				}.Build(),
+			}.Build(),
+		}.Build(), defaultAttrs.Message)
 	})
 }

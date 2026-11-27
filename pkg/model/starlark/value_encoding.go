@@ -66,8 +66,8 @@ func ComputeListParentNode[TMetadata model_core.ReferenceMetadata](createdObject
 	count := uint64(0)
 	for _, childNode := range childNodes.Message {
 		childCount := uint64(1)
-		if level, ok := childNode.Level.(*model_starlark_pb.List_Element_Parent_); ok {
-			childCount = level.Parent.Count
+		if level := childNode.GetParent(); level != nil {
+			childCount = level.GetCount()
 		}
 		var carryOut uint64
 		count, carryOut = bits.Add64(count, childCount, 0)
@@ -78,14 +78,12 @@ func ComputeListParentNode[TMetadata model_core.ReferenceMetadata](createdObject
 	}
 
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.List_Element {
-		return &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Parent_{
-				Parent: &model_starlark_pb.List_Element_Parent{
-					Reference: patcher.AddDecodableReference(createdObject),
-					Count:     count,
-				},
-			},
-		}
+		return model_starlark_pb.List_Element_builder{
+			Parent: model_starlark_pb.List_Element_Parent_builder{
+				Reference: patcher.AddDecodableReference(createdObject),
+				Count:     count,
+			}.Build(),
+		}.Build()
 	})
 }
 
@@ -155,23 +153,17 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 
 	switch typedValue := value.(type) {
 	case eval.NoneType:
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_None{
-				None: &emptypb.Empty{},
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			None: &emptypb.Empty{},
+		}.Build()), nil
 	case eval.Bool:
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Bool{
-				Bool: bool(typedValue),
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Bool: proto.Bool(bool(typedValue)),
+		}.Build()), nil
 	case eval.Int:
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Int{
-				Int: EncodeInt(typedValue.BigInt()),
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Int: proto.ValueOrDefaultBytes(EncodeInt(typedValue.BigInt())),
+		}.Build()), nil
 	case eval.String:
 		return encodeString(string(typedValue), options)
 	case *eval.LargeString:
@@ -182,11 +174,9 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			// receiver of methods would get lost.
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, fmt.Errorf("method %s of %s value cannot be encoded", typedValue.Name(), typedValue.Receiver().Type())
 		}
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Builtin{
-				Builtin: typedValue.Name(),
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Builtin: proto.String(typedValue.Name()),
+		}.Build()), nil
 	case eval.Function:
 		return encodeFunctionValue(thread, typedValue, path, options)
 	case eval.List:
@@ -195,13 +185,11 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 		}
 		return model_core.NewPatchedMessage(
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_List{
-					List: &model_starlark_pb.List{
-						Elements: elements.Message,
-					},
-				},
-			},
+			model_starlark_pb.Value_builder{
+				List: model_starlark_pb.List_builder{
+					Elements: elements.Message,
+				}.Build(),
+			}.Build(),
 			elements.Patcher,
 		), nil
 	case eval.Set:
@@ -210,13 +198,11 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 		}
 		return model_core.NewPatchedMessage(
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Set{
-					Set: &model_starlark_pb.Set{
-						Elements: elements.Message,
-					},
-				},
-			},
+			model_starlark_pb.Value_builder{
+				Set: model_starlark_pb.Set_builder{
+					Elements: elements.Message,
+				}.Build(),
+			}.Build(),
 			elements.Patcher,
 		), nil
 	case eval.Tuple:
@@ -235,13 +221,11 @@ func EncodeValue[TReference any, TMetadata model_core.ReferenceMetadata](thread 
 			patcher.Merge(encodedElement.Patcher)
 		}
 		return model_core.NewPatchedMessage(
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Tuple{
-					Tuple: &model_starlark_pb.Tuple{
-						Elements: encodedElements,
-					},
-				},
-			},
+			model_starlark_pb.Value_builder{
+				Tuple: model_starlark_pb.Tuple_builder{
+					Elements: encodedElements,
+				}.Build(),
+			}.Build(),
 			patcher,
 		), nil
 	case eval.Dict:
@@ -268,10 +252,10 @@ func EncodeStructFields[TReference any, TMetadata model_core.ReferenceMetadata](
 		return model_core.PatchedMessage[*model_starlark_pb.Struct_Fields, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Struct_Fields{
+		model_starlark_pb.Struct_Fields_builder{
 			Keys:   keys,
 			Values: values.Message,
-		},
+		}.Build(),
 		values.Patcher,
 	), nil
 }
@@ -306,11 +290,9 @@ func EncodeListElements[TReference any, TMetadata model_core.ReferenceMetadata](
 			break
 		}
 		if err := listBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_starlark_pb.List_Element{
-				Level: &model_starlark_pb.List_Element_Leaf{
-					Leaf: encodedValue.Message,
-				},
-			},
+			model_starlark_pb.List_Element_builder{
+				Leaf: proto.ValueOrDefault(encodedValue.Message),
+			}.Build(),
 			encodedValue.Patcher,
 		)); err != nil {
 			errEncode = err
@@ -337,13 +319,11 @@ func encodeDict[TReference any, TMetadata model_core.ReferenceMetadata](thread *
 			childNodes model_core.Message[[]*model_starlark_pb.Dict_Entry, object.LocalReference],
 		) model_core.PatchedMessage[*model_starlark_pb.Dict_Entry, TMetadata] {
 			return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Dict_Entry {
-				return &model_starlark_pb.Dict_Entry{
-					Level: &model_starlark_pb.Dict_Entry_Parent_{
-						Parent: &model_starlark_pb.Dict_Entry_Parent{
-							Reference: patcher.AddDecodableReference(createdObject),
-						},
-					},
-				}
+				return model_starlark_pb.Dict_Entry_builder{
+					Parent: model_starlark_pb.Dict_Entry_Parent_builder{
+						Reference: patcher.AddDecodableReference(createdObject),
+					}.Build(),
+				}.Build()
 			})
 		}),
 	)
@@ -361,14 +341,12 @@ func encodeDict[TReference any, TMetadata model_core.ReferenceMetadata](thread *
 		}
 		encodedKey.Patcher.Merge(encodedValue.Patcher)
 		if err := treeBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_starlark_pb.Dict_Entry{
-				Level: &model_starlark_pb.Dict_Entry_Leaf_{
-					Leaf: &model_starlark_pb.Dict_Entry_Leaf{
-						Key:   encodedKey.Message,
-						Value: encodedValue.Message,
-					},
-				},
-			},
+			model_starlark_pb.Dict_Entry_builder{
+				Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
+					Key:   encodedKey.Message,
+					Value: encodedValue.Message,
+				}.Build(),
+			}.Build(),
 			encodedKey.Patcher,
 		)); err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
@@ -382,13 +360,11 @@ func encodeDict[TReference any, TMetadata model_core.ReferenceMetadata](thread *
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Dict{
-				Dict: &model_starlark_pb.Dict{
-					Entries: entries.Message,
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Dict: model_starlark_pb.Dict_builder{
+				Entries: entries.Message,
+			}.Build(),
+		}.Build(),
 		entries.Patcher,
 	), nil
 }

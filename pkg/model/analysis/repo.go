@@ -3673,7 +3673,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 	rootModuleValue := e.GetRootModuleValue(&model_analysis_pb.RootModule_Key{})
 	allBuiltinsModulesNames := e.GetBuiltinsModuleNamesValue(&model_analysis_pb.BuiltinsModuleNames_Key{})
 	repoPlatform := e.GetRegisteredRepoPlatformValue(&model_analysis_pb.RegisteredRepoPlatform_Key{})
-	repositoryRuleDefinition, err := getRepositoryRuleDefinition(e, repo.Message.RepositoryRuleIdentifier)
+	repositoryRuleDefinition, err := getRepositoryRuleDefinition(e, repo.Message.GetRepositoryRuleIdentifier())
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
@@ -3681,14 +3681,14 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 		return PatchedRepoValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
 	rootRepo := rootModuleName.ToModuleInstance(nil).GetBareCanonicalRepo()
 	rootPackage := rootRepo.GetRootPackage()
 
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedRepoValue[TMetadata]{}, err
 	}
@@ -3705,7 +3705,7 @@ func (c *baseComputer[TReference, TMetadata]) fetchRepo(ctx context.Context, can
 		model_starlark.AllStructFields(
 			ctx,
 			valueReaders.List,
-			model_core.Nested(repo, repo.Message.AttrValues),
+			model_core.Nested(repo, repo.Message.GetAttrValues()),
 			&errIter,
 		),
 	)

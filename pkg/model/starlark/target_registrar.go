@@ -138,15 +138,13 @@ func (tr *TargetRegistrar[TReference, TMetadata]) GetTargetNames() []string {
 	return slices.Sorted(maps.Keys(tr.targets))
 }
 
-var sourceFileTarget = &model_starlark_pb.Target_Definition{
-	Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-		SourceFileTarget: &model_starlark_pb.SourceFileTarget{
-			Visibility: &model_starlark_pb.PackageGroup{
-				Tree: &model_starlark_pb.PackageGroup_Subpackages{},
-			},
-		},
-	},
-}
+var sourceFileTarget = model_starlark_pb.Target_Definition_builder{
+	SourceFileTarget: model_starlark_pb.SourceFileTarget_builder{
+		Visibility: model_starlark_pb.PackageGroup_builder{
+			Tree: &model_starlark_pb.PackageGroup_Subpackages{},
+		}.Build(),
+	}.Build(),
+}.Build()
 
 // GetAndRemoveTarget gets the definition of the target from the
 // TargetRegistrar and subsequently removes it. The caller then owns the
@@ -281,8 +279,8 @@ func (tr *TargetRegistrar[TReference, TMetadata]) registerMacroInstance(name str
 // declared by the macro instance.
 func (tr *TargetRegistrar[TReference, TMetadata]) RegisterNestedMacroInstance(macroInstance model_core.PatchedMessage[*model_starlark_pb.MacroInstance, TMetadata]) error {
 	return tr.registerMacroInstance(
-		tr.macro.name+macroInstance.Message.NameSuffix,
-		model_core.NewPatchedMessage(macroInstance.Message.Definition, macroInstance.Patcher),
+		tr.macro.name+macroInstance.Message.GetNameSuffix(),
+		model_core.NewPatchedMessage(macroInstance.Message.GetDefinition(), macroInstance.Patcher),
 	)
 }
 
@@ -383,8 +381,8 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 			// expanding a finalizer are marked as
 			// CALLED_BY_FINALIZER, and are thus permitted.
 			outerName := outerMacroInstanceNames[n-1]
-			if tr.macroExpansionContexts[outerName].Message.Definition.RootMacroInstanceDefinition.Finalizer == model_starlark_pb.MacroInstance_FINALIZER &&
-				tr.macroInstances[name].Message.Finalizer == model_starlark_pb.MacroInstance_NOT_A_FINALIZER {
+			if tr.macroExpansionContexts[outerName].Message.GetDefinition().GetRootMacroInstanceDefinition().GetFinalizer() == model_starlark_pb.MacroInstance_FINALIZER &&
+				tr.macroInstances[name].Message.GetFinalizer() == model_starlark_pb.MacroInstance_NOT_A_FINALIZER {
 				return fmt.Errorf("non-finalizer macro instance %#v cannot be part of the namespace of finalizer %#v", name, outerName)
 			}
 			nestedMacroInstanceNames[outerName] = append(nestedMacroInstanceNames[outerName], name)
@@ -393,12 +391,12 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 			definition := tr.macroInstances[name]
 			delete(tr.macroInstances, name)
 			tr.macroExpansionContexts[name] = model_core.NewPatchedMessage(
-				&model_starlark_pb.MacroExpansionContext{
+				model_starlark_pb.MacroExpansionContext_builder{
 					NameSuffix: name[nameSuffixOffset:],
-					Definition: &model_starlark_pb.MacroExpansionContext_Definition{
+					Definition: model_starlark_pb.MacroExpansionContext_Definition_builder{
 						RootMacroInstanceDefinition: definition.Message,
-					},
-				},
+					}.Build(),
+				}.Build(),
 				definition.Patcher,
 			)
 		}
@@ -407,8 +405,8 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 	for _, name := range tr.GetTargetNames() {
 		if !tr.targets[name].IsSet() {
 			if owner, ok := getNamespaceOwner(outerMacroInstanceNames, name); ok {
-				definition := tr.macroExpansionContexts[owner].Message.Definition
-				definition.ReferencedTargetNameSuffixes = append(definition.ReferencedTargetNameSuffixes, name[len(owner):])
+				definition := tr.macroExpansionContexts[owner].Message.GetDefinition()
+				definition.SetReferencedTargetNameSuffixes(append(definition.GetReferencedTargetNameSuffixes(), name[len(owner):]))
 				delete(tr.targets, name)
 			}
 		}
@@ -417,14 +415,14 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 	targetNames := tr.GetTargetNames()
 	for _, name := range outerMacroInstanceNames {
 		macroExpansionContext := tr.macroExpansionContexts[name]
-		macroExpansionContext.Message.Definition.ForbiddenTargetNameSuffixes = tr.getForbiddenTargetNameSuffixes(name, targetNames)
+		macroExpansionContext.Message.GetDefinition().SetForbiddenTargetNameSuffixes(tr.getForbiddenTargetNameSuffixes(name, targetNames))
 
 		if nestedNames := nestedMacroInstanceNames[name]; len(nestedNames) > 0 {
 			nestedMacroInstances, err := tr.buildNestedMacroInstances(name, nestedNames, valueEncodingOptions)
 			if err != nil {
 				return fmt.Errorf("failed to build list of nested macro instances of macro instance %#v: %w", name, err)
 			}
-			macroExpansionContext.Message.Definition.NestedMacroInstances = nestedMacroInstances.Message
+			macroExpansionContext.Message.GetDefinition().SetNestedMacroInstances(nestedMacroInstances.Message)
 			macroExpansionContext.Patcher.Merge(nestedMacroInstances.Patcher)
 		}
 	}
@@ -436,13 +434,13 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 	var packageTests []packageTest
 	var testSuiteNames []string
 	for _, name := range tr.GetTargetNames() {
-		switch kind := tr.targets[name].Message.GetKind().(type) {
-		case *model_starlark_pb.Target_Definition_RuleTarget:
-			ruleTarget := kind.RuleTarget
-			if ruleTarget.Test == nil {
+		switch tr.targets[name].Message.WhichKind() {
+		case model_starlark_pb.Target_Definition_RuleTarget_case:
+			ruleTarget := tr.targets[name].Message.GetRuleTarget()
+			if ruleTarget.GetTest() == nil {
 				continue
 			}
-			if _, isManual := slices.BinarySearch(ruleTarget.Tags, "manual"); isManual {
+			if _, isManual := slices.BinarySearch(ruleTarget.GetTags(), "manual"); isManual {
 				continue
 			}
 			targetName, err := pg_label.NewTargetName(name)
@@ -453,8 +451,8 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 				label:      canonicalPackage.AppendTargetName(targetName).String(),
 				ruleTarget: ruleTarget,
 			})
-		case *model_starlark_pb.Target_Definition_TestSuite:
-			if len(kind.TestSuite.Tests) == 0 {
+		case model_starlark_pb.Target_Definition_TestSuite_case:
+			if len(tr.targets[name].Message.GetTestSuite().GetTests()) == 0 {
 				testSuiteNames = append(testSuiteNames, name)
 			}
 		}
@@ -465,7 +463,7 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 		testSuite := target.Message.GetTestSuite()
 		var tests []string
 		for _, packageTest := range packageTests {
-			if TestSuiteMatchesTest(testSuite, packageTest.ruleTarget.Tags, packageTest.ruleTarget.Test.Size) {
+			if TestSuiteMatchesTest(testSuite, packageTest.ruleTarget.GetTags(), packageTest.ruleTarget.GetTest().GetSize()) {
 				tests = append(tests, packageTest.label)
 			}
 		}
@@ -473,7 +471,7 @@ func (tr *TargetRegistrar[TReference, TMetadata]) Finalize(canonicalPackage pg_l
 		if err != nil {
 			return fmt.Errorf("failed to build list of tests of test suite %#v: %w", name, err)
 		}
-		testSuite.Tests = testsList.Message
+		testSuite.SetTests(testsList.Message)
 		target.Patcher.Merge(testsList.Patcher)
 	}
 	return nil
@@ -490,14 +488,12 @@ func (tr *TargetRegistrar[TReference, TMetadata]) buildNestedMacroInstances(oute
 		definition := tr.macroInstances[name]
 		delete(tr.macroInstances, name)
 		if err := treeBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_starlark_pb.MacroInstance_Entry{
-				Level: &model_starlark_pb.MacroInstance_Entry_Leaf{
-					Leaf: &model_starlark_pb.MacroInstance{
-						NameSuffix: name[len(outerName):],
-						Definition: definition.Message,
-					},
-				},
-			},
+			model_starlark_pb.MacroInstance_Entry_builder{
+				Leaf: model_starlark_pb.MacroInstance_builder{
+					NameSuffix: name[len(outerName):],
+					Definition: definition.Message,
+				}.Build(),
+			}.Build(),
 			definition.Patcher,
 		)); err != nil {
 			return model_core.PatchedMessage[[]*model_starlark_pb.MacroInstance_Entry, TMetadata]{}, err

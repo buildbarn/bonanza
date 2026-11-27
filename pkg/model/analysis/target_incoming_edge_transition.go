@@ -14,7 +14,7 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitionValue(ctx context.Context, key model_core.Message[*model_analysis_pb.TargetIncomingEdgeTransition_Key, TReference], e TargetIncomingEdgeTransitionEnvironment[TReference, TMetadata]) (PatchedTargetIncomingEdgeTransitionValue[TMetadata], error) {
-	targetLabel, err := label.NewCanonicalLabel(key.Message.Label)
+	targetLabel, err := label.NewCanonicalLabel(key.Message.GetLabel())
 	if err != nil {
 		return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
@@ -26,25 +26,25 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 	}
 	identityTransition := func() (PatchedTargetIncomingEdgeTransitionValue[TMetadata], error) {
 		return model_core.Patch(e, model_core.Nested(key, &model_analysis_pb.TargetIncomingEdgeTransition_Value{
-			OutputConfigurationReference: key.Message.ConfigurationReference,
+			OutputConfigurationReference: key.Message.GetConfigurationReference(),
 		})), nil
 	}
-	switch targetKind := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_PackageGroup, *model_starlark_pb.Target_Definition_SourceFileTarget:
+	switch targetValue.Message.GetDefinition().WhichKind() {
+	case model_starlark_pb.Target_Definition_PackageGroup_case, model_starlark_pb.Target_Definition_SourceFileTarget_case:
 		// The properties of these targets don't depend on the
 		// configuration. Transition to the empty configuration,
 		// so that they are only analyzed once.
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.TargetIncomingEdgeTransition_Value{}), nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		// Predeclared output files use the incoming edge
 		// transition of the rule target that owns them, so that
 		// they are analyzed in the same configuration.
-		ownerTargetNameStr := targetKind.PredeclaredOutputFileTarget.OwnerTargetName
+		ownerTargetNameStr := targetValue.Message.GetDefinition().GetPredeclaredOutputFileTarget().GetOwnerTargetName()
 		ownerTargetName, err := label.NewTargetName(ownerTargetNameStr)
 		if err != nil {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
 		}
-		patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference))
+		patchedConfigurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.GetConfigurationReference()))
 		ownerIncomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.TargetIncomingEdgeTransition_Key{
@@ -58,9 +58,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
 		return model_core.Patch(e, ownerIncomingEdgeTransition), nil
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		ruleTarget := model_core.Nested(targetValue, targetKind.RuleTarget)
-		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.RuleIdentifier)
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		ruleTarget := model_core.Nested(targetValue, targetValue.Message.GetDefinition().GetRuleTarget())
+		ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.GetRuleIdentifier())
 		if err != nil {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, err
 		}
@@ -69,8 +69,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, err
 		}
 
-		configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
-		cfgTransition := ruleDefinition.Message.CfgTransition
+		configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
+		cfgTransition := ruleDefinition.Message.GetCfgTransition()
 		if cfgTransition == nil {
 			// Rule does not have an incoming edge transition, so
 			// the configuration remains unchanged.
@@ -86,7 +86,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 				&model_analysis_pb.RuleUsageIncomingEdgeTransition_Key{
 					Identifier:                ruleIdentifier.String(),
 					ConfigurationReference:    patchedConfigurationReference.Message,
-					ExplicitPublicAttrIndices: getExplicitPublicAttrIndices(ruleTarget.Message.PublicAttrValues),
+					ExplicitPublicAttrIndices: getExplicitPublicAttrIndices(ruleTarget.Message.GetPublicAttrValues()),
 				},
 				patchedConfigurationReference.Patcher,
 			),
@@ -94,10 +94,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 		if !incomingEdgeTransition.IsSet() {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		switch result := incomingEdgeTransition.Message.Result.(type) {
+		switch incomingEdgeTransition.Message.GetResult().(type) {
 		case *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_OutputConfigurationReference:
 			return model_core.Patch(e, model_core.Nested(incomingEdgeTransition, &model_analysis_pb.TargetIncomingEdgeTransition_Value{
-				OutputConfigurationReference: result.OutputConfigurationReference,
+				OutputConfigurationReference: incomingEdgeTransition.Message.GetOutputConfigurationReference(),
 			})), nil
 		case *model_analysis_pb.RuleUsageIncomingEdgeTransition_Value_DependsOnExplicitAttrs:
 		default:
@@ -113,7 +113,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 		if !gotAnalysisEncoders || !gotStarlarkValueEncoders || !allBuiltinsModulesNames.IsSet() {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+		thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 		if err != nil {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, err
 		}
@@ -143,13 +143,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetIncomingEdgeTransitio
 			}
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, err
 		}
-		entries := patchedConfigurationReferences.Message.Entries
+		entries := patchedConfigurationReferences.Message.GetEntries()
 		if l := len(entries); l != 1 {
 			return PatchedTargetIncomingEdgeTransitionValue[TMetadata]{}, fmt.Errorf("incoming edge transition used by rule %#v is a 1:%d transition, while a 1:1 transition was expected", ruleIdentifier.String(), l)
 		}
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.TargetIncomingEdgeTransition_Value{
-				OutputConfigurationReference: entries[0].OutputConfigurationReference,
+				OutputConfigurationReference: entries[0].GetOutputConfigurationReference(),
 			},
 			patchedConfigurationReferences.Patcher,
 		), nil

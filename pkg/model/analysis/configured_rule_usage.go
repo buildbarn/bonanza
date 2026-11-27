@@ -25,15 +25,14 @@ func isPublicAttrExplicitlySet(publicAttrValue *model_starlark_pb.RuleTarget_Pub
 		return true
 	}
 	selectGroup := selectGroups[0]
-	if len(selectGroup.Conditions) > 0 {
+	if len(selectGroup.GetConditions()) > 0 {
 		return true
 	}
-	noMatch, ok := selectGroup.NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue)
-	if !ok {
+	noMatch := selectGroup.GetNoMatchValue()
+	if noMatch == nil {
 		return true
 	}
-	_, isNone := noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_None)
-	return !isNone
+	return noMatch.GetNone() == nil
 }
 
 // getExplicitPublicAttrIndices returns the indices of the public attrs
@@ -60,7 +59,7 @@ func getExplicitPublicAttrIndices(publicAttrValues []*model_starlark_pb.RuleTarg
 // ConfiguredRuleUsage would otherwise resolve the default values of
 // attrs that are explicitly set, but omitted from its key.
 func hasDefaultValueToResolve(namedAttr *model_starlark_pb.NamedAttr) bool {
-	defaultValue := namedAttr.Attr.GetDefault()
+	defaultValue := namedAttr.GetAttr().GetDefault()
 	return defaultValue != nil && defaultValue.GetNone() == nil
 }
 
@@ -75,10 +74,10 @@ func hasDefaultValueToResolve(namedAttr *model_starlark_pb.NamedAttr) bool {
 // they are explicitly set. These are left alone, so that the target
 // uses its own value.
 func configuredRuleUsageResolvesDefaultValue(namedAttr *model_starlark_pb.NamedAttr, explicitAttrs map[string]struct{}) bool {
-	if strings.HasPrefix(namedAttr.Name, "_") {
+	if strings.HasPrefix(namedAttr.GetName(), "_") {
 		return false
 	}
-	if _, isExplicit := explicitAttrs[namedAttr.Name]; isExplicit {
+	if _, isExplicit := explicitAttrs[namedAttr.GetName()]; isExplicit {
 		return false
 	}
 	return hasDefaultValueToResolve(namedAttr)
@@ -100,16 +99,16 @@ func getConfiguredRuleUsageExplicitPublicAttrIndices(
 	publicAttrValues []*model_starlark_pb.RuleTarget_PublicAttrValue,
 ) (indices []uint32, needed bool) {
 	hasUserDefinedTransitions := false
-	for _, namedAttr := range ruleDefinition.Attrs {
-		if labelOptions, _, _ := getLabelAttrOptions(namedAttr.Attr); labelOptions.GetCfg().GetUserDefined() != nil {
+	for _, namedAttr := range ruleDefinition.GetAttrs() {
+		if labelOptions, _, _ := getLabelAttrOptions(namedAttr.GetAttr()); labelOptions.GetCfg().GetUserDefined() != nil {
 			hasUserDefinedTransitions = true
 			break
 		}
 	}
 
 	publicAttrIndex := 0
-	for _, namedAttr := range ruleDefinition.Attrs {
-		if strings.HasPrefix(namedAttr.Name, "_") {
+	for _, namedAttr := range ruleDefinition.GetAttrs() {
+		if strings.HasPrefix(namedAttr.GetName(), "_") {
 			continue
 		}
 		if publicAttrIndex >= len(publicAttrValues) {
@@ -122,7 +121,7 @@ func getConfiguredRuleUsageExplicitPublicAttrIndices(
 			if isExplicit {
 				indices = append(indices, uint32(publicAttrIndex))
 			}
-		} else if _, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr); isLabelAttr && hasDefaultValueToResolve(namedAttr) {
+		} else if _, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr()); isLabelAttr && hasDefaultValueToResolve(namedAttr) {
 			if isExplicit {
 				indices = append(indices, uint32(publicAttrIndex))
 			} else {
@@ -177,8 +176,8 @@ func (a *ruleUsageTransitionAttr[TReference, TMetadata]) Attr(thread *eval.Threa
 	}
 
 	var namedAttr *model_starlark_pb.NamedAttr
-	for _, candidate := range a.ruleDefinition.Message.Attrs {
-		if candidate.Name == name {
+	for _, candidate := range a.ruleDefinition.Message.GetAttrs() {
+		if candidate.GetName() == name {
 			namedAttr = candidate
 			break
 		}
@@ -186,7 +185,7 @@ func (a *ruleUsageTransitionAttr[TReference, TMetadata]) Attr(thread *eval.Threa
 	if namedAttr == nil {
 		return nil, eval.NoSuchAttrError{Value: a, Name: name}
 	}
-	defaultValue := namedAttr.Attr.GetDefault()
+	defaultValue := namedAttr.GetAttr().GetDefault()
 	if defaultValue == nil {
 		// Mandatory attr that is not set. Let the caller
 		// report this as an error.
@@ -232,12 +231,12 @@ func newRuleUsageTransitionAttr[TReference object.BasicReference, TMetadata mode
 ) (*ruleUsageTransitionAttr[TReference, TMetadata], error) {
 	explicitAttrs := make(map[string]struct{}, len(explicitPublicAttrIndices))
 	publicAttrIndex := uint32(0)
-	for _, namedAttr := range ruleDefinition.Message.Attrs {
-		if strings.HasPrefix(namedAttr.Name, "_") {
+	for _, namedAttr := range ruleDefinition.Message.GetAttrs() {
+		if strings.HasPrefix(namedAttr.GetName(), "_") {
 			continue
 		}
 		if len(explicitPublicAttrIndices) > 0 && explicitPublicAttrIndices[0] == publicAttrIndex {
-			explicitAttrs[namedAttr.Name] = struct{}{}
+			explicitAttrs[namedAttr.GetName()] = struct{}{}
 			explicitPublicAttrIndices = explicitPublicAttrIndices[1:]
 			if len(explicitPublicAttrIndices) > 0 && explicitPublicAttrIndices[0] <= publicAttrIndex {
 				return nil, errors.New("explicit public attr indices are not sorted in strictly increasing order")
@@ -257,7 +256,7 @@ func newRuleUsageTransitionAttr[TReference object.BasicReference, TMetadata mode
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredRuleUsage_Key, TReference], e ConfiguredRuleUsageEnvironment[TReference, TMetadata]) (PatchedConfiguredRuleUsageValue[TMetadata], error) {
-	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.Identifier)
+	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.GetIdentifier())
 	if err != nil {
 		return PatchedConfiguredRuleUsageValue[TMetadata]{}, fmt.Errorf("invalid rule identifier: %w", err)
 	}
@@ -271,11 +270,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 		return PatchedConfiguredRuleUsageValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 
-	transitionAttr, err := newRuleUsageTransitionAttr[TReference, TMetadata](ruleDefinition, key.Message.ExplicitPublicAttrIndices, starlarkValueEncoders)
+	transitionAttr, err := newRuleUsageTransitionAttr[TReference, TMetadata](ruleDefinition, key.Message.GetExplicitPublicAttrIndices(), starlarkValueEncoders)
 	if err != nil {
 		return PatchedConfiguredRuleUsageValue[TMetadata]{}, err
 	}
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 
 	// Obtain the execution platforms of all exec groups, as these
 	// are needed to apply "exec" transitions.
@@ -300,17 +299,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 	// Only compute the properties of label attrs that are not
 	// provided by ConfiguredRule, because they depend on which public
 	// attrs are explicitly set.
-	ruleLabelAttrs := newIndexedConfiguredLabelAttrCursor(model_core.Nested(configuredRule, configuredRule.Message.LabelAttrs))
+	ruleLabelAttrs := newIndexedConfiguredLabelAttrCursor(model_core.Nested(configuredRule, configuredRule.Message.GetLabelAttrs()))
 	return model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_analysis_pb.ConfiguredRuleUsage_Value, error) {
 		missingDependencies := false
 		var labelAttrs []*model_analysis_pb.IndexedConfiguredLabelAttr
-		for attrIndex, namedAttr := range ruleDefinition.Message.Attrs {
-			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
+		for attrIndex, namedAttr := range ruleDefinition.Message.GetAttrs() {
+			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr())
 			if !isLabelAttr {
 				continue
 			}
 			if labelOptions == nil {
-				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.Name)
+				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.GetName())
 			}
 			ruleLabelAttr, hasRuleLabelAttr, err := ruleLabelAttrs.get(attrIndex)
 			if err != nil {
@@ -325,8 +324,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 				}
 			}
 
-			_, isExplicit := transitionAttr.explicitAttrs[namedAttr.Name]
-			defaultValue := namedAttr.Attr.GetDefault()
+			_, isExplicit := transitionAttr.explicitAttrs[namedAttr.GetName()]
+			defaultValue := namedAttr.GetAttr().GetDefault()
 			if hasRuleLabelAttr {
 				// ConfiguredRule was able to apply the
 				// outgoing edge transition. Only resolve the
@@ -335,7 +334,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 				if !configuredRuleUsageResolvesDefaultValue(namedAttr, transitionAttr.explicitAttrs) {
 					continue
 				}
-				configuration := newLabelAttrConfigurationFromProto(ruleLabelAttr, labelOptions.Cfg)
+				configuration := newLabelAttrConfigurationFromProto(ruleLabelAttr, labelOptions.GetCfg())
 				configuredAttr, err := configureDefaultLabelAttr(
 					ctx,
 					e,
@@ -350,7 +349,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 						missingDependencies = true
 						continue
 					}
-					return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+					return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 				}
 				appendLabelAttr(configuredAttr)
 				continue
@@ -379,7 +378,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleUsageValue(ct
 					missingDependencies = true
 					continue
 				}
-				return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+				return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 			appendLabelAttr(configuredAttr)
 		}

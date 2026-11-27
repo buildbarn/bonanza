@@ -170,7 +170,7 @@ func checkRequiredProviders(
 ) error {
 	// Empty sets are satisfied by any target.
 	for _, providerSet := range requiredProviders {
-		if len(providerSet.ProviderIdentifiers) == 0 {
+		if len(providerSet.GetProviderIdentifiers()) == 0 {
 			return nil
 		}
 	}
@@ -182,13 +182,13 @@ func checkRequiredProviders(
 	// found to be missing are marked with a negative index.
 	nextIndices := make([]int, len(requiredProviders))
 	for _, providerInstance := range providerInstances {
-		providerIdentifier := providerInstance.ProviderInstanceProperties.GetProviderIdentifier()
+		providerIdentifier := providerInstance.GetProviderInstanceProperties().GetProviderIdentifier()
 		for i, providerSet := range requiredProviders {
 			nextIndex := nextIndices[i]
 			if nextIndex < 0 {
 				continue
 			}
-			switch strings.Compare(providerSet.ProviderIdentifiers[nextIndex], providerIdentifier) {
+			switch strings.Compare(providerSet.GetProviderIdentifiers()[nextIndex], providerIdentifier) {
 			case -1:
 				// The provider to match sorts before the
 				// current provider instance, meaning it
@@ -196,7 +196,7 @@ func checkRequiredProviders(
 				nextIndices[i] = -1
 			case 0:
 				nextIndex++
-				if nextIndex == len(providerSet.ProviderIdentifiers) {
+				if nextIndex == len(providerSet.GetProviderIdentifiers()) {
 					return nil
 				}
 				nextIndices[i] = nextIndex
@@ -206,7 +206,7 @@ func checkRequiredProviders(
 
 	sets := make([]string, 0, len(requiredProviders))
 	for _, providerSet := range requiredProviders {
-		sets = append(sets, "["+strings.Join(providerSet.ProviderIdentifiers, ", ")+"]")
+		sets = append(sets, "["+strings.Join(providerSet.GetProviderIdentifiers(), ", ")+"]")
 	}
 	return fmt.Errorf("target %#v does not have all mandatory providers of any of the sets %s", resolvedLabel, strings.Join(sets, ", "))
 }
@@ -358,25 +358,25 @@ func configureResolvedLabelAttrs[TReference object.BasicReference, TMetadata mod
 	missingDependencies := false
 	kwargs := make([]eval.NamedArg, 0, len(namedAttrs.Message))
 	for i, namedAttr := range namedAttrs.Message {
-		labelOptions, isScalar, _ := getLabelAttrOptions(namedAttr.Attr)
-		requirements, err := newLabelAttrRequirements[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers, namedAttr.Attr)
+		labelOptions, isScalar, _ := getLabelAttrOptions(namedAttr.GetAttr())
+		requirements, err := newLabelAttrRequirements[TReference, TMetadata](ctx, thread, &starlarkValueEncoders.Readers, namedAttr.GetAttr())
 		if err != nil {
-			return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+			return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 		}
 		configuration := newLabelAttrConfigurationFromProto(
 			model_core.Nested(configuredAttrs, configuredAttrs.Message[i]),
 			labelOptions.GetCfg(),
 		)
 		if !configuration.defaultValueLabelsResolved {
-			return nil, fmt.Errorf("labels in the default value of attr %#v have not been resolved", namedAttr.Name)
+			return nil, fmt.Errorf("labels in the default value of attr %#v have not been resolved", namedAttr.GetName())
 		}
-		defaultValue := namedAttr.Attr.GetDefault()
+		defaultValue := namedAttr.GetAttr().GetDefault()
 		if defaultValue == nil {
-			return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
+			return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.GetName())
 		}
 		valuePart := model_core.Nested(namedAttrs, defaultValue)
 		if err := setLabelAttrConfigurationDefaultValue(ctx, &configuration, &starlarkValueEncoders.Readers, valuePart); err != nil {
-			return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+			return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 		}
 
 		var filesCollector *labelAttrFilesCollector[TReference, TMetadata]
@@ -443,7 +443,7 @@ func configureResolvedLabelAttrs[TReference object.BasicReference, TMetadata mod
 			return nil, err
 		}
 		if attr == nil {
-			return nil, fmt.Errorf("value of attr %#v does not have any parts", namedAttr.Name)
+			return nil, fmt.Errorf("value of attr %#v does not have any parts", namedAttr.GetName())
 		}
 		if filesCollector != nil {
 			if err := filesCollector.finish(); err != nil {
@@ -451,7 +451,7 @@ func configureResolvedLabelAttrs[TReference object.BasicReference, TMetadata mod
 			}
 		}
 		kwargs = append(kwargs, eval.NamedArg{
-			Name:  namedAttr.Name,
+			Name:  namedAttr.GetName(),
 			Value: attr,
 		})
 	}

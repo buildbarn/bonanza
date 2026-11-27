@@ -28,15 +28,15 @@ func getRuleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TRefer
 	if !ruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	v, ok := ruleValue.Message.Global.GetKind().(*model_starlark_pb.Value_Rule)
-	if !ok {
+	v := ruleValue.Message.GetGlobal().GetRule()
+	if v == nil {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, fmt.Errorf("%#v is not a rule", ruleIdentifierStr)
 	}
-	d, ok := v.Rule.Kind.(*model_starlark_pb.Rule_Definition_)
-	if !ok {
+	d := v.GetDefinition()
+	if d == nil {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, fmt.Errorf("%#v is not a rule definition", ruleIdentifierStr)
 	}
-	return model_core.Nested(ruleValue, d.Definition), nil
+	return model_core.Nested(ruleValue, d), nil
 }
 
 // getSubruleDefinition looks up the definition of a subrule, given its
@@ -48,30 +48,30 @@ func getSubruleDefinition[TReference any](e CompiledBzlFileGlobalValueGetter[TRe
 	if !subruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	v, ok := subruleValue.Message.Global.GetKind().(*model_starlark_pb.Value_Subrule)
-	if !ok {
+	v := subruleValue.Message.GetGlobal().GetSubrule()
+	if v == nil {
 		return model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}, fmt.Errorf("%#v is not a subrule", subruleIdentifier)
 	}
-	d, ok := v.Subrule.Kind.(*model_starlark_pb.Subrule_Definition_)
-	if !ok {
+	d := v.GetDefinition()
+	if d == nil {
 		return model_core.Message[*model_starlark_pb.Subrule_Definition, TReference]{}, fmt.Errorf("%#v is not a subrule definition", subruleIdentifier)
 	}
-	return model_core.Nested(subruleValue, d.Definition), nil
+	return model_core.Nested(subruleValue, d), nil
 }
 
 // getLabelAttrOptions returns the label options of an attr if it is of
 // type label, label_keyed_string_dict, label_list, or
 // string_keyed_label_dict. For other attr types, nil is returned.
 func getLabelAttrOptions(attr *model_starlark_pb.Attr) (labelOptions *model_starlark_pb.Attr_LabelOptions, isScalar, isLabelAttr bool) {
-	switch attrType := attr.GetType().(type) {
-	case *model_starlark_pb.Attr_Label:
-		return attrType.Label.ValueOptions, true, true
-	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		return attrType.LabelKeyedStringDict.DictKeyOptions, false, true
-	case *model_starlark_pb.Attr_LabelList:
-		return attrType.LabelList.ListValueOptions, false, true
-	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		return attrType.StringKeyedLabelDict.DictValueOptions, false, true
+	switch attr.WhichType() {
+	case model_starlark_pb.Attr_Label_case:
+		return attr.GetLabel().GetValueOptions(), true, true
+	case model_starlark_pb.Attr_LabelKeyedStringDict_case:
+		return attr.GetLabelKeyedStringDict().GetDictKeyOptions(), false, true
+	case model_starlark_pb.Attr_LabelList_case:
+		return attr.GetLabelList().GetListValueOptions(), false, true
+	case model_starlark_pb.Attr_StringKeyedLabelDict_case:
+		return attr.GetStringKeyedLabelDict().GetDictValueOptions(), false, true
 	default:
 		return nil, false, false
 	}
@@ -194,7 +194,7 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleLabelAttr(
 		e,
 		analysisEncoders,
 		starlarkValueEncoders,
-		model_core.Nested(ruleDefinition, labelOptions.Cfg),
+		model_core.Nested(ruleDefinition, labelOptions.GetCfg()),
 		configurationReference,
 		transitionAttr,
 		execGroupPlatformLabels,
@@ -210,7 +210,7 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleLabelAttr(
 		mayHaveMultipleConfigurations,
 	)
 
-	defaultValue := namedAttr.Attr.GetDefault()
+	defaultValue := namedAttr.GetAttr().GetDefault()
 	if !resolveDefaultValue || defaultValue == nil {
 		return newConfiguredLabelAttrWithoutLabels(e, &configuration, patcher), nil
 	}
@@ -234,8 +234,8 @@ func (c *baseComputer[TReference, TMetadata]) configureRuleLabelAttr(
 // attrs.
 func getAllPublicAttrIndices(ruleDefinition *model_starlark_pb.Rule_Definition) []uint32 {
 	var indices []uint32
-	for _, namedAttr := range ruleDefinition.Attrs {
-		if !strings.HasPrefix(namedAttr.Name, "_") {
+	for _, namedAttr := range ruleDefinition.GetAttrs() {
+		if !strings.HasPrefix(namedAttr.GetName(), "_") {
 			indices = append(indices, uint32(len(indices)))
 		}
 	}
@@ -245,14 +245,14 @@ func getAllPublicAttrIndices(ruleDefinition *model_starlark_pb.Rule_Definition) 
 // getExecGroupPlatformLabels returns a map of exec group names to the
 // labels of the execution platforms that were selected for them.
 func getExecGroupPlatformLabels[TReference any](ruleDefinition *model_starlark_pb.Rule_Definition, configuredRule model_core.Message[*model_analysis_pb.ConfiguredRule_Value, TReference]) (map[string]string, error) {
-	namedExecGroups := ruleDefinition.ExecGroups
-	execGroups := configuredRule.Message.ExecGroups
+	namedExecGroups := ruleDefinition.GetExecGroups()
+	execGroups := configuredRule.Message.GetExecGroups()
 	if len(execGroups) != len(namedExecGroups) {
 		return nil, fmt.Errorf("configured rule has %d exec groups, while the rule definition has %d exec groups", len(execGroups), len(namedExecGroups))
 	}
 	execGroupPlatformLabels := make(map[string]string, len(execGroups))
 	for i, namedExecGroup := range namedExecGroups {
-		execGroupPlatformLabels[namedExecGroup.Name] = execGroups[i].PlatformLabel
+		execGroupPlatformLabels[namedExecGroup.GetName()] = execGroups[i].GetPlatformLabel()
 	}
 	return execGroupPlatformLabels, nil
 }
@@ -281,23 +281,23 @@ func configureExecGroups[TReference object.BasicReference, TMetadata model_core.
 	execGroups := make([]*model_analysis_pb.ConfiguredExecGroup, 0, len(namedExecGroups))
 	execGroupPlatformLabels := make(map[string]string, len(namedExecGroups))
 	for _, namedExecGroup := range namedExecGroups {
-		execGroupDefinition := namedExecGroup.ExecGroup
+		execGroupDefinition := namedExecGroup.GetExecGroup()
 		if execGroupDefinition == nil {
-			return nil, nil, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.Name)
+			return nil, nil, fmt.Errorf("missing definition of exec group %#v", namedExecGroup.GetName())
 		}
 		execCompatibleWith, err := constraintValuesToConstraints(
 			ctx,
 			e,
 			valueReaders,
 			definingPackage,
-			execGroupDefinition.ExecCompatibleWith,
+			execGroupDefinition.GetExecCompatibleWith(),
 		)
 		if err != nil {
 			if errors.Is(err, evaluation.ErrMissingDependency) {
 				missingDependencies = true
 				continue
 			}
-			return nil, nil, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.Name, err)
+			return nil, nil, fmt.Errorf("invalid constraint values for exec group %#v: %w", namedExecGroup.GetName(), err)
 		}
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		resolvedToolchains := e.GetResolvedToolchainsValue(
@@ -305,7 +305,7 @@ func configureExecGroups[TReference object.BasicReference, TMetadata model_core.
 				&model_analysis_pb.ResolvedToolchains_Key{
 					ExecCompatibleWith:     execCompatibleWith,
 					ConfigurationReference: patchedConfigurationReference.Message,
-					Toolchains:             execGroupDefinition.Toolchains,
+					Toolchains:             execGroupDefinition.GetToolchains(),
 				},
 				patchedConfigurationReference.Patcher,
 			),
@@ -314,16 +314,16 @@ func configureExecGroups[TReference object.BasicReference, TMetadata model_core.
 			missingDependencies = true
 			continue
 		}
-		toolchainIdentifiers := resolvedToolchains.Message.ToolchainIdentifiers
-		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.Toolchains); actual != expected {
-			return nil, nil, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.Name, expected)
+		toolchainIdentifiers := resolvedToolchains.Message.GetToolchainIdentifiers()
+		if actual, expected := len(toolchainIdentifiers), len(execGroupDefinition.GetToolchains()); actual != expected {
+			return nil, nil, fmt.Errorf("obtained %d resolved toolchains, while exec group %#v depends on %d toolchains", actual, namedExecGroup.GetName(), expected)
 		}
 		execGroups = append(execGroups, &model_analysis_pb.ConfiguredExecGroup{
 			ToolchainIdentifiers:  toolchainIdentifiers,
-			PlatformLabel:         resolvedToolchains.Message.PlatformLabel,
-			PlatformPkixPublicKey: resolvedToolchains.Message.PlatformPkixPublicKey,
+			PlatformLabel:         resolvedToolchains.Message.GetPlatformLabel(),
+			PlatformPkixPublicKey: resolvedToolchains.Message.GetPlatformPkixPublicKey(),
 		})
-		execGroupPlatformLabels[namedExecGroup.Name] = resolvedToolchains.Message.PlatformLabel
+		execGroupPlatformLabels[namedExecGroup.GetName()] = resolvedToolchains.Message.GetPlatformLabel()
 	}
 	if missingDependencies {
 		return nil, nil, evaluation.ErrMissingDependency
@@ -356,7 +356,7 @@ func getSubruleDefinitions[TReference any](e CompiledBzlFileGlobalValueGetter[TR
 			return nil, err
 		}
 		subruleDefinitions[subruleIdentifier] = subruleDefinition
-		pendingSubruleIdentifiers = append(pendingSubruleIdentifiers, subruleDefinition.Message.SubruleIdentifiers...)
+		pendingSubruleIdentifiers = append(pendingSubruleIdentifiers, subruleDefinition.Message.GetSubruleIdentifiers()...)
 	}
 	if missingDependencies {
 		return nil, evaluation.ErrMissingDependency
@@ -428,21 +428,22 @@ func configureSubrules[TReference object.BasicReference, TMetadata model_core.Re
 		}
 		subruleDefinition := subruleDefinitions[subruleIdentifierStr]
 		subrulePackage := subruleIdentifier.GetCanonicalLabel().GetCanonicalPackage()
-		attrs := make([]*model_analysis_pb.ConfiguredLabelAttr, 0, len(subruleDefinition.Message.Attrs))
-		for _, namedAttr := range subruleDefinition.Message.Attrs {
-			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
+		namedAttrs := subruleDefinition.Message.GetAttrs()
+		attrs := make([]*model_analysis_pb.ConfiguredLabelAttr, 0, len(namedAttrs))
+		for _, namedAttr := range namedAttrs {
+			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr())
 			if !isLabelAttr || labelOptions == nil {
-				return nil, fmt.Errorf("attr %#v of subrule %#v is not a label attr", namedAttr.Name, subruleIdentifierStr)
+				return nil, fmt.Errorf("attr %#v of subrule %#v is not a label attr", namedAttr.GetName(), subruleIdentifierStr)
 			}
-			defaultValue := namedAttr.Attr.GetDefault()
+			defaultValue := namedAttr.GetAttr().GetDefault()
 			if defaultValue == nil {
-				return nil, fmt.Errorf("attr %#v of subrule %#v does not have a default value", namedAttr.Name, subruleIdentifierStr)
+				return nil, fmt.Errorf("attr %#v of subrule %#v does not have a default value", namedAttr.GetName(), subruleIdentifierStr)
 			}
 			configuredAttr, err := configureBuiltinTransitionLabelAttr(
 				ctx,
 				e,
 				valueReaders,
-				model_core.Nested(subruleDefinition, labelOptions.Cfg),
+				model_core.Nested(subruleDefinition, labelOptions.GetCfg()),
 				model_core.Nested(subruleDefinition, defaultValue),
 				subrulePackage,
 				configurationReference,
@@ -454,7 +455,7 @@ func configureSubrules[TReference object.BasicReference, TMetadata model_core.Re
 					missingDependencies = true
 					continue
 				}
-				return nil, fmt.Errorf("attr %#v of subrule %#v: %w", namedAttr.Name, subruleIdentifierStr, err)
+				return nil, fmt.Errorf("attr %#v of subrule %#v: %w", namedAttr.GetName(), subruleIdentifierStr, err)
 			}
 			attrs = append(attrs, configuredAttr)
 		}
@@ -470,7 +471,7 @@ func configureSubrules[TReference object.BasicReference, TMetadata model_core.Re
 }
 
 func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx context.Context, key model_core.Message[*model_analysis_pb.ConfiguredRule_Key, TReference], e ConfiguredRuleEnvironment[TReference, TMetadata]) (PatchedConfiguredRuleValue[TMetadata], error) {
-	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.Identifier)
+	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(key.Message.GetIdentifier())
 	if err != nil {
 		return PatchedConfiguredRuleValue[TMetadata]{}, fmt.Errorf("invalid rule identifier: %w", err)
 	}
@@ -484,7 +485,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 		return PatchedConfiguredRuleValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	valueReaders := &starlarkValueEncoders.Readers
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 
 	// Resolve the toolchains and execution platforms of all exec
 	// groups. Labels of constraint values are resolved relative to
@@ -494,10 +495,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 		e,
 		valueReaders,
 		ruleIdentifier.GetCanonicalLabel().GetCanonicalPackage(),
-		ruleDefinition.Message.ExecGroups,
+		ruleDefinition.Message.GetExecGroups(),
 		configurationReference,
 	)
-	subruleDefinitions, subrulesErr := getSubruleDefinitions(e, ruleDefinition.Message.SubruleIdentifiers)
+	subruleDefinitions, subrulesErr := getSubruleDefinitions(e, ruleDefinition.Message.GetSubruleIdentifiers())
 	for _, err := range []error{execGroupsErr, subrulesErr} {
 		if err != nil && !errors.Is(err, evaluation.ErrMissingDependency) {
 			return PatchedConfiguredRuleValue[TMetadata]{}, err
@@ -540,13 +541,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 			return nil, err
 		}
 		var labelAttrs []*model_analysis_pb.IndexedConfiguredLabelAttr
-		for attrIndex, namedAttr := range ruleDefinition.Message.Attrs {
-			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr)
+		for attrIndex, namedAttr := range ruleDefinition.Message.GetAttrs() {
+			labelOptions, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr())
 			if !isLabelAttr {
 				continue
 			}
 			if labelOptions == nil {
-				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.Name)
+				return nil, fmt.Errorf("attr %#v does not have label options", namedAttr.GetName())
 			}
 			configuredAttr, err := c.configureRuleLabelAttr(
 				ctx,
@@ -560,7 +561,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 				configurationReference,
 				transitionAttr,
 				execGroupPlatformLabels,
-				/* resolveDefaultValue = */ strings.HasPrefix(namedAttr.Name, "_"),
+				/* resolveDefaultValue = */ strings.HasPrefix(namedAttr.GetName(), "_"),
 				patcher,
 			)
 			if err != nil {
@@ -568,7 +569,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeConfiguredRuleValue(ctx con
 					missingDependencies = true
 					continue
 				}
-				return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+				return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 			}
 			if configuredAttr != nil {
 				labelAttrs = append(labelAttrs, &model_analysis_pb.IndexedConfiguredLabelAttr{

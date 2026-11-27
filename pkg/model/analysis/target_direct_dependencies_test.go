@@ -10,13 +10,16 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+	xpb "google.golang.org/protobuf/types/known/emptypb"
+
 	"go.uber.org/mock/gomock"
 )
 
 func labelValue(l string) *model_starlark_pb.Value {
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Label{Label: l},
-	}
+	return model_starlark_pb.Value_builder{
+		Label: proto.String(l),
+	}.Build()
 }
 
 func TestTargetDirectDependencies(t *testing.T) {
@@ -31,88 +34,80 @@ func TestTargetDirectDependencies(t *testing.T) {
 			e.EXPECT().GetTargetValue(
 				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-						RuleTarget: &model_starlark_pb.RuleTarget{
-							RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-							PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
-								{
-									// deps.
-									ValueParts: []*model_starlark_pb.Select_Group{{
-										Conditions: []*model_starlark_pb.Select_Condition{{
-											ConditionIdentifier: "@@main+//:linux",
-											Value:               labelListValue("@@main+//:a"),
-										}},
-										NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-											NoMatchValue: labelListValue("@@main+//:b"),
-										},
-									}},
+				Definition: model_starlark_pb.Target_Definition_builder{
+					RuleTarget: model_starlark_pb.RuleTarget_builder{
+						RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+						PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{
+							model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+								// deps.
+								ValueParts: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+									Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
+										ConditionIdentifier: "@@main+//:linux",
+										Value:               labelListValue("@@main+//:a"),
+									}.Build()},
+									NoMatchValue: proto.ValueOrDefault(labelListValue("@@main+//:b")),
+								}.Build()},
+							}.Build(),
+							model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+								// out.
+								ValueParts: []*model_starlark_pb.Select_Group{
+									valueSelectGroup(labelValue("@@main+//:out.txt")),
 								},
-								{
-									// out.
-									ValueParts: []*model_starlark_pb.Select_Group{
-										valueSelectGroup(labelValue("@@main+//:out.txt")),
-									},
+							}.Build(),
+							model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+								// srcs.
+								ValueParts: []*model_starlark_pb.Select_Group{
+									valueSelectGroup(model_starlark_pb.Value_builder{
+										None: &xpb.Empty{},
+									}.Build()),
 								},
-								{
-									// srcs.
-									ValueParts: []*model_starlark_pb.Select_Group{
-										valueSelectGroup(&model_starlark_pb.Value{
-											Kind: &model_starlark_pb.Value_None{},
-										}),
-									},
-								},
-							},
-							ExecCompatibleWith: []string{"@@platforms+//os:linux"},
-							InheritableAttrs: &model_starlark_pb.InheritableAttrs{
-								PackageMetadata: []string{"@@main+//:license"},
-							},
+							}.Build(),
 						},
-					},
-				},
+						ExecCompatibleWith: []string{"@@platforms+//os:linux"},
+						InheritableAttrs: model_starlark_pb.InheritableAttrs_builder{
+							PackageMetadata: []string{"@@main+//:license"},
+						}.Build(),
+					}.Build(),
+				}.Build(),
 			}))
 			e.EXPECT().GetCompiledBzlFileGlobalValue(
 				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-				Global: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Rule{
-						Rule: &model_starlark_pb.Rule{
-							Kind: &model_starlark_pb.Rule_Definition_{
-								Definition: &model_starlark_pb.Rule_Definition{
-									Attrs: []*model_starlark_pb.NamedAttr{
-										{
-											Name: "_tool",
-											Attr: &model_starlark_pb.Attr{
-												Default: labelValue("@@main+//:tool"),
-												Type:    &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{}},
-											},
-										},
-										{
-											Name: "deps",
-											Attr: &model_starlark_pb.Attr{
-												Default: labelListValue(),
-												Type:    &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{}},
-											},
-										},
-										{
-											Name: "out",
-											Attr: &model_starlark_pb.Attr{
-												Type: &model_starlark_pb.Attr_Output{Output: &model_starlark_pb.Attr_OutputType{}},
-											},
-										},
-										{
-											Name: "srcs",
-											Attr: &model_starlark_pb.Attr{
-												Default: labelListValue("@@main+//:default_src"),
-												Type:    &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{}},
-											},
-										},
-									},
-								},
+				Global: model_starlark_pb.Value_builder{
+					Rule: model_starlark_pb.Rule_builder{
+						Definition: model_starlark_pb.Rule_Definition_builder{
+							Attrs: []*model_starlark_pb.NamedAttr{
+								model_starlark_pb.NamedAttr_builder{
+									Name: "_tool",
+									Attr: model_starlark_pb.Attr_builder{
+										Default: labelValue("@@main+//:tool"),
+										Label:   &model_starlark_pb.Attr_LabelType{},
+									}.Build(),
+								}.Build(),
+								model_starlark_pb.NamedAttr_builder{
+									Name: "deps",
+									Attr: model_starlark_pb.Attr_builder{
+										Default:   labelListValue(),
+										LabelList: &model_starlark_pb.Attr_LabelListType{},
+									}.Build(),
+								}.Build(),
+								model_starlark_pb.NamedAttr_builder{
+									Name: "out",
+									Attr: model_starlark_pb.Attr_builder{
+										Output: &model_starlark_pb.Attr_OutputType{},
+									}.Build(),
+								}.Build(),
+								model_starlark_pb.NamedAttr_builder{
+									Name: "srcs",
+									Attr: model_starlark_pb.Attr_builder{
+										Default:   labelListValue("@@main+//:default_src"),
+										LabelList: &model_starlark_pb.Attr_LabelListType{},
+									}.Build(),
+								}.Build(),
 							},
-						},
-					},
-				},
+						}.Build(),
+					}.Build(),
+				}.Build(),
 			}))
 		}
 
@@ -132,7 +127,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 				"@@main+//:b",
 				"@@main+//:linux",
 				"@@platforms+//os:linux",
-			}, getTargetLabels(t, value.Message.TargetLabels))
+			}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		})
 
 		t.Run("ImplicitDeps", func(t *testing.T) {
@@ -155,7 +150,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 				"@@main+//:linux",
 				"@@main+//:tool",
 				"@@platforms+//os:linux",
-			}, getTargetLabels(t, value.Message.TargetLabels))
+			}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		})
 	})
 
@@ -168,33 +163,27 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier: "@@rules+//:defs.bzl%my_test",
-						Test: &model_starlark_pb.RuleTarget_Test{
-							ShardCount: []*model_starlark_pb.Select_Group{{
-								Conditions: []*model_starlark_pb.Select_Condition{{
-									ConditionIdentifier: "@@main+//:many_shards",
-									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{8}}},
-								}},
-								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{1}}},
-								},
-							}},
-							Args: []*model_starlark_pb.Select_Group{{
-								Conditions: []*model_starlark_pb.Select_Condition{{
-									ConditionIdentifier: "@@main+//:verbose",
-									Value:               &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
-								}},
-								NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-									NoMatchValue: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
-								},
-							}},
-						},
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+					Test: model_starlark_pb.RuleTarget_Test_builder{
+						ShardCount: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+							Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
+								ConditionIdentifier: "@@main+//:many_shards",
+								Value:               model_starlark_pb.Value_builder{Int: []byte{8}}.Build(),
+							}.Build()},
+							NoMatchValue: model_starlark_pb.Value_builder{Int: []byte{1}}.Build(),
+						}.Build()},
+						Args: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+							Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
+								ConditionIdentifier: "@@main+//:verbose",
+								Value:               model_starlark_pb.Value_builder{List: &model_starlark_pb.List{}}.Build(),
+							}.Build()},
+							NoMatchValue: model_starlark_pb.Value_builder{List: &model_starlark_pb.List{}}.Build(),
+						}.Build()},
+					}.Build(),
+				}.Build(),
+			}.Build(),
 		}))
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
@@ -207,7 +196,7 @@ func TestTargetDirectDependencies(t *testing.T) {
 		require.Equal(t, []string{
 			"@@main+//:many_shards",
 			"@@main+//:verbose",
-		}, getTargetLabels(t, value.Message.TargetLabels))
+		}, getTargetLabels(t, value.Message.GetTargetLabels()))
 	})
 
 	t.Run("PredeclaredOutputFileTarget", func(t *testing.T) {
@@ -218,19 +207,17 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:out.txt"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
-					PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{
-						OwnerTargetName: "gen",
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				PredeclaredOutputFileTarget: model_starlark_pb.PredeclaredOutputFileTarget_builder{
+					OwnerTargetName: "gen",
+				}.Build(),
+			}.Build(),
 		}))
 		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
 			Label: "@@main+//foo:out.txt",
 		}, e)
 		require.NoError(t, err)
-		require.Equal(t, []string{"@@main+//foo:gen"}, getTargetLabels(t, value.Message.TargetLabels))
+		require.Equal(t, []string{"@@main+//foo:gen"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 	})
 
 	t.Run("Alias", func(t *testing.T) {
@@ -240,19 +227,17 @@ func TestTargetDirectDependencies(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:alias"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_Alias{
-					Alias: &model_starlark_pb.Alias{
-						Actual: valueSelectGroup(labelValue("@@main+//:actual")),
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				Alias: model_starlark_pb.Alias_builder{
+					Actual: valueSelectGroup(labelValue("@@main+//:actual")),
+				}.Build(),
+			}.Build(),
 		}))
 		value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
 			Label: "@@main+//:alias",
 		}, e)
 		require.NoError(t, err)
-		require.Equal(t, []string{"@@main+//:actual"}, getTargetLabels(t, value.Message.TargetLabels))
+		require.Equal(t, []string{"@@main+//:actual"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 	})
 
 	t.Run("DoesNotExist", func(t *testing.T) {
@@ -278,22 +263,20 @@ func TestTargetDirectDependencies(t *testing.T) {
 			e.EXPECT().GetTargetValue(
 				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_TestSuite{
-						TestSuite: &model_starlark_pb.TestSuite{
-							Tests:        newTestSuiteTests("@@main+//bar:nested_suite", "@@main+//foo:test"),
-							PositiveTags: []string{"integration"},
-							Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
-						},
-					},
-				},
+				Definition: model_starlark_pb.Target_Definition_builder{
+					TestSuite: model_starlark_pb.TestSuite_builder{
+						Tests:        newTestSuiteTests("@@main+//bar:nested_suite", "@@main+//foo:test"),
+						PositiveTags: []string{"integration"},
+						Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
+					}.Build(),
+				}.Build(),
 			}))
 			value, err := bct.computer.ComputeTargetDirectDependenciesValue(ctx, &model_analysis_pb.TargetDirectDependencies_Key{
 				Label:               "@@main+//foo:suite",
 				IncludeImplicitDeps: includeImplicitDeps,
 			}, e)
 			require.NoError(t, err)
-			require.Equal(t, []string{"@@main+//bar:nested_suite", "@@main+//foo:test"}, getTargetLabels(t, value.Message.TargetLabels))
+			require.Equal(t, []string{"@@main+//bar:nested_suite", "@@main+//foo:test"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		}
 	})
 }

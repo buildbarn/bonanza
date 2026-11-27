@@ -12,6 +12,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -21,9 +23,9 @@ func TestPackageGroupContains(t *testing.T) {
 
 	newOverridesObject := func(build func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package) model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]] {
 		return newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-			return model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(&model_starlark_pb.PackageGroup_Subpackages_Overrides{
+			return model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
 				Packages: build(patcher),
-			})
+			}.Build())
 		})
 	}
 
@@ -41,34 +43,28 @@ func TestPackageGroupContains(t *testing.T) {
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:group"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
 			return &model_analysis_pb.Target_Value{
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-						PackageGroup: &model_starlark_pb.PackageGroup{
-							Tree: &model_starlark_pb.PackageGroup_Subpackages{
-								Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
-									OverridesExternal: attachObject(patcher, newOverridesObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package {
-										return []*model_starlark_pb.PackageGroup_Package{{
-											Component: "main+",
-											Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-												Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
-													OverridesExternal: attachObject(patcher, newOverridesObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package {
-														return []*model_starlark_pb.PackageGroup_Package{{
-															Component:      "foo",
-															IncludePackage: true,
-															Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-																IncludeSubpackages: true,
-															},
-														}}
-													})),
-												},
-											},
-										}}
-									})),
-								},
-							},
-						},
-					},
-				},
+				Definition: model_starlark_pb.Target_Definition_builder{
+					PackageGroup: model_starlark_pb.PackageGroup_builder{
+						Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+							OverridesExternal: proto.ValueOrDefault(attachObject(patcher, newOverridesObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package {
+								return []*model_starlark_pb.PackageGroup_Package{model_starlark_pb.PackageGroup_Package_builder{
+									Component: "main+",
+									Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+										OverridesExternal: proto.ValueOrDefault(attachObject(patcher, newOverridesObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) []*model_starlark_pb.PackageGroup_Package {
+											return []*model_starlark_pb.PackageGroup_Package{model_starlark_pb.PackageGroup_Package_builder{
+												Component:      "foo",
+												IncludePackage: true,
+												Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+													IncludeSubpackages: true,
+												}.Build(),
+											}.Build()}
+										}))),
+									}.Build(),
+								}.Build()}
+							}))),
+						}.Build(),
+					}.Build(),
+				}.Build(),
 			}
 		})).AnyTimes()
 
@@ -86,7 +82,7 @@ func TestPackageGroupContains(t *testing.T) {
 				Package:           packageName,
 			}, e)
 			require.NoError(t, err, packageName)
-			require.Equal(t, expected, value.Message.Contains, packageName)
+			require.Equal(t, expected, value.Message.GetContains(), packageName)
 		}
 	})
 }

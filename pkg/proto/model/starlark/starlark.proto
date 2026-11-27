@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.starlark;
 
@@ -6,6 +6,7 @@ import "bonanza.build/pkg/proto/model/core/core.proto";
 import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "google/protobuf/empty.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/starlark";
 
 message CompiledProgram {
@@ -867,7 +868,7 @@ message BuildSettingScope {
 }
 
 message List {
-  message Element {
+  export message Element {
     message Parent {
       // Reference to an object containing additional list elements.
       bonanza.model.core.DecodableReference reference = 1
@@ -932,7 +933,7 @@ message MacroExpansionContext {
   // followed by "_", "-" or ".".
   string name_suffix = 1;
 
-  message Definition {
+  export message Definition {
     // The arguments with which the macro instance to expand was
     // invoked.
     MacroInstance.Definition root_macro_instance_definition = 1;
@@ -994,7 +995,7 @@ message MacroExpansionContext {
   // are disjoint, the macro instance whose namespace contains a given
   // name can be found by looking up the macro instance whose name
   // suffix precedes the name.
-  message Entry {
+  export message Entry {
     message Parent {
       // Reference to an object containing additional macro expansion
       // contexts.
@@ -1223,7 +1224,7 @@ message Provider {
 }
 
 message Struct {
-  message Fields {
+  export message Fields {
     // The names of the fields in the struct, listed in alphabetical
     // order.
     repeated string keys = 1;
@@ -1301,7 +1302,7 @@ message NamedExecGroup {
 }
 
 message Repo {
-  message Definition {
+  export message Definition {
     // Identifier of the repository rule used by this target.
     string repository_rule_identifier = 1;
 
@@ -1638,7 +1639,7 @@ message Subrule {
 }
 
 message Target {
-  message Definition {
+  export message Definition {
     oneof kind {
       // Reference to another target.
       Alias alias = 1;

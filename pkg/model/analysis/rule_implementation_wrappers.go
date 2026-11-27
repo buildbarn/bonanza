@@ -35,11 +35,11 @@ func getImplementationWrapper[TReference object.BasicReference, TMetadata model_
 		return model_core.Message[*model_starlark_pb.Function, TReference]{}, evaluation.ErrMissingDependency
 	}
 
-	wrapperFunction, ok := wrapperValue.Message.Global.GetKind().(*model_starlark_pb.Value_Function)
-	if !ok {
+	wrapperFunction := wrapperValue.Message.GetGlobal().GetFunction()
+	if wrapperFunction == nil {
 		return model_core.Message[*model_starlark_pb.Function, TReference]{}, errors.New("global value is not a function")
 	}
-	return model_core.Nested(wrapperValue, wrapperFunction.Function), nil
+	return model_core.Nested(wrapperValue, wrapperFunction), nil
 }
 
 func (baseComputer[TReference, TMetadata]) ComputeRuleImplementationWrappersValue(ctx context.Context, key *model_analysis_pb.RuleImplementationWrappers_Key, e RuleImplementationWrappersEnvironment[TReference, TMetadata]) (PatchedRuleImplementationWrappersValue[TMetadata], error) {

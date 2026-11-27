@@ -51,16 +51,14 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 			e,
 		)
 	}
-	aspect1 := &model_starlark_pb.AppliedAspect{Identifier: "@@rules+//:defs.bzl%aspect1"}
-	aspect2 := &model_starlark_pb.AppliedAspect{Identifier: "@@rules+//:defs.bzl%aspect2"}
-	aspect3 := &model_starlark_pb.AppliedAspect{Identifier: "@@rules+//:defs.bzl%aspect3"}
-	predeclaredOutputFileTarget := &model_starlark_pb.Target_Definition{
-		Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
-			PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{
-				OwnerTargetName: "foo",
-			},
-		},
-	}
+	aspect1 := model_starlark_pb.AppliedAspect_builder{Identifier: "@@rules+//:defs.bzl%aspect1"}.Build()
+	aspect2 := model_starlark_pb.AppliedAspect_builder{Identifier: "@@rules+//:defs.bzl%aspect2"}.Build()
+	aspect3 := model_starlark_pb.AppliedAspect_builder{Identifier: "@@rules+//:defs.bzl%aspect3"}.Build()
+	predeclaredOutputFileTarget := model_starlark_pb.Target_Definition_builder{
+		PredeclaredOutputFileTarget: model_starlark_pb.PredeclaredOutputFileTarget_builder{
+			OwnerTargetName: "foo",
+		}.Build(),
+	}.Build()
 
 	t.Run("MissingTarget", func(t *testing.T) {
 		e := newEnvironment()
@@ -74,11 +72,9 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 	t.Run("SourceFile", func(t *testing.T) {
 		// Aspects never apply to source files.
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:foo.txt", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-			},
-		})
+		expectTarget(e, "@@main+//:foo.txt", model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build())
 
 		value, err := compute(e, "@@main+//:foo.txt", aspect1)
 		require.NoError(t, err)
@@ -87,11 +83,9 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 
 	t.Run("PackageGroup", func(t *testing.T) {
 		e := newEnvironment()
-		expectTarget(e, "@@main+//:group", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-				PackageGroup: &model_starlark_pb.PackageGroup{},
-			},
-		})
+		expectTarget(e, "@@main+//:group", model_starlark_pb.Target_Definition_builder{
+			PackageGroup: &model_starlark_pb.PackageGroup{},
+		}.Build())
 
 		value, err := compute(e, "@@main+//:group", aspect1)
 		require.NoError(t, err)
@@ -103,7 +97,7 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 		// apply_to_generating_rules, it does not apply.
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo.out", predeclaredOutputFileTarget)
-		expectGeneratingRuleAspects(e, []string{aspect1.Identifier, aspect2.Identifier}, []uint32{0})
+		expectGeneratingRuleAspects(e, []string{aspect1.GetIdentifier(), aspect2.GetIdentifier()}, []uint32{0})
 
 		value, err := compute(e, "@@main+//:foo.out", aspect1, aspect2)
 		require.NoError(t, err)
@@ -117,13 +111,13 @@ func TestConfiguredTargetWithAspects(t *testing.T) {
 		// apply_to_generating_rules are omitted.
 		e := newEnvironment()
 		expectTarget(e, "@@main+//:foo.out", predeclaredOutputFileTarget)
-		expectGeneratingRuleAspects(e, []string{aspect1.Identifier, aspect2.Identifier, aspect3.Identifier}, []uint32{1, 2})
-		ownerProviderInstances := []*model_starlark_pb.Struct{{
+		expectGeneratingRuleAspects(e, []string{aspect1.GetIdentifier(), aspect2.GetIdentifier(), aspect3.GetIdentifier()}, []uint32{1, 2})
+		ownerProviderInstances := []*model_starlark_pb.Struct{model_starlark_pb.Struct_builder{
 			Fields: &model_starlark_pb.Struct_Fields{},
-			ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+			ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 				ProviderIdentifier: "@@rules+//:defs.bzl%AInfo",
-			},
-		}}
+			}.Build(),
+		}.Build()}
 		e.EXPECT().GetConfiguredTargetValue(
 			eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{

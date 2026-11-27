@@ -38,11 +38,11 @@ func str(s string) *model_starlark_pb.Value {
 }
 
 func leaf(v *model_starlark_pb.Value) *model_starlark_pb.List_Element {
-	return &model_starlark_pb.List_Element{Level: &model_starlark_pb.List_Element_Leaf{Leaf: v}}
+	return model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(v)}.Build()
 }
 
 func function(name string) *model_starlark_pb.Function {
-	return &model_starlark_pb.Function{NamePath: []*model_starlark_pb.Function_Name{{Name: name}}, Filename: "@@//foo:defs.bzl"}
+	return model_starlark_pb.Function_builder{NamePath: []*model_starlark_pb.Function_Name{model_starlark_pb.Function_Name_builder{Name: name}.Build()}, Filename: "@@//foo:defs.bzl"}.Build()
 }
 
 func TestRendererStarlarkValues(t *testing.T) {
@@ -53,116 +53,116 @@ func TestRendererStarlarkValues(t *testing.T) {
 	}{
 		{
 			name:     "TupleWithSingleElement",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Tuple{Tuple: &model_starlark_pb.Tuple{Elements: []*model_starlark_pb.Value{str("a\n\"b")}}}},
+			value:    model_starlark_pb.Value_builder{Tuple: model_starlark_pb.Tuple_builder{Elements: []*model_starlark_pb.Value{str("a\n\"b")}}.Build()}.Build(),
 			expected: `("a\n\"b",)`,
 		},
 		{
 			name:     "NegativeInt",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Int{Int: []byte{0xff, 0x00}}},
+			value:    model_starlark_pb.Value_builder{Int: []byte{0xff, 0x00}}.Build(),
 			expected: "-256",
 		},
 		{
 			name:     "None",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &emptypb.Empty{}}},
+			value:    model_starlark_pb.Value_builder{None: &emptypb.Empty{}}.Build(),
 			expected: "None",
 		},
 		{
 			name: "Bytes",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bytes{Bytes: model_filesystem_pb.MaybeInlineFileContents_builder{
+			value: model_starlark_pb.Value_builder{Bytes: model_filesystem_pb.MaybeInlineFileContents_builder{
 				ContentsInline: []byte("\x00ab"),
-			}.Build()}},
+			}.Build()}.Build(),
 			expected: `b"\000ab"`,
 		},
 		{
 			name:     "Label",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: "@@foo+//bar:baz"}},
+			value:    model_starlark_pb.Value_builder{Label: proto.String("@@foo+//bar:baz")}.Build(),
 			expected: `Label("@@foo+//bar:baz")`,
 		},
 		{
 			name: "Depset",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Depset{Depset: &model_starlark_pb.Depset{
+			value: model_starlark_pb.Value_builder{Depset: model_starlark_pb.Depset_builder{
 				Order:    model_starlark_pb.Depset_TOPOLOGICAL,
 				Elements: []*model_starlark_pb.List_Element{leaf(str("x"))},
-			}}},
+			}.Build()}.Build(),
 			expected: `depset(["x"], order = "topological")`,
 		},
 		{
 			name: "Dict",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Dict{Dict: &model_starlark_pb.Dict{Entries: []*model_starlark_pb.Dict_Entry{{
-				Level: &model_starlark_pb.Dict_Entry_Leaf_{Leaf: &model_starlark_pb.Dict_Entry_Leaf{
+			value: model_starlark_pb.Value_builder{Dict: model_starlark_pb.Dict_builder{Entries: []*model_starlark_pb.Dict_Entry{model_starlark_pb.Dict_Entry_builder{
+				Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
 					Key:   str("k"),
-					Value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bool{Bool: true}},
-				}},
-			}}}}},
+					Value: model_starlark_pb.Value_builder{Bool: proto.Bool(true)}.Build(),
+				}.Build(),
+			}.Build()}}.Build()}.Build(),
 			expected: `{"k": True}`,
 		},
 		{
 			name: "SelectWithPlainValue",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Select{Select: &model_starlark_pb.Select{
+			value: model_starlark_pb.Value_builder{Select: model_starlark_pb.Select_builder{
 				ConcatenationOperator: model_starlark_pb.Select_PLUS,
 				Groups: []*model_starlark_pb.Select_Group{
-					{NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: str("p")}},
-					{
-						Conditions: []*model_starlark_pb.Select_Condition{{ConditionIdentifier: "//c:linux", Value: str("l")}},
-						NoMatch:    &model_starlark_pb.Select_Group_NoMatchError{NoMatchError: "oops"},
-					},
+					model_starlark_pb.Select_Group_builder{NoMatchValue: proto.ValueOrDefault(str("p"))}.Build(),
+					model_starlark_pb.Select_Group_builder{
+						Conditions:   []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{ConditionIdentifier: "//c:linux", Value: str("l")}.Build()},
+						NoMatchError: proto.String("oops"),
+					}.Build(),
 				},
-			}}},
+			}.Build()}.Build(),
 			expected: `"p" + select({"//c:linux": "l"}, no_match_error = "oops")`,
 		},
 		{
 			name: "Attr",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
+			value: model_starlark_pb.Value_builder{Attr: model_starlark_pb.Attr_builder{
 				Default:      str("d"),
-				Type:         &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: []string{"d", "e"}}},
+				String:       model_starlark_pb.Attr_StringType_builder{Values: []string{"d", "e"}}.Build(),
 				Configurable: true,
-			}}},
+			}.Build()}.Build(),
 			expected: `attr.string(default = "d", values = ["d", "e"])`,
 		},
 		{
 			name: "AttrNonConfigurable",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
-				Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-			}}},
+			value: model_starlark_pb.Value_builder{Attr: model_starlark_pb.Attr_builder{
+				String: &model_starlark_pb.Attr_StringType{},
+			}.Build()}.Build(),
 			expected: `attr.string(configurable = False)`,
 		},
 		{
 			name: "AttrOutput",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Attr{Attr: &model_starlark_pb.Attr{
-				Type: &model_starlark_pb.Attr_Output{Output: &model_starlark_pb.Attr_OutputType{}},
-			}}},
+			value: model_starlark_pb.Value_builder{Attr: model_starlark_pb.Attr_builder{
+				Output: &model_starlark_pb.Attr_OutputType{},
+			}.Build()}.Build(),
 			expected: `attr.output()`,
 		},
 		{
 			name:     "ToolchainType",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_ToolchainType{ToolchainType: &model_starlark_pb.ToolchainType{ToolchainType: "//t:type"}}},
+			value:    model_starlark_pb.Value_builder{ToolchainType: model_starlark_pb.ToolchainType_builder{ToolchainType: "//t:type"}.Build()}.Build(),
 			expected: `config_common.toolchain_type("//t:type", mandatory = False)`,
 		},
 		{
 			name:     "RuleReference",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{Kind: &model_starlark_pb.Rule_Reference{Reference: "@@//foo:defs.bzl%foo_rule"}}}},
+			value:    model_starlark_pb.Value_builder{Rule: model_starlark_pb.Rule_builder{Reference: proto.String("@@//foo:defs.bzl%foo_rule")}.Build()}.Build(),
 			expected: "<rule foo_rule>",
 		},
 		{
 			name:     "MacroReference",
-			value:    &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{Kind: &model_starlark_pb.Macro_Reference{Reference: "@@//foo:defs.bzl%foo_macro"}}}},
+			value:    model_starlark_pb.Value_builder{Macro: model_starlark_pb.Macro_builder{Reference: proto.String("@@//foo:defs.bzl%foo_macro")}.Build()}.Build(),
 			expected: "<macro foo_macro>",
 		},
 		{
 			name: "MacroDefinition",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Macro{Macro: &model_starlark_pb.Macro{Kind: &model_starlark_pb.Macro_Definition_{Definition: &model_starlark_pb.Macro_Definition{
+			value: model_starlark_pb.Value_builder{Macro: model_starlark_pb.Macro_builder{Definition: model_starlark_pb.Macro_Definition_builder{
 				Implementation: function("_impl"),
 				Finalizer:      true,
-			}}}}},
+			}.Build()}.Build()}.Build(),
 			expected: "macro(implementation = <function _impl>, finalizer = True)",
 		},
 		{
 			name: "Provider",
-			value: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Provider{Provider: &model_starlark_pb.Provider{
-				InstanceProperties: &model_starlark_pb.Provider_InstanceProperties{ProviderIdentifier: "@@//foo:defs.bzl%FooInfo", TypeName: "Foo"},
+			value: model_starlark_pb.Value_builder{Provider: model_starlark_pb.Provider_builder{
+				InstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{ProviderIdentifier: "@@//foo:defs.bzl%FooInfo", TypeName: "Foo"}.Build(),
 				Fields:             []string{"a", "b"},
 				InitFunction:       function("_init"),
-			}}},
+			}.Build()}.Build(),
 			expected: `provider(fields = ["a", "b"], init = <function _init>, type_name = "Foo")`,
 		},
 	} {
@@ -173,26 +173,26 @@ func TestRendererStarlarkValues(t *testing.T) {
 }
 
 func TestRendererStarlarkStruct(t *testing.T) {
-	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Struct{Struct: &model_starlark_pb.Struct{
-		ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+	value := model_starlark_pb.Value_builder{Struct: model_starlark_pb.Struct_builder{
+		ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 			ProviderIdentifier: "@@rules_cc+//cc:defs.bzl%CcInfo",
-		},
-		Fields: &model_starlark_pb.Struct_Fields{
+		}.Build(),
+		Fields: model_starlark_pb.Struct_Fields_builder{
 			Keys: []string{"a", "b", "c", "long"},
 			Values: []*model_starlark_pb.List_Element{
 				leaf(str("x")),
 				// Fields "b" and "c" are stored in a separate
 				// object.
-				{Level: &model_starlark_pb.List_Element_Parent_{Parent: &model_starlark_pb.List_Element_Parent{Count: 2}}},
-				leaf(&model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{
+				model_starlark_pb.List_Element_builder{Parent: model_starlark_pb.List_Element_Parent_builder{Count: 2}.Build()}.Build(),
+				leaf(model_starlark_pb.Value_builder{List: model_starlark_pb.List_builder{
 					Elements: []*model_starlark_pb.List_Element{
 						leaf(str("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
 						leaf(str("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")),
 					},
-				}}}),
+				}.Build()}.Build()),
 			},
-		},
-	}}}
+		}.Build(),
+	}.Build()}.Build()
 
 	t.Run("SingleLine", func(t *testing.T) {
 		require.Equal(
@@ -219,47 +219,45 @@ func TestRendererStarlarkStruct(t *testing.T) {
 }
 
 func TestRendererStarlarkRule(t *testing.T) {
-	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
+	value := model_starlark_pb.Value_builder{Rule: model_starlark_pb.Rule_builder{Definition: model_starlark_pb.Rule_Definition_builder{
 		Implementation: function("_impl"),
 		Attrs: []*model_starlark_pb.NamedAttr{
-			{
+			model_starlark_pb.NamedAttr_builder{
 				Name: "deps",
-				Attr: &model_starlark_pb.Attr{
-					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
-						ListOptions:      &model_starlark_pb.Attr_CompositeOptions{AllowEmpty: true},
-						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Providers: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}}}},
-					}},
+				Attr: model_starlark_pb.Attr_builder{
+					LabelList: model_starlark_pb.Attr_LabelListType_builder{
+						ListOptions:      model_starlark_pb.Attr_CompositeOptions_builder{AllowEmpty: true}.Build(),
+						ListValueOptions: model_starlark_pb.Attr_LabelOptions_builder{Providers: []*model_starlark_pb.ProviderSet{model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: []string{"@@rules_cc+//cc:defs.bzl%CcInfo"}}.Build()}}.Build(),
+					}.Build(),
 					Configurable: true,
-				},
-			},
-			{
+				}.Build(),
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				Name: "_tool",
-				Attr: &model_starlark_pb.Attr{
-					Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: "@@//tools:tool"}},
-					Type: &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{
+				Attr: model_starlark_pb.Attr_builder{
+					Default: model_starlark_pb.Value_builder{Label: proto.String("@@//tools:tool")}.Build(),
+					Label: model_starlark_pb.Attr_LabelType_builder{
 						Executable: true,
-						ValueOptions: &model_starlark_pb.Attr_LabelOptions{
-							Cfg:       &model_starlark_pb.Transition{Kind: &model_starlark_pb.Transition_ExecGroup{}},
+						ValueOptions: model_starlark_pb.Attr_LabelOptions_builder{
+							Cfg:       model_starlark_pb.Transition_builder{ExecGroup: proto.String("")}.Build(),
 							Providers: []*model_starlark_pb.ProviderSet{{}},
-						},
-					}},
+						}.Build(),
+					}.Build(),
 					Configurable: true,
-				},
-			},
+				}.Build(),
+			}.Build(),
 		},
-		BuildSetting: &model_starlark_pb.BuildSetting{
-			Flag: true,
-			Type: &model_starlark_pb.BuildSetting_StringList{StringList: &model_starlark_pb.BuildSetting_ListType{Repeatable: true}},
-		},
-		CfgTransition: &model_starlark_pb.Transition_UserDefined{Kind: &model_starlark_pb.Transition_UserDefined_Definition_{
-			Definition: &model_starlark_pb.Transition_UserDefined_Definition{
-				Implementation: function("_transition"),
-				Inputs:         []string{"//command_line_option:cpu"},
-			},
-		}},
+		BuildSetting: model_starlark_pb.BuildSetting_builder{
+			Flag:       true,
+			StringList: model_starlark_pb.BuildSetting_ListType_builder{Repeatable: true}.Build(),
+		}.Build(),
+		CfgTransition: model_starlark_pb.Transition_UserDefined_builder{Definition: model_starlark_pb.Transition_UserDefined_Definition_builder{
+			Implementation: function("_transition"),
+			Inputs:         []string{"//command_line_option:cpu"},
+		}.Build()}.Build(),
 		Provides: []string{"@@//foo:defs.bzl%FooInfo"},
 		Type:     model_starlark_pb.Rule_Definition_TEST,
-	}}}}}
+	}.Build()}.Build()}.Build()
 
 	require.Equal(
 		t,
@@ -287,32 +285,32 @@ func TestRendererStarlarkRule(t *testing.T) {
 }
 
 func TestRendererStarlarkAspect(t *testing.T) {
-	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Aspect{Aspect: &model_starlark_pb.Aspect{Kind: &model_starlark_pb.Aspect_Definition_{Definition: &model_starlark_pb.Aspect_Definition{
+	value := model_starlark_pb.Value_builder{Aspect: model_starlark_pb.Aspect_builder{Definition: model_starlark_pb.Aspect_Definition_builder{
 		Implementation:         function("_impl"),
 		ApplyToGeneratingRules: true,
-		AttrAspects:            &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{Names: []string{"deps"}}}},
+		AttrAspects:            model_starlark_pb.Aspect_PropagationEdges_builder{Fixed: model_starlark_pb.Aspect_PropagationEdges_Fixed_builder{Names: []string{"deps"}}.Build()}.Build(),
 		Attrs: []*model_starlark_pb.NamedAttr{
-			{
+			model_starlark_pb.NamedAttr_builder{
 				Name: "_srcs",
-				Attr: &model_starlark_pb.Attr{
-					Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}}},
-					Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{
-						ListValueOptions: &model_starlark_pb.Attr_LabelOptions{
+				Attr: model_starlark_pb.Attr_builder{
+					Default: model_starlark_pb.Value_builder{List: &model_starlark_pb.List{}}.Build(),
+					LabelList: model_starlark_pb.Attr_LabelListType_builder{
+						ListValueOptions: model_starlark_pb.Attr_LabelOptions_builder{
 							AllowFiles: &model_starlark_pb.Attr_AllowFiles{},
 							Aspects:    []string{"@@//foo:defs.bzl%other_aspect"},
 							Providers:  []*model_starlark_pb.ProviderSet{{}},
-						},
-					}},
+						}.Build(),
+					}.Build(),
 					Configurable: true,
-				},
-			},
+				}.Build(),
+			}.Build(),
 		},
 		Provides:                []string{"@@//foo:defs.bzl%FooInfo"},
-		RequiredAspectProviders: []*model_starlark_pb.ProviderSet{{ProviderIdentifiers: []string{"@@//foo:defs.bzl%BarInfo"}}},
+		RequiredAspectProviders: []*model_starlark_pb.ProviderSet{model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: []string{"@@//foo:defs.bzl%BarInfo"}}.Build()},
 		RequiredProviders:       []*model_starlark_pb.ProviderSet{{}},
 		Requires:                []string{"@@//foo:defs.bzl%other_aspect"},
-		ToolchainsAspects:       &model_starlark_pb.Aspect_PropagationEdges{Kind: &model_starlark_pb.Aspect_PropagationEdges_All{All: &emptypb.Empty{}}},
-	}}}}}
+		ToolchainsAspects:       model_starlark_pb.Aspect_PropagationEdges_builder{All: &emptypb.Empty{}}.Build(),
+	}.Build()}.Build()}.Build()
 
 	require.Equal(
 		t,
@@ -338,10 +336,10 @@ func TestRendererStarlarkAspect(t *testing.T) {
 }
 
 func TestRendererStarlarkExecutableRule(t *testing.T) {
-	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Rule{Rule: &model_starlark_pb.Rule{Kind: &model_starlark_pb.Rule_Definition_{Definition: &model_starlark_pb.Rule_Definition{
+	value := model_starlark_pb.Value_builder{Rule: model_starlark_pb.Rule_builder{Definition: model_starlark_pb.Rule_Definition_builder{
 		Implementation: function("_impl"),
 		Type:           model_starlark_pb.Rule_Definition_EXECUTABLE,
-	}}}}}
+	}.Build()}.Build()}.Build()
 
 	require.Equal(
 		t,
@@ -353,12 +351,12 @@ func TestRendererStarlarkExecutableRule(t *testing.T) {
 func TestRendererJSON(t *testing.T) {
 	// When pretty printing is disabled, Starlark values should be
 	// rendered as JSON.
-	value := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Tuple{Tuple: &model_starlark_pb.Tuple{
+	value := model_starlark_pb.Value_builder{Tuple: model_starlark_pb.Tuple_builder{
 		Elements: []*model_starlark_pb.Value{
 			str("a"),
-			{Kind: &model_starlark_pb.Value_Bool{Bool: true}},
+			model_starlark_pb.Value_builder{Bool: proto.Bool(true)}.Build(),
 		},
-	}}}
+	}.Build()}.Build()
 
 	t.Run("SingleLine", func(t *testing.T) {
 		require.Equal(
@@ -723,16 +721,16 @@ func newStringValue(s string) *model_starlark_pb.Value {
 	if s != "" {
 		contents.SetContentsInline([]byte(s))
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{Str: contents},
-	}
+	return model_starlark_pb.Value_builder{
+		Str: proto.ValueOrDefault(contents),
+	}.Build()
 }
 
 func TestRendererFunctionEntryLeaf(t *testing.T) {
 	newLeaf := func(code []byte) *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf {
-		return &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf{
-			Name: &model_starlark_pb.Function_Name{Name: "greet"},
-			Code: &model_starlark_pb.Funcode{
+		return model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_builder{
+			Name: model_starlark_pb.Function_Name_builder{Name: "greet"}.Build(),
+			Code: model_starlark_pb.Funcode_builder{
 				Column: 1,
 				Code:   code,
 				// Position of the instruction at offset 4, as
@@ -742,18 +740,18 @@ func TestRendererFunctionEntryLeaf(t *testing.T) {
 				Locals:          []string{"name"},
 				NumParams:       1,
 				MaxStack:        2,
-				Functions: []*model_starlark_pb.Funcode_NestedFunction{{
+				Functions: []*model_starlark_pb.Funcode_NestedFunction{model_starlark_pb.Funcode_NestedFunction_builder{
 					RelativeLine: 2,
-					Funcode: &model_starlark_pb.Funcode{
+					Funcode: model_starlark_pb.Funcode_builder{
 						Code:          []byte{byte(compile.FREECELL), 0x80, byte(compile.RETURN)},
 						FreeVariables: []string{"captured"},
 						Column:        5,
 						LineTable:     []byte{0x80},
 						MaxStack:      1,
-					},
-				}},
-			},
-		}
+					}.Build(),
+				}.Build()},
+			}.Build(),
+		}.Build()
 	}
 	code := []byte{
 		byte(compile.STR), 0x80,

@@ -22,24 +22,24 @@ import (
 func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Context, e PackageGroupContainsValueGetter[TReference], valueReaders *model_starlark.ValueReaders[TReference], packageGroup model_core.Message[*model_starlark_pb.PackageGroup, TReference], fromPackage label.CanonicalPackage) (bool, error) {
 	// Check whether the provided package is directly contained in
 	// this package group.
-	subpackages := model_core.Nested(packageGroup, packageGroup.Message.Tree)
+	subpackages := model_core.Nested(packageGroup, packageGroup.Message.GetTree())
 	component := fromPackage.GetCanonicalRepo().String()
 	fromPackagePath := fromPackage.GetPackagePath()
 	for {
 		// Determine whether there are any overrides present at
 		// this level in the tree.
 		var overrides model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, TReference]
-		switch o := subpackages.Message.GetOverrides().(type) {
-		case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
-			overrides = model_core.Nested(subpackages, o.OverridesInline)
-		case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
+		switch subpackages.Message.WhichOverrides() {
+		case model_starlark_pb.PackageGroup_Subpackages_OverridesInline_case:
+			overrides = model_core.Nested(subpackages, subpackages.Message.GetOverridesInline())
+		case model_starlark_pb.PackageGroup_Subpackages_OverridesExternal_case:
 			// Overrides were too large to be stored inline.
 			var err error
-			overrides, err = model_parser.Dereference(ctx, valueReaders.PackageGroupOverrides, model_core.Nested(subpackages, o.OverridesExternal))
+			overrides, err = model_parser.Dereference(ctx, valueReaders.PackageGroupOverrides, model_core.Nested(subpackages, subpackages.Message.GetOverridesExternal()))
 			if err != nil {
 				return false, fmt.Errorf("failed to load overrides: %w", err)
 			}
-		case nil:
+		case 0:
 			// No overrides present.
 		default:
 			return false, errors.New("invalid overrides type")
@@ -48,7 +48,7 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 		packages := overrides.Message.GetPackages()
 		packageIndex, ok := sort.Find(
 			len(packages),
-			func(i int) int { return strings.Compare(component, packages[i].Component) },
+			func(i int) int { return strings.Compare(component, packages[i].GetComponent()) },
 		)
 		if !ok {
 			// No override is in place for this specific
@@ -62,12 +62,12 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 		// An override is in place for this specific component.
 		// Continue traversal.
 		p := packages[packageIndex]
-		subpackages = model_core.Nested(overrides, p.Subpackages)
+		subpackages = model_core.Nested(overrides, p.GetSubpackages())
 
 		if fromPackagePath == "" {
 			// Fully resolved the package name. Consider
 			// include_package.
-			if !p.IncludePackage {
+			if !p.GetIncludePackage() {
 				break
 			}
 			return true, nil
@@ -85,7 +85,7 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 
 	// Package is not directly contained in this package group.
 	// Check package groups that are being included.
-	for _, includePackageGroup := range packageGroup.Message.IncludePackageGroups {
+	for _, includePackageGroup := range packageGroup.Message.GetIncludePackageGroups() {
 		containsValue := e.GetPackageGroupContainsValue(&model_analysis_pb.PackageGroupContains_Key{
 			PackageGroupLabel: includePackageGroup,
 			Package:           fromPackage.String(),
@@ -93,7 +93,7 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 		if !containsValue.IsSet() {
 			return false, evaluation.ErrMissingDependency
 		}
-		if containsValue.Message.Contains {
+		if containsValue.Message.GetContains() {
 			return true, nil
 		}
 	}
@@ -103,32 +103,31 @@ func (*baseComputer[TReference, TMetadata]) packageGroupContains(ctx context.Con
 func (c *baseComputer[TReference, TMetadata]) ComputePackageGroupContainsValue(ctx context.Context, key *model_analysis_pb.PackageGroupContains_Key, e PackageGroupContainsEnvironment[TReference, TMetadata]) (PatchedPackageGroupContainsValue[TMetadata], error) {
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	fromPackage, err := label.NewCanonicalPackage(key.Package)
+	fromPackage, err := label.NewCanonicalPackage(key.GetPackage())
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
 	}
 
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
-		Label: key.PackageGroupLabel,
+		Label: key.GetPackageGroupLabel(),
 	})
 	if !targetValue.IsSet() || !gotValueReaders {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
+	targetValueDefinition := targetValue.Message.GetDefinition()
+	if targetValueDefinition == nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, errors.New("package group does not exist")
 	}
-	definition, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_PackageGroup)
-	if !ok {
+	definition := targetValueDefinition.GetPackageGroup()
+	if definition == nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, errors.New("target is not a package group")
 	}
 
-	contains, err := c.packageGroupContains(ctx, e, valueReaders, model_core.Nested(targetValue, definition.PackageGroup), fromPackage)
+	contains, err := c.packageGroupContains(ctx, e, valueReaders, model_core.Nested(targetValue, definition), fromPackage)
 	if err != nil {
 		return PatchedPackageGroupContainsValue[TMetadata]{}, err
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_analysis_pb.PackageGroupContains_Value{
-			Contains: contains,
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.PackageGroupContains_Value{
+		Contains: contains,
+	}), nil
 }

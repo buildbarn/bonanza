@@ -11,8 +11,10 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
-	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestLabelAttrAspects(t *testing.T) {
@@ -37,15 +39,11 @@ func TestLabelAttrAspects(t *testing.T) {
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: identifier}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-			Global: &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Aspect{
-					Aspect: &model_starlark_pb.Aspect{
-						Kind: &model_starlark_pb.Aspect_Definition_{
-							Definition: definition,
-						},
-					},
-				},
-			},
+			Global: model_starlark_pb.Value_builder{
+				Aspect: model_starlark_pb.Aspect_builder{
+					Definition: proto.ValueOrDefault(definition),
+				}.Build(),
+			}.Build(),
 		})).AnyTimes()
 	}
 	compute := func(e *MockLabelAttrAspectsEnvironmentForTesting, aspectIdentifiers ...string) (model_core.PatchedMessage[*model_analysis_pb.LabelAttrAspects_Value, model_core.CreatedObjectTree], error) {
@@ -53,10 +51,10 @@ func TestLabelAttrAspects(t *testing.T) {
 			AspectIdentifiers: aspectIdentifiers,
 		}, e)
 	}
-	boolAttr := &model_starlark_pb.Attr{
-		Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bool{Bool: false}},
-		Type:    &model_starlark_pb.Attr_Bool{Bool: &emptypb.Empty{}},
-	}
+	boolAttr := model_starlark_pb.Attr_builder{
+		Default: model_starlark_pb.Value_builder{Bool: proto.Bool(false)}.Build(),
+		Bool:    &emptypb.Empty{},
+	}.Build()
 
 	t.Run("Success", func(t *testing.T) {
 		// aspect2 requires aspect1, and aspect3 requires
@@ -64,18 +62,18 @@ func TestLabelAttrAspects(t *testing.T) {
 		// it requires, and occur only once. Only public attrs are
 		// returned.
 		e := newEnvironment()
-		expectAspect(e, aspect1, &model_starlark_pb.Aspect_Definition{
+		expectAspect(e, aspect1, model_starlark_pb.Aspect_Definition_builder{
 			Attrs: []*model_starlark_pb.NamedAttr{
-				{Name: "_private", Attr: boolAttr},
-				{Name: "public", Attr: boolAttr},
+				model_starlark_pb.NamedAttr_builder{Name: "_private", Attr: boolAttr}.Build(),
+				model_starlark_pb.NamedAttr_builder{Name: "public", Attr: boolAttr}.Build(),
 			},
-		})
-		expectAspect(e, aspect2, &model_starlark_pb.Aspect_Definition{
+		}.Build())
+		expectAspect(e, aspect2, model_starlark_pb.Aspect_Definition_builder{
 			Requires: []string{aspect1},
-		})
-		expectAspect(e, aspect3, &model_starlark_pb.Aspect_Definition{
+		}.Build())
+		expectAspect(e, aspect3, model_starlark_pb.Aspect_Definition_builder{
 			Requires: []string{aspect2},
-		})
+		}.Build())
 
 		value, err := compute(e, aspect3, aspect1)
 		require.NoError(t, err)
@@ -83,7 +81,7 @@ func TestLabelAttrAspects(t *testing.T) {
 			Aspects: []*model_analysis_pb.LabelAttrAspects_Value_Aspect{
 				{
 					Identifier:  aspect1,
-					PublicAttrs: []*model_starlark_pb.NamedAttr{{Name: "public", Attr: boolAttr}},
+					PublicAttrs: []*model_starlark_pb.NamedAttr{model_starlark_pb.NamedAttr_builder{Name: "public", Attr: boolAttr}.Build()},
 				},
 				{Identifier: aspect2},
 				{Identifier: aspect3},
@@ -104,12 +102,12 @@ func TestLabelAttrAspects(t *testing.T) {
 
 	t.Run("Cycle", func(t *testing.T) {
 		e := newEnvironment()
-		expectAspect(e, aspect1, &model_starlark_pb.Aspect_Definition{
+		expectAspect(e, aspect1, model_starlark_pb.Aspect_Definition_builder{
 			Requires: []string{aspect2},
-		})
-		expectAspect(e, aspect2, &model_starlark_pb.Aspect_Definition{
+		}.Build())
+		expectAspect(e, aspect2, model_starlark_pb.Aspect_Definition_builder{
 			Requires: []string{aspect1},
-		})
+		}.Build())
 
 		_, err := compute(e, aspect1)
 		require.EqualError(t, err, "aspect \"@@rules+//:defs.bzl%aspect1\" requires itself, either directly or indirectly")

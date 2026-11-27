@@ -299,10 +299,10 @@ func TestFunctionStorageLines(t *testing.T) {
 	})
 
 	t.Run("MissingLines", func(t *testing.T) {
-		thread, globals := decode(model_core.Nested(original, &model_starlark_pb.CompiledProgram{
+		thread, globals := decode(model_core.Nested(original, model_starlark_pb.CompiledProgram_builder{
 			Globals:   original.Message.GetGlobals(),
 			Functions: original.Message.GetFunctions(),
-		}))
+		}.Build()))
 		_, err := globals["f0"].(eval.Function).Funcode(thread)
 		require.ErrorContains(t, err, "line of function does not exist")
 	})
@@ -481,7 +481,7 @@ SECOND = lambda: "second"
 	require.NotNil(t, program.Message.GetFunctions()[0].GetParent())
 
 	name := func(name string, index int32) *model_starlark_pb.Function_Name {
-		return &model_starlark_pb.Function_Name{Name: name, DisambiguationIndex: index}
+		return model_starlark_pb.Function_Name_builder{Name: name, DisambiguationIndex: index}.Build()
 	}
 	requireNamePath := func(t *testing.T, thread *eval.Thread, function eval.Value, expected ...*model_starlark_pb.Function_Name) {
 		actual := namePath(t, thread, function)

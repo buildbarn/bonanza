@@ -51,8 +51,8 @@ func (registeredExecutionPlatformExtractingModuleDotBazelHandler[TReference, TMe
 }
 
 func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) ([]*model_analysis_pb.Constraint, error) {
-	dict, ok := value.Message.Kind.(*model_starlark_pb.Value_Dict)
-	if !ok {
+	dict := value.Message.GetDict()
+	if dict == nil {
 		return nil, errors.New("constraints field is not a dict")
 	}
 	var iterErr error
@@ -60,26 +60,26 @@ func extractFromPlatformInfoConstraints[TReference object.BasicReference](ctx co
 	for key, value := range model_starlark.AllDictLeafEntries(
 		ctx,
 		valueReaders.Dict,
-		model_core.Nested(value, dict.Dict),
+		model_core.Nested(value, dict),
 		&iterErr,
 	) {
-		keyLabel, ok := key.Message.GetKind().(*model_starlark_pb.Value_Label)
-		if !ok {
+		keyLabel := key.Message.GetLabel()
+		if keyLabel == "" {
 			return nil, errors.New("key of constraints field is not a label")
 		}
-		switch valueKind := value.Message.GetKind().(type) {
-		case *model_starlark_pb.Value_Label:
-			constraints[keyLabel.Label] = valueKind.Label
-		case *model_starlark_pb.Value_None:
+		switch value.Message.WhichKind() {
+		case model_starlark_pb.Value_Label_case:
+			constraints[keyLabel] = value.Message.GetLabel()
+		case model_starlark_pb.Value_None_case:
 			// ConfigSettingInfo uses None to denote that the
 			// constraint setting must be set to its default
 			// value, meaning it must be absent from the
 			// platform's constraints. This is encoded as an
 			// empty value, which constraintsAreCompatible()
 			// understands.
-			constraints[keyLabel.Label] = ""
+			constraints[keyLabel] = ""
 		default:
-			return nil, fmt.Errorf("value of constraint setting %#v in constraints field is not a label or None", keyLabel.Label)
+			return nil, fmt.Errorf("value of constraint setting %#v in constraints field is not a label or None", keyLabel)
 		}
 	}
 	if iterErr != nil {

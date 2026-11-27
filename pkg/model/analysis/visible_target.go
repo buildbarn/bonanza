@@ -32,10 +32,10 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 	selectGroup *model_starlark_pb.Select_Group,
 	permitNoMatch bool,
 ) (*model_starlark_pb.Value, error) {
-	if conditions := selectGroup.Conditions; len(conditions) > 0 {
+	if conditions := selectGroup.GetConditions(); len(conditions) > 0 {
 		conditionIdentifiers := make([]string, 0, len(conditions))
 		for _, condition := range conditions {
-			conditionIdentifiers = append(conditionIdentifiers, condition.ConditionIdentifier)
+			conditionIdentifiers = append(conditionIdentifiers, condition.GetConditionIdentifier())
 		}
 		patchedConfigurationReference := model_core.Patch(e, configurationReference)
 		selectValue := e.GetSelectValue(
@@ -51,37 +51,37 @@ func getValueFromSelectGroup[TReference object.BasicReference, TMetadata model_c
 		if !selectValue.IsSet() {
 			return nil, evaluation.ErrMissingDependency
 		}
-		if len(selectValue.Message.ConditionIndices) > 0 {
-			firstIndex := selectValue.Message.ConditionIndices[0]
+		if conditionIndices := selectValue.Message.GetConditionIndices(); len(conditionIndices) > 0 {
+			firstIndex := conditionIndices[0]
 			if firstIndex >= uint32(len(conditions)) {
 				return nil, fmt.Errorf("condition index %d is out of bounds, as the select group only has %d conditions", firstIndex, len(conditions))
 			}
-			firstConditionValue := conditions[firstIndex].Value
+			firstConditionValue := conditions[firstIndex].GetValue()
 
 			// It is valid if multiple conditions match.
 			// However, in that case the resulting values
 			// must be identical.
-			for _, additionalIndex := range selectValue.Message.ConditionIndices {
+			for _, additionalIndex := range conditionIndices {
 				if additionalIndex >= uint32(len(conditions)) {
 					return nil, fmt.Errorf("condition index %d is out of bounds, as the select group only has %d conditions", additionalIndex, len(conditions))
 				}
-				if !proto.Equal(firstConditionValue, conditions[additionalIndex].Value) {
-					return nil, fmt.Errorf("both conditions %#v and %#v match, but their resulting values differ", conditions[firstIndex].ConditionIdentifier, conditions[additionalIndex].ConditionIdentifier)
+				if !proto.Equal(firstConditionValue, conditions[additionalIndex].GetValue()) {
+					return nil, fmt.Errorf("both conditions %#v and %#v match, but their resulting values differ", conditions[firstIndex].GetConditionIdentifier(), conditions[additionalIndex].GetConditionIdentifier())
 				}
 			}
 			return firstConditionValue, nil
 		}
 	}
 
-	switch noMatch := selectGroup.NoMatch.(type) {
-	case *model_starlark_pb.Select_Group_NoMatchValue:
-		return noMatch.NoMatchValue, nil
-	case *model_starlark_pb.Select_Group_NoMatchError:
+	switch selectGroup.WhichNoMatch() {
+	case model_starlark_pb.Select_Group_NoMatchValue_case:
+		return selectGroup.GetNoMatchValue(), nil
+	case model_starlark_pb.Select_Group_NoMatchError_case:
 		if permitNoMatch {
 			return nil, nil
 		}
-		return nil, errors.New(noMatch.NoMatchError)
-	case nil:
+		return nil, errors.New(selectGroup.GetNoMatchError())
+	case 0:
 		if permitNoMatch {
 			return nil, nil
 		}
@@ -110,11 +110,11 @@ func (c *baseComputer[TReference, TMetadata]) checkVisibility(ctx context.Contex
 // getRuleTargetVisibility returns the package group that controls
 // which packages may reference a rule target.
 func getRuleTargetVisibility[TReference any](ruleTargetLabel label.CanonicalLabel, ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
-	inheritableAttrs := ruleTarget.Message.InheritableAttrs
+	inheritableAttrs := ruleTarget.Message.GetInheritableAttrs()
 	if inheritableAttrs == nil {
 		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("rule target %#v has no inheritable attrs", ruleTargetLabel.String())
 	}
-	return model_core.Nested(ruleTarget, inheritableAttrs.Visibility), true, nil
+	return model_core.Nested(ruleTarget, inheritableAttrs.GetVisibility()), true, nil
 }
 
 // getTargetVisibility returns the package group that controls which
@@ -123,19 +123,19 @@ func getRuleTargetVisibility[TReference any](ruleTargetLabel label.CanonicalLabe
 // returned. If the target is visible to all packages, false is
 // returned.
 func getTargetVisibility[TReference any](e TargetValueGetter[TReference], targetLabel label.CanonicalLabel, definition model_core.Message[*model_starlark_pb.Target_Definition, TReference]) (model_core.Message[*model_starlark_pb.PackageGroup, TReference], bool, error) {
-	switch kind := definition.Message.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
-		return model_core.Nested(definition, kind.Alias.Visibility), true, nil
-	case *model_starlark_pb.Target_Definition_LabelSetting:
-		return model_core.Nested(definition, kind.LabelSetting.Visibility), true, nil
-	case *model_starlark_pb.Target_Definition_PackageGroup:
+	switch definition.Message.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
+		return model_core.Nested(definition, definition.Message.GetAlias().GetVisibility()), true, nil
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
+		return model_core.Nested(definition, definition.Message.GetLabelSetting().GetVisibility()), true, nil
+	case model_starlark_pb.Target_Definition_PackageGroup_case:
 		// Package groups don't have a visibility of their own.
 		// Any target is allowed to reference them.
 		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, nil
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		// The visibility of predeclared output files is
 		// controlled by the rule target that owns them.
-		ownerTargetNameStr := kind.PredeclaredOutputFileTarget.OwnerTargetName
+		ownerTargetNameStr := definition.Message.GetPredeclaredOutputFileTarget().GetOwnerTargetName()
 		ownerTargetName, err := label.NewTargetName(ownerTargetNameStr)
 		if err != nil {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("invalid owner target name %#v: %w", ownerTargetNameStr, err)
@@ -147,20 +147,21 @@ func getTargetVisibility[TReference any](e TargetValueGetter[TReference], target
 		if !ownerTargetValue.IsSet() {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, evaluation.ErrMissingDependency
 		}
-		if ownerTargetValue.Message.Definition == nil {
+		ownerDefinition := ownerTargetValue.Message.GetDefinition()
+		if ownerDefinition == nil {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("owner %#v does not exist", ownerLabel.String())
 		}
-		ownerRuleTarget, ok := ownerTargetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
-		if !ok {
+		ownerRuleTarget := ownerDefinition.GetRuleTarget()
+		if ownerRuleTarget == nil {
 			return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, fmt.Errorf("owner %#v is not a rule target", ownerLabel.String())
 		}
-		return getRuleTargetVisibility(ownerLabel, model_core.Nested(ownerTargetValue, ownerRuleTarget.RuleTarget))
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		return getRuleTargetVisibility(targetLabel, model_core.Nested(definition, kind.RuleTarget))
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
-		return model_core.Nested(definition, kind.SourceFileTarget.Visibility), true, nil
-	case *model_starlark_pb.Target_Definition_TestSuite:
-		return model_core.Nested(definition, kind.TestSuite.Visibility), true, nil
+		return getRuleTargetVisibility(ownerLabel, model_core.Nested(ownerTargetValue, ownerRuleTarget))
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		return getRuleTargetVisibility(targetLabel, model_core.Nested(definition, definition.Message.GetRuleTarget()))
+	case model_starlark_pb.Target_Definition_SourceFileTarget_case:
+		return model_core.Nested(definition, definition.Message.GetSourceFileTarget().GetVisibility()), true, nil
+	case model_starlark_pb.Target_Definition_TestSuite_case:
+		return model_core.Nested(definition, definition.Message.GetTestSuite().GetVisibility()), true, nil
 	default:
 		return model_core.Message[*model_starlark_pb.PackageGroup, TReference]{}, false, errors.New("invalid target type")
 	}
@@ -170,42 +171,43 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 	valueReaders, gotValueReaders := getStarlarkValueReaders(e)
 
-	fromPackage, err := label.NewCanonicalPackage(key.Message.FromPackage)
+	fromPackage, err := label.NewCanonicalPackage(key.Message.GetFromPackage())
 	if err != nil {
 		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid from package: %w", err)
 	}
-	toLabel, err := label.NewCanonicalLabel(key.Message.ToLabel)
+	toLabel, err := label.NewCanonicalLabel(key.Message.GetToLabel())
 	if err != nil {
 		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid to label: %w", err)
 	}
 
 	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
-		Label: key.Message.ToLabel,
+		Label: key.Message.GetToLabel(),
 	})
 	if !targetValue.IsSet() || !gotAnalysisReaders || !gotValueReaders {
 		return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if targetValue.Message.Definition == nil {
-		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.Message.ToLabel)
+	targetValueDefinition := targetValue.Message.GetDefinition()
+	if targetValueDefinition == nil {
+		return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.Message.GetToLabel())
 	}
 
-	configurationReference := model_core.Nested(key, key.Message.ConfigurationReference)
+	configurationReference := model_core.Nested(key, key.Message.GetConfigurationReference())
 
-	switch definition := targetValue.Message.Definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
+	switch targetValueDefinition.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
 		if err := c.checkVisibility(
 			ctx,
 			e,
 			valueReaders,
 			fromPackage,
 			toLabel,
-			model_core.Nested(targetValue, definition.Alias.Visibility),
+			model_core.Nested(targetValue, targetValueDefinition.GetAlias().GetVisibility()),
 		); err != nil {
 			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
 		// If the actual target is a select(), evaluate it.
-		actualSelectGroup := definition.Alias.Actual
+		actualSelectGroup := targetValueDefinition.GetAlias().GetActual()
 		if actualSelectGroup == nil {
 			return PatchedVisibleTargetValue[TMetadata]{}, errors.New("alias has no actual target")
 		}
@@ -214,7 +216,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			configurationReference,
 			toLabel.GetCanonicalPackage(),
 			actualSelectGroup,
-			key.Message.PermitAliasNoMatch,
+			key.Message.GetPermitAliasNoMatch(),
 		)
 		if err != nil {
 			return PatchedVisibleTargetValue[TMetadata]{}, err
@@ -224,11 +226,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			// is fine with that.
 			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 		}
-		switch actualValueKind := actualValue.Kind.(type) {
-		case *model_starlark_pb.Value_Label:
-			actualLabel, err := label.NewResolvedLabel(actualValueKind.Label)
+		switch actualValue.WhichKind() {
+		case model_starlark_pb.Value_Label_case:
+			actualLabel, err := label.NewResolvedLabel(actualValue.GetLabel())
 			if err != nil {
-				return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid label %#v: %w", actualValueKind.Label, err)
+				return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid label %#v: %w", actualValue.GetLabel(), err)
 			}
 			actualCanonicalLabel, err := actualLabel.AsCanonical()
 			if err != nil {
@@ -242,8 +244,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 					&model_analysis_pb.VisibleTarget_Key{
 						FromPackage:            toLabel.GetCanonicalPackage().String(),
 						ToLabel:                actualCanonicalLabel.String(),
-						PermitAliasNoMatch:     key.Message.PermitAliasNoMatch,
-						StopAtLabelSetting:     key.Message.StopAtLabelSetting,
+						PermitAliasNoMatch:     key.Message.GetPermitAliasNoMatch(),
+						StopAtLabelSetting:     key.Message.GetStopAtLabelSetting(),
 						ConfigurationReference: patchedConfigurationReference.Message,
 					},
 					patchedConfigurationReference.Patcher,
@@ -253,7 +255,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 				return PatchedVisibleTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 			}
 			return model_core.NewSimplePatchedMessage[TMetadata](actualVisibleTargetValue.Message), nil
-		case *model_starlark_pb.Value_None:
+		case model_starlark_pb.Value_None_case:
 			// This implementation allows alias(actual = None).
 			// This extension is necessary to support
 			// configuration_field("coverage", "output_generator")
@@ -263,7 +265,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		default:
 			return PatchedVisibleTargetValue[TMetadata]{}, errors.New("actual target of alias is not a label")
 		}
-	case *model_starlark_pb.Target_Definition_LabelSetting:
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
 		// The label setting itself needs to be visible.
 		if err := c.checkVisibility(
 			ctx,
@@ -271,19 +273,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			valueReaders,
 			fromPackage,
 			toLabel,
-			model_core.Nested(targetValue, definition.LabelSetting.Visibility),
+			model_core.Nested(targetValue, targetValueDefinition.GetLabelSetting().GetVisibility()),
 		); err != nil {
 			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
 
-		if key.Message.StopAtLabelSetting {
+		if key.Message.GetStopAtLabelSetting() {
 			// We are applying a transition and want to
 			// resolve the label of a label_setting().
-			return model_core.NewSimplePatchedMessage[TMetadata](
-				&model_analysis_pb.VisibleTarget_Value{
-					Label: toLabel.String(),
-				},
-			), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{
+				Label: toLabel.String(),
+			}), nil
 		}
 
 		// Determine if there is an override in place for this
@@ -292,13 +292,13 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		override, err := btree.Find(
 			ctx,
 			analysisReaders.BuildSettingOverride,
-			getBuildSettingOverridesFromReference(model_core.Nested(key, key.Message.ConfigurationReference)),
+			getBuildSettingOverridesFromReference(model_core.Nested(key, key.Message.GetConfigurationReference())),
 			func(entry model_core.Message[*model_analysis_pb.BuildSettingOverride, TReference]) (int, *model_core_pb.DecodableReference) {
-				switch level := entry.Message.Level.(type) {
+				switch entry.Message.GetLevel().(type) {
 				case *model_analysis_pb.BuildSettingOverride_Leaf_:
-					return strings.Compare(toLabelStr, level.Leaf.Label), nil
+					return strings.Compare(toLabelStr, entry.Message.GetLeaf().GetLabel()), nil
 				case *model_analysis_pb.BuildSettingOverride_Parent_:
-					return strings.Compare(toLabelStr, level.Parent.FirstLabel), level.Parent.Reference
+					return strings.Compare(toLabelStr, entry.Message.GetParent().GetFirstLabel()), entry.Message.GetParent().GetReference()
 				default:
 					return 0, nil
 				}
@@ -316,27 +316,27 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			// visibility checking, as the user is free to
 			// specify a target that is not visible from the
 			// label setting's perspective.
-			leaf, ok := override.Message.Level.(*model_analysis_pb.BuildSettingOverride_Leaf_)
-			if !ok {
+			leaf := override.Message.GetLeaf()
+			if leaf == nil {
 				return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override is not a valid leaf")
 			}
-			value := leaf.Leaf.Value
-			if listValue, ok := value.GetKind().(*model_starlark_pb.Value_List); ok {
-				elements := listValue.List.Elements
+			value := leaf.GetValue()
+			if listValue := value.GetList(); listValue != nil {
+				elements := listValue.GetElements()
 				if len(elements) != 1 {
 					return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a single element list")
 				}
-				listLeaf, ok := elements[0].Level.(*model_starlark_pb.List_Element_Leaf)
-				if !ok {
+				listLeaf := elements[0].GetLeaf()
+				if listLeaf == nil {
 					return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a list")
 				}
-				value = listLeaf.Leaf
+				value = listLeaf
 			}
-			switch labelValue := value.GetKind().(type) {
-			case *model_starlark_pb.Value_Label:
-				overrideLabel, err := label.NewResolvedLabel(labelValue.Label)
+			switch value.WhichKind() {
+			case model_starlark_pb.Value_Label_case:
+				overrideLabel, err := label.NewResolvedLabel(value.GetLabel())
 				if err != nil {
-					return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid build setting override label value %#v: %w", labelValue.Label, err)
+					return PatchedVisibleTargetValue[TMetadata]{}, fmt.Errorf("invalid build setting override label value %#v: %w", value.GetLabel(), err)
 				}
 				canonicalOverrideLabel, err := overrideLabel.AsCanonical()
 				if err != nil {
@@ -344,7 +344,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 				}
 				nextFromPackage = canonicalOverrideLabel.GetCanonicalPackage().String()
 				nextToLabel = overrideLabel.String()
-			case *model_starlark_pb.Value_None:
+			case model_starlark_pb.Value_None_case:
 				return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
 			default:
 				return PatchedVisibleTargetValue[TMetadata]{}, errors.New("build setting override value is not a label")
@@ -354,7 +354,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 			// label setting. Validate that the default
 			// target is visible from the label setting.
 			nextFromPackage = toLabel.GetCanonicalPackage().String()
-			nextToLabel = definition.LabelSetting.BuildSettingDefault
+			nextToLabel = targetValueDefinition.GetLabelSetting().GetBuildSettingDefault()
 			if nextToLabel == "" {
 				// Label setting defaults to None.
 				return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{}), nil
@@ -367,7 +367,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 				&model_analysis_pb.VisibleTarget_Key{
 					FromPackage:            nextFromPackage,
 					ToLabel:                nextToLabel,
-					PermitAliasNoMatch:     key.Message.PermitAliasNoMatch,
+					PermitAliasNoMatch:     key.Message.GetPermitAliasNoMatch(),
 					ConfigurationReference: patchedConfigurationReference.Message,
 				},
 				patchedConfigurationReference.Patcher,
@@ -379,7 +379,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 		return model_core.NewSimplePatchedMessage[TMetadata](actualVisibleTargetValue.Message), nil
 	default:
 		// Found the definitive target.
-		visibility, restricted, err := getTargetVisibility(e, toLabel, model_core.Nested(targetValue, targetValue.Message.Definition))
+		visibility, restricted, err := getTargetVisibility(e, toLabel, model_core.Nested(targetValue, targetValueDefinition))
 		if err != nil {
 			return PatchedVisibleTargetValue[TMetadata]{}, err
 		}
@@ -388,10 +388,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeVisibleTargetValue(ctx cont
 				return PatchedVisibleTargetValue[TMetadata]{}, err
 			}
 		}
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.VisibleTarget_Value{
-				Label: toLabel.String(),
-			},
-		), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Value{
+			Label: toLabel.String(),
+		}), nil
 	}
 }

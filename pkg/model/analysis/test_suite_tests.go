@@ -31,12 +31,12 @@ func allTestSuiteTests[TReference object.BasicReference](ctx context.Context, an
 			},
 			errOut,
 		) {
-			level, ok := entry.Message.Level.(*model_starlark_pb.TestSuite_Test_Leaf)
-			if !ok {
+			leaf := entry.Message.GetLeaf()
+			if leaf == "" {
 				*errOut = errors.New("not a valid leaf entry")
 				return
 			}
-			if !yield(level.Leaf) {
+			if !yield(leaf) {
 				return
 			}
 		}
@@ -61,19 +61,22 @@ func newTargetLabelLeaves[TReference any](labels labelSet) model_core.Message[[]
 func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx context.Context, key *model_analysis_pb.TestSuiteTests_Key, e TestSuiteTestsEnvironment[TReference, TMetadata]) (PatchedTestSuiteTestsValue[TMetadata], error) {
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 
-	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: key.Label})
+	targetValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+		Label: key.GetLabel(),
+	})
 	if !targetValue.IsSet() || !gotAnalysisEncoders {
 		return PatchedTestSuiteTestsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
 	analysisReaders := &analysisEncoders.Readers
-	if targetValue.Message.Definition == nil {
-		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.Label)
+	targetValueDefinition := targetValue.Message.GetDefinition()
+	if targetValueDefinition == nil {
+		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v does not exist", key.GetLabel())
 	}
-	definition, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_TestSuite)
-	if !ok {
-		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v is not a test suite", key.Label)
+	definition := targetValueDefinition.GetTestSuite()
+	if definition == nil {
+		return PatchedTestSuiteTestsValue[TMetadata]{}, fmt.Errorf("target %#v is not a test suite", key.GetLabel())
 	}
-	testSuite := definition.TestSuite
+	testSuite := definition
 
 	// Tests that are part of the test suite directly are only
 	// included if they pass the test suite's filters. Tests that
@@ -91,29 +94,35 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 	flushBatch := func() error {
 		for _, testLabel := range batch {
 			testLabelStr := testLabel.String()
-			testValue := e.GetTargetValue(&model_analysis_pb.Target_Key{Label: testLabelStr})
+			testValue := e.GetTargetValue(&model_analysis_pb.Target_Key{
+				Label: testLabelStr,
+			})
 			if !testValue.IsSet() {
 				missingDependencies = true
 				continue
 			}
-			if testValue.Message.Definition == nil {
+			testValueDefinition := testValue.Message.GetDefinition()
+			if testValueDefinition == nil {
 				return fmt.Errorf("test %#v does not exist", testLabelStr)
 			}
-			switch testKind := testValue.Message.Definition.GetKind().(type) {
-			case *model_starlark_pb.Target_Definition_RuleTarget:
-				if ruleTarget := testKind.RuleTarget; ruleTarget.Test != nil {
-					if model_starlark.TestSuiteMatchesTest(testSuite, ruleTarget.Tags, ruleTarget.Test.Size) {
+			switch testValueDefinition.WhichKind() {
+			case model_starlark_pb.Target_Definition_RuleTarget_case:
+				ruleTarget := testValueDefinition.GetRuleTarget()
+				if test := ruleTarget.GetTest(); test != nil {
+					if model_starlark.TestSuiteMatchesTest(testSuite, ruleTarget.GetTags(), test.GetSize()) {
 						tests[testLabel] = struct{}{}
 					}
 					continue
 				}
-			case *model_starlark_pb.Target_Definition_TestSuite:
-				nestedTestSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{Label: testLabelStr})
+			case model_starlark_pb.Target_Definition_TestSuite_case:
+				nestedTestSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{
+					Label: testLabelStr,
+				})
 				if !nestedTestSuiteTests.IsSet() {
 					missingDependencies = true
 					continue
 				}
-				nestedTestSuites = append(nestedTestSuites, model_core.Nested(nestedTestSuiteTests, nestedTestSuiteTests.Message.TargetLabels))
+				nestedTestSuites = append(nestedTestSuites, model_core.Nested(nestedTestSuiteTests, nestedTestSuiteTests.Message.GetTargetLabels()))
 				continue
 			}
 			return fmt.Errorf("target %#v is neither a test nor a test suite", testLabelStr)
@@ -122,7 +131,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTestSuiteTestsValue(ctx con
 		return nil
 	}
 	var errIter error
-	for testLabelStr := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(targetValue, testSuite.Tests), &errIter) {
+	for testLabelStr := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(targetValue, testSuite.GetTests()), &errIter) {
 		testLabel, err := canonicalizeQueryLabel(testLabelStr)
 		if err != nil {
 			return PatchedTestSuiteTestsValue[TMetadata]{}, err

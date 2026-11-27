@@ -13,6 +13,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -45,29 +47,29 @@ func TestTargetProviders(t *testing.T) {
 		return e
 	}
 	newStruct := func(providerIdentifier string, fields map[string]*model_starlark_pb.Value) *model_starlark_pb.Struct {
-		s := &model_starlark_pb.Struct{
+		s := model_starlark_pb.Struct_builder{
 			Fields: &model_starlark_pb.Struct_Fields{},
-			ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+			ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 				ProviderIdentifier: providerIdentifier,
-			},
-		}
+			}.Build(),
+		}.Build()
 		for _, key := range []string{"files", "x", "y", "z"} {
 			if value, ok := fields[key]; ok {
-				s.Fields.Keys = append(s.Fields.Keys, key)
-				s.Fields.Values = append(s.Fields.Values, &model_starlark_pb.List_Element{
-					Level: &model_starlark_pb.List_Element_Leaf{Leaf: value},
-				})
+				s.GetFields().SetKeys(append(s.GetFields().GetKeys(), key))
+				s.GetFields().SetValues(append(s.GetFields().GetValues(), model_starlark_pb.List_Element_builder{
+					Leaf: proto.ValueOrDefault(value),
+				}.Build()))
 			}
 		}
 		return s
 	}
 	boolValue := func(b bool) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bool{Bool: b}}
+		return model_starlark_pb.Value_builder{Bool: proto.Bool(b)}.Build()
 	}
 	newAspect := func(identifier string) *model_starlark_pb.AppliedAspect {
-		return &model_starlark_pb.AppliedAspect{
+		return model_starlark_pb.AppliedAspect_builder{
 			Identifier: identifier,
-		}
+		}.Build()
 	}
 	aspect1 := newAspect("@@rules+//:defs.bzl%aspect1")
 	aspect2 := newAspect("@@rules+//:defs.bzl%aspect2")
@@ -173,8 +175,8 @@ func TestTargetProviders(t *testing.T) {
 		// instances of OutputGroupInfo should still work.
 		valuesObject := newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
 			return model_format.NewProtoList[model_starlark_pb.List_Element]().NewMarshaler([]*model_starlark_pb.List_Element{
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: boolValue(false)}},
-				{Level: &model_starlark_pb.List_Element_Leaf{Leaf: boolValue(true)}},
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(boolValue(false))}.Build(),
+				model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(boolValue(true))}.Build(),
 			})
 		})
 		e := newEnvironmentWithEncoders()
@@ -193,22 +195,20 @@ func TestTargetProviders(t *testing.T) {
 			}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.ConfiguredTarget_Value {
 			return &model_analysis_pb.ConfiguredTarget_Value{
-				ProviderInstances: []*model_starlark_pb.Struct{{
-					Fields: &model_starlark_pb.Struct_Fields{
+				ProviderInstances: []*model_starlark_pb.Struct{model_starlark_pb.Struct_builder{
+					Fields: model_starlark_pb.Struct_Fields_builder{
 						Keys: []string{"x", "z"},
-						Values: []*model_starlark_pb.List_Element{{
-							Level: &model_starlark_pb.List_Element_Parent_{
-								Parent: &model_starlark_pb.List_Element_Parent{
-									Reference: attachObject(patcher, valuesObject),
-									Count:     2,
-								},
-							},
-						}},
-					},
-					ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+						Values: []*model_starlark_pb.List_Element{model_starlark_pb.List_Element_builder{
+							Parent: model_starlark_pb.List_Element_Parent_builder{
+								Reference: attachObject(patcher, valuesObject),
+								Count:     2,
+							}.Build(),
+						}.Build()},
+					}.Build(),
+					ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 						ProviderIdentifier: outputGroupInfo,
-					},
-				}},
+					}.Build(),
+				}.Build()},
 			}
 		}))
 

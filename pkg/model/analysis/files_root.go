@@ -31,9 +31,9 @@ func addFilesToMergedDirectory[TReference object.BasicReference, TMetadata model
 ) error {
 	missingDependencies := false
 	for i, element := range files.Message {
-		switch level := element.Level.(type) {
-		case *model_starlark_pb.List_Element_Parent_:
-			patchedReference := model_core.Patch(e, model_core.Nested(files, level.Parent.Reference))
+		switch element.WhichLevel() {
+		case model_starlark_pb.List_Element_Parent_case:
+			patchedReference := model_core.Patch(e, model_core.Nested(files, element.GetParent().GetReference()))
 			v := e.GetFilesRootValue(
 				model_core.NewPatchedMessage(
 					&model_analysis_pb.FilesRoot_Key{
@@ -47,13 +47,13 @@ func addFilesToMergedDirectory[TReference object.BasicReference, TMetadata model
 				missingDependencies = true
 				continue
 			}
-			out.MergeDirectoryContents(model_core.Nested(v, v.Message.RootDirectory))
-		case *model_starlark_pb.List_Element_Leaf:
-			file, ok := level.Leaf.Kind.(*model_starlark_pb.Value_File)
-			if !ok {
+			out.MergeDirectoryContents(model_core.Nested(v, v.Message.GetRootDirectory()))
+		case model_starlark_pb.List_Element_Leaf_case:
+			file := element.GetLeaf().GetFile()
+			if file == nil {
 				return fmt.Errorf("element at index %d is not a file", i)
 			}
-			if err := addFileToMergedDirectory(e, model_core.Nested(files, file.File), out, directoryLayout); err != nil {
+			if err := addFileToMergedDirectory(e, model_core.Nested(files, file), out, directoryLayout); err != nil {
 				if errors.Is(err, evaluation.ErrMissingDependency) {
 					missingDependencies = true
 					continue

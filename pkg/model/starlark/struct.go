@@ -354,11 +354,9 @@ func (s *Struct[TReference, TMetadata]) EncodeStructFields(thread *eval.Thread, 
 			panic("unknown value type")
 		}
 		if err := listBuilder.PushChild(model_core.NewPatchedMessage(
-			&model_starlark_pb.List_Element{
-				Level: &model_starlark_pb.List_Element_Leaf{
-					Leaf: encodedValue.Message,
-				},
-			},
+			model_starlark_pb.List_Element_builder{
+				Leaf: encodedValue.Message,
+			}.Build(),
 			encodedValue.Patcher,
 		)); err != nil {
 			return model_core.PatchedMessage[*model_starlark_pb.Struct_Fields, TMetadata]{}, err
@@ -373,10 +371,10 @@ func (s *Struct[TReference, TMetadata]) EncodeStructFields(thread *eval.Thread, 
 	// TODO: Should we use inlinedtree here to values in a separate
 	// object if it turns out the keys push us over the limit?
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Struct_Fields{
+		model_starlark_pb.Struct_Fields_builder{
 			Keys:   s.keys,
 			Values: values.Message,
-		},
+		}.Build(),
 		values.Patcher,
 	), nil
 }
@@ -406,10 +404,10 @@ func (s *Struct[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.
 			providerInstanceProperties = m.Merge(patcher)
 		}
 
-		return &model_starlark_pb.Struct{
+		return model_starlark_pb.Struct_builder{
 			Fields:                     fields.Message,
 			ProviderInstanceProperties: providerInstanceProperties,
-		}, nil
+		}.Build(), nil
 	})
 }
 
@@ -422,11 +420,9 @@ func (s *Struct[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Struct{
-				Struct: encodedStruct.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Struct: encodedStruct.Message,
+		}.Build(),
 		encodedStruct.Patcher,
 	), nil
 }
@@ -456,7 +452,7 @@ func DecodeStruct[TReference object.BasicReference, TMetadata model_core.Referen
 	}
 
 	var providerInstanceProperties *ProviderInstanceProperties[TReference, TMetadata]
-	if pip := m.Message.ProviderInstanceProperties; pip != nil {
+	if pip := m.Message.GetProviderInstanceProperties(); pip != nil {
 		providerInstanceProperties, err = decodeProviderInstanceProperties[TReference, TMetadata](model_core.Nested(m, pip))
 		if err != nil {
 			return nil, err
@@ -469,7 +465,7 @@ func DecodeStruct[TReference object.BasicReference, TMetadata model_core.Referen
 	for key, value := range AllStructFields(
 		thread.Context(),
 		options.Readers.List,
-		model_core.Nested(m, m.Message.Fields),
+		model_core.Nested(m, m.Message.GetFields()),
 		&errIter,
 	) {
 		keys = append(keys, key)
@@ -499,18 +495,18 @@ func AllStructFields[TReference any](
 	allLeaves := btree.AllLeaves(
 		ctx,
 		reader,
-		model_core.Nested(structFields, structFields.Message.Values),
+		model_core.Nested(structFields, structFields.Message.GetValues()),
 		func(element model_core.Message[*model_starlark_pb.List_Element, TReference]) (*model_core_pb.DecodableReference, error) {
 			return element.Message.GetParent().GetReference(), nil
 		},
 		errOut,
 	)
 
-	keys := structFields.Message.Keys
+	keys := structFields.Message.GetKeys()
 	return func(yield func(string, model_core.Message[*model_starlark_pb.Value, TReference]) bool) {
 		allLeaves(func(entry model_core.Message[*model_starlark_pb.List_Element, TReference]) bool {
-			leaf, ok := entry.Message.Level.(*model_starlark_pb.List_Element_Leaf)
-			if !ok {
+			leaf := entry.Message.GetLeaf()
+			if leaf == nil {
 				*errOut = errors.New("not a valid leaf entry")
 				return false
 			}
@@ -522,7 +518,7 @@ func AllStructFields[TReference any](
 			key := keys[0]
 			keys = keys[1:]
 
-			return yield(key, model_core.Nested(entry, leaf.Leaf))
+			return yield(key, model_core.Nested(entry, leaf))
 		})
 	}
 }
@@ -541,7 +537,7 @@ func GetStructFieldValue[TReference any](
 	}
 
 	// Look up the index of the provided key.
-	keys := structFields.Message.Keys
+	keys := structFields.Message.GetKeys()
 	keyIndex, ok := sort.Find(
 		len(keys),
 		func(i int) int { return strings.Compare(key, keys[i]) },
@@ -552,7 +548,7 @@ func GetStructFieldValue[TReference any](
 
 	// Look up the value with the given index. Values are stored in
 	// a list, having the same length as the list of keys.
-	list := model_core.Nested(structFields, structFields.Message.Values)
+	list := model_core.Nested(structFields, structFields.Message.GetValues())
 	valueIndex := uint64(keyIndex)
 	leafCount := uint64(len(keys))
 GetValueAtIndex:
@@ -568,22 +564,22 @@ GetValueAtIndex:
 		}
 
 		for _, element := range list.Message {
-			switch level := element.Level.(type) {
-			case *model_starlark_pb.List_Element_Parent_:
-				if valueIndex < level.Parent.Count {
+			switch element.WhichLevel() {
+			case model_starlark_pb.List_Element_Parent_case:
+				if valueIndex < element.GetParent().GetCount() {
 					var err error
-					list, err = model_parser.Dereference(ctx, reader, model_core.Nested(list, level.Parent.Reference))
+					list, err = model_parser.Dereference(ctx, reader, model_core.Nested(list, element.GetParent().GetReference()))
 					if err != nil {
 						return model_core.Message[*model_starlark_pb.Value, TReference]{}, err
 					}
-					leafCount = level.Parent.Count
+					leafCount = element.GetParent().GetCount()
 					continue GetValueAtIndex
 				} else {
-					valueIndex -= level.Parent.Count
+					valueIndex -= element.GetParent().GetCount()
 				}
-			case *model_starlark_pb.List_Element_Leaf:
+			case model_starlark_pb.List_Element_Leaf_case:
 				if valueIndex == 0 {
-					return model_core.Nested(list, level.Leaf), nil
+					return model_core.Nested(list, element.GetLeaf()), nil
 				}
 				valueIndex--
 			}

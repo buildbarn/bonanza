@@ -8,13 +8,14 @@ import (
 	model_core "bonanza.build/pkg/model/core"
 	model_starlark "bonanza.build/pkg/model/starlark"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
-	"bonanza.build/pkg/storage/object"
-
 	"bonanza.build/pkg/starlark/eval"
+	"bonanza.build/pkg/storage/object"
 
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestAttrConfigurable(t *testing.T) {
@@ -63,7 +64,7 @@ func TestAttrConfigurable(t *testing.T) {
 		for _, name := range []string{"OUTPUT", "OUTPUT_LIST"} {
 			encodedAttr, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 			require.NoError(t, err)
-			require.False(t, encodedAttr.Message.GetAttr().Configurable)
+			require.False(t, encodedAttr.Message.GetAttr().GetConfigurable())
 		}
 	})
 
@@ -77,7 +78,7 @@ func TestAttrConfigurable(t *testing.T) {
 				configurable,
 			).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 			require.NoError(t, err)
-			require.Equal(t, configurable, encodedAttr.Message.GetAttr().Configurable)
+			require.Equal(t, configurable, encodedAttr.Message.GetAttr().GetConfigurable())
 
 			thread := newTestThread(t)
 			thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
@@ -147,9 +148,9 @@ func TestAttrAllowEmpty(t *testing.T) {
 				thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
 				decodedAttr, err := model_starlark.DecodeValue[object.LocalReference, model_core.CreatedObjectTree](
 					thread,
-					model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Attr{Attr: encodedAttr},
-					}),
+					model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Value_builder{
+						Attr: proto.ValueOrDefault(encodedAttr),
+					}.Build()),
 					nil,
 				)
 				require.NoError(t, err)
@@ -170,19 +171,19 @@ func TestAttrAllowEmpty(t *testing.T) {
 		require.NoError(t, err)
 		for _, name := range []string{"INT_LIST", "STRING_LIST"} {
 			encodedAttr := encode(t, globals[name])
-			require.Nil(t, encodedAttr.Default, name)
+			require.Nil(t, encodedAttr.GetDefault(), name)
 			compositeOptions, _ := model_starlark.GetAttrCompositeOptions(encodedAttr)
 			require.False(t, compositeOptions.GetAllowEmpty(), name)
-			require.True(t, encodedAttr.Configurable, name)
+			require.True(t, encodedAttr.GetConfigurable(), name)
 		}
 		compositeOptions, _ := model_starlark.GetAttrCompositeOptions(encode(t, globals["STRING_DICT"]))
 		require.False(t, compositeOptions.GetAllowEmpty())
 	})
 
 	t.Run("NonComposite", func(t *testing.T) {
-		_, ok := model_starlark.GetAttrCompositeOptions(&model_starlark_pb.Attr{
-			Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-		})
+		_, ok := model_starlark.GetAttrCompositeOptions(model_starlark_pb.Attr_builder{
+			String: &model_starlark_pb.Attr_StringType{},
+		}.Build())
 		require.False(t, ok)
 	})
 }
@@ -198,17 +199,31 @@ func TestAttrValues(t *testing.T) {
 	)
 	require.NoError(t, err)
 	for name, expectedType := range map[string]*model_starlark_pb.Attr{
-		"INT": {
-			Type: &model_starlark_pb.Attr_Int{Int: &model_starlark_pb.Attr_IntType{Values: []int32{1, 2}}},
-		},
-		"STRING": {
-			Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: []string{"a", "b"}}},
-		},
+		"INT": model_starlark_pb.Attr_builder{
+			Int: model_starlark_pb.Attr_IntType_builder{Values: []int32{1, 2}}.Build(),
+		}.Build(),
+		"STRING": model_starlark_pb.Attr_builder{
+			String: model_starlark_pb.Attr_StringType_builder{Values: []string{"a", "b"}}.Build(),
+		}.Build(),
 	} {
 		encodedValue, err := globals[name].(model_starlark.EncodableValue[object.LocalReference, model_core.CreatedObjectTree]).EncodeValue(newTestThread(t), nil, nil, &model_starlark.ValueEncodingOptions[object.LocalReference, model_core.CreatedObjectTree]{})
 		require.NoError(t, err)
 		encodedAttr := encodedValue.Message.GetAttr()
-		testutil.RequireEqualProto(t, expectedType, &model_starlark_pb.Attr{Type: encodedAttr.Type})
+		testutil.RequireEqualProto(t, expectedType, model_starlark_pb.Attr_builder{
+			Bool:                 encodedAttr.GetBool(),
+			Int:                  encodedAttr.GetInt(),
+			IntList:              encodedAttr.GetIntList(),
+			Label:                encodedAttr.GetLabel(),
+			LabelKeyedStringDict: encodedAttr.GetLabelKeyedStringDict(),
+			LabelList:            encodedAttr.GetLabelList(),
+			Output:               encodedAttr.GetOutput(),
+			OutputList:           encodedAttr.GetOutputList(),
+			StringDict:           encodedAttr.GetStringDict(),
+			StringKeyedLabelDict: encodedAttr.GetStringKeyedLabelDict(),
+			StringList:           encodedAttr.GetStringList(),
+			StringListDict:       encodedAttr.GetStringListDict(),
+			String:               encodedAttr.GetString(),
+		}.Build())
 
 		thread := newTestThread(t)
 		thread.SetLocal(model_starlark.ValueDecodingOptionsKey, &model_starlark.ValueDecodingOptions[object.LocalReference]{})
@@ -238,7 +253,7 @@ func TestAttrProviders(t *testing.T) {
 		return encodedAttr.Message.GetAttr().GetLabelList().GetListValueOptions().GetProviders()
 	}
 	newProviderSet := func(providerIdentifiers ...string) *model_starlark_pb.ProviderSet {
-		return &model_starlark_pb.ProviderSet{ProviderIdentifiers: providerIdentifiers}
+		return model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: providerIdentifiers}.Build()
 	}
 
 	t.Run("Default", func(t *testing.T) {
@@ -401,7 +416,7 @@ subrule(implementation = _impl, attrs = {"_a": attr.label(cfg = _transition)})`)
 
 func TestVisitAttrValueLabels(t *testing.T) {
 	labelValue := func(l string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: l}}
+		return model_starlark_pb.Value_builder{Label: proto.String(l)}.Build()
 	}
 	strValue := func(s string) *model_starlark_pb.Value {
 		return newStringValue(s)
@@ -425,46 +440,38 @@ func TestVisitAttrValueLabels(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		require.Equal(t, []string{"@@a+//:b", "@@a+//:c"}, visitLabels(&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_List{
-				List: &model_starlark_pb.List{
-					Elements: []*model_starlark_pb.List_Element{
-						{Level: &model_starlark_pb.List_Element_Leaf{Leaf: labelValue("@@a+//:b")}},
-						{Level: &model_starlark_pb.List_Element_Leaf{Leaf: labelValue("@@a+//:c")}},
-					},
+		require.Equal(t, []string{"@@a+//:b", "@@a+//:c"}, visitLabels(model_starlark_pb.Value_builder{
+			List: model_starlark_pb.List_builder{
+				Elements: []*model_starlark_pb.List_Element{
+					model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(labelValue("@@a+//:b"))}.Build(),
+					model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(labelValue("@@a+//:c"))}.Build(),
 				},
-			},
-		}))
+			}.Build(),
+		}.Build()))
 	})
 
 	t.Run("Dict", func(t *testing.T) {
 		// Labels may be contained in both keys (e.g.,
 		// attr.label_keyed_string_dict()) and values (e.g.,
 		// attr.string_keyed_label_dict()).
-		require.Equal(t, []string{"@@a+//:b", "@@a+//:c"}, visitLabels(&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Dict{
-				Dict: &model_starlark_pb.Dict{
-					Entries: []*model_starlark_pb.Dict_Entry{
-						{
-							Level: &model_starlark_pb.Dict_Entry_Leaf_{
-								Leaf: &model_starlark_pb.Dict_Entry_Leaf{
-									Key:   labelValue("@@a+//:b"),
-									Value: strValue("x"),
-								},
-							},
-						},
-						{
-							Level: &model_starlark_pb.Dict_Entry_Leaf_{
-								Leaf: &model_starlark_pb.Dict_Entry_Leaf{
-									Key:   strValue("y"),
-									Value: labelValue("@@a+//:c"),
-								},
-							},
-						},
-					},
+		require.Equal(t, []string{"@@a+//:b", "@@a+//:c"}, visitLabels(model_starlark_pb.Value_builder{
+			Dict: model_starlark_pb.Dict_builder{
+				Entries: []*model_starlark_pb.Dict_Entry{
+					model_starlark_pb.Dict_Entry_builder{
+						Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
+							Key:   labelValue("@@a+//:b"),
+							Value: strValue("x"),
+						}.Build(),
+					}.Build(),
+					model_starlark_pb.Dict_Entry_builder{
+						Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
+							Key:   strValue("y"),
+							Value: labelValue("@@a+//:c"),
+						}.Build(),
+					}.Build(),
 				},
-			},
-		}))
+			}.Build(),
+		}.Build()))
 	})
 
 	t.Run("InvalidLabel", func(t *testing.T) {
@@ -482,8 +489,8 @@ func TestVisitAttrValueLabels(t *testing.T) {
 		// Values that can't contain labels, and functions
 		// that compute default values, should be ignored.
 		require.Empty(t, visitLabels(strValue("x")))
-		require.Empty(t, visitLabels(&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Function{Function: &model_starlark_pb.Function{}},
-		}))
+		require.Empty(t, visitLabels(model_starlark_pb.Value_builder{
+			Function: &model_starlark_pb.Function{},
+		}.Build()))
 	})
 }

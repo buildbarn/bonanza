@@ -53,16 +53,12 @@ func TestQueryResult(t *testing.T) {
 	require.NoError(t, err)
 	testutil.RequireEqualProto(t, &model_analysis_pb.QueryResult_Value{
 		Targets: []*model_analysis_pb.QueryTarget{{
-			Level: &model_analysis_pb.QueryTarget_Leaf_{
-				Leaf: &model_analysis_pb.QueryTarget_Leaf{
-					Label: "@@foo+//:x",
-					Definition: &model_starlark_pb.Target_Definition{
-						Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-							SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-						},
-					},
-				},
-			},
+			Level: &model_analysis_pb.QueryTarget_Leaf_{Leaf: &model_analysis_pb.QueryTarget_Leaf{
+				Label: "@@foo+//:x",
+				Definition: model_starlark_pb.Target_Definition_builder{
+					SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+				}.Build(),
+			}},
 		}},
 	}, value.Message)
 }

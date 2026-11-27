@@ -13,6 +13,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -21,9 +23,9 @@ import (
 func newTestSuiteTests(labels ...string) []*model_starlark_pb.TestSuite_Test {
 	tests := make([]*model_starlark_pb.TestSuite_Test, 0, len(labels))
 	for _, l := range labels {
-		tests = append(tests, &model_starlark_pb.TestSuite_Test{
-			Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: l},
-		})
+		tests = append(tests, model_starlark_pb.TestSuite_Test_builder{
+			Leaf: proto.String(l),
+		}.Build())
 	}
 	return tests
 }
@@ -39,25 +41,21 @@ func TestTestSuiteTests(t *testing.T) {
 		model_starlark_pb.TestSize_ENORMOUS,
 	}
 	testSuiteDefinition := func(testSuite *model_starlark_pb.TestSuite) *model_starlark_pb.Target_Definition {
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{
-				TestSuite: testSuite,
-			},
-		}
+		return model_starlark_pb.Target_Definition_builder{
+			TestSuite: proto.ValueOrDefault(testSuite),
+		}.Build()
 	}
 	ruleTargetDefinition := func(test *model_starlark_pb.RuleTarget_Test, tags ...string) *model_starlark_pb.Target_Definition {
-		return &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-					Tags:           tags,
-					Test:           test,
-				},
-			},
-		}
+		return model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+				Tags:           tags,
+				Test:           test,
+			}.Build(),
+		}.Build()
 	}
 	testOfSize := func(size model_starlark_pb.TestSize) *model_starlark_pb.RuleTarget_Test {
-		return &model_starlark_pb.RuleTarget_Test{Size: size}
+		return model_starlark_pb.RuleTarget_Test_builder{Size: size}.Build()
 	}
 	expectTarget := func(e *MockTestSuiteTestsEnvironmentForTesting, l string, definition *model_starlark_pb.Target_Definition) {
 		e.EXPECT().GetTargetValue(
@@ -71,7 +69,7 @@ func TestTestSuiteTests(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return getTargetLabels(t, value.Message.TargetLabels), nil
+		return getTargetLabels(t, value.Message.GetTargetLabels()), nil
 	}
 
 	t.Run("NotATestSuite", func(t *testing.T) {
@@ -95,10 +93,10 @@ func TestTestSuiteTests(t *testing.T) {
 
 		e = NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests("@@main+//foo:missing"),
 			Sizes: allSizes,
-		}))
+		}.Build()))
 		expectTarget(e, "@@main+//foo:missing", nil)
 
 		_, err = computeTestSuiteTests(e, "@@main+//foo:suite")
@@ -112,7 +110,7 @@ func TestTestSuiteTests(t *testing.T) {
 		// empty. The package should not be inspected again.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{Sizes: allSizes}))
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{Sizes: allSizes}.Build()))
 
 		labels, err := computeTestSuiteTests(e, "@@main+//foo:suite")
 		require.NoError(t, err)
@@ -126,7 +124,7 @@ func TestTestSuiteTests(t *testing.T) {
 		// applying these filters.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests(
 				"@@main+//bar:nested",
 				"@@main+//foo:manual",
@@ -134,11 +132,11 @@ func TestTestSuiteTests(t *testing.T) {
 			),
 			PositiveTags: []string{"integration"},
 			Sizes:        allSizes,
-		}))
-		expectTarget(e, "@@main+//bar:nested", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		}.Build()))
+		expectTarget(e, "@@main+//bar:nested", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests("@@main+//bar:a"),
 			Sizes: allSizes,
-		}))
+		}.Build()))
 		e.EXPECT().GetTestSuiteTestsValue(
 			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//bar:nested"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TestSuiteTests_Value{
@@ -165,23 +163,21 @@ func TestTestSuiteTests(t *testing.T) {
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:suite"}),
 		).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.Target_Value {
 			return &model_analysis_pb.Target_Value{
-				Definition: testSuiteDefinition(&model_starlark_pb.TestSuite{
+				Definition: testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 					Tests: []*model_starlark_pb.TestSuite_Test{
-						{
-							Level: &model_starlark_pb.TestSuite_Test_Parent_{
-								Parent: &model_starlark_pb.TestSuite_Test_Parent{
-									Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-										return model_format.NewProtoList[model_starlark_pb.TestSuite_Test]().NewMarshaler(newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b"))
-									})),
-								},
-							},
-						},
-						{
-							Level: &model_starlark_pb.TestSuite_Test_Leaf{Leaf: "@@main+//foo:c"},
-						},
+						model_starlark_pb.TestSuite_Test_builder{
+							Parent: model_starlark_pb.TestSuite_Test_Parent_builder{
+								Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+									return model_format.NewProtoList[model_starlark_pb.TestSuite_Test]().NewMarshaler(newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b"))
+								})),
+							}.Build(),
+						}.Build(),
+						model_starlark_pb.TestSuite_Test_builder{
+							Leaf: proto.String("@@main+//foo:c"),
+						}.Build(),
 					},
 					Sizes: allSizes,
-				}),
+				}.Build()),
 			}
 		}))
 		expectTarget(e, "@@main+//foo:a", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
@@ -200,10 +196,10 @@ func TestTestSuiteTests(t *testing.T) {
 		// when the test suite is expanded.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests("@@[unknown repo 'dev' requested from main+]//:t"),
 			Sizes: allSizes,
-		}))
+		}.Build()))
 
 		_, err := computeTestSuiteTests(e, "@@main+//foo:suite")
 		require.ErrorContains(t, err, "unknown repo 'dev' requested from main+")
@@ -215,15 +211,15 @@ func TestTestSuiteTests(t *testing.T) {
 		// parallel.
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests("@@main+//foo:a", "@@main+//foo:b", "@@main+//foo:nested"),
 			Sizes: allSizes,
-		}))
+		}.Build()))
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:a"}),
 		).Return(model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree]{})
 		expectTarget(e, "@@main+//foo:b", ruleTargetDefinition(testOfSize(model_starlark_pb.TestSize_SMALL)))
-		expectTarget(e, "@@main+//foo:nested", testSuiteDefinition(&model_starlark_pb.TestSuite{Sizes: allSizes}))
+		expectTarget(e, "@@main+//foo:nested", testSuiteDefinition(model_starlark_pb.TestSuite_builder{Sizes: allSizes}.Build()))
 		e.EXPECT().GetTestSuiteTestsValue(
 			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//foo:nested"}),
 		).Return(model_core.Message[*model_analysis_pb.TestSuiteTests_Value, model_core.CreatedObjectTree]{})
@@ -235,10 +231,10 @@ func TestTestSuiteTests(t *testing.T) {
 	t.Run("NeitherTestNorTestSuite", func(t *testing.T) {
 		e := NewMockTestSuiteTestsEnvironmentForTesting(ctrl)
 		e.EXPECT().GetAnalysisEncodersObject(gomock.Any()).Return(bct.newAnalysisEncoders(), true).AnyTimes()
-		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(&model_starlark_pb.TestSuite{
+		expectTarget(e, "@@main+//foo:suite", testSuiteDefinition(model_starlark_pb.TestSuite_builder{
 			Tests: newTestSuiteTests("@@main+//foo:lib"),
 			Sizes: allSizes,
-		}))
+		}.Build()))
 		expectTarget(e, "@@main+//foo:lib", ruleTargetDefinition(nil))
 
 		_, err := computeTestSuiteTests(e, "@@main+//foo:suite")

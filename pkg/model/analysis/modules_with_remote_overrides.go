@@ -166,12 +166,10 @@ func (h *overrideExtractingModuleDotBazelHandler[TReference, TMetadata]) Reposit
 	return h.addOverrideModule(&model_analysis_pb.ModuleOverride{
 		Name: moduleName.String(),
 		Definition: &model_analysis_pb.ModuleOverride_Definition{
-			Kind: &model_analysis_pb.ModuleOverride_Definition_RepositoryRule{
-				RepositoryRule: &model_starlark_pb.Repo_Definition{
-					RepositoryRuleIdentifier: repositoryRuleIdentifier.String(),
-					AttrValues:               fields.Message,
-				},
-			},
+			Kind: &model_analysis_pb.ModuleOverride_Definition_RepositoryRule{RepositoryRule: model_starlark_pb.Repo_Definition_builder{
+				RepositoryRuleIdentifier: repositoryRuleIdentifier.String(),
+				AttrValues:               fields.Message,
+			}.Build()},
 		},
 	})
 }

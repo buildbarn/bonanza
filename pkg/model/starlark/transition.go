@@ -12,6 +12,7 @@ import (
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -88,8 +89,7 @@ func NewProtoTransitionDefinition[TReference object.BasicReference, TMetadata mo
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) isUserDefinedTransition() bool {
-	_, ok := td.definition.Message.Kind.(*model_starlark_pb.Transition_UserDefined_)
-	return ok
+	return td.definition.Message.GetUserDefined() != nil
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) AssignIdentifier(identifier pg_label.CanonicalStarlarkIdentifier) {
@@ -97,8 +97,8 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) AssignIdentifier(ide
 	// a user-defined transition. All other transition types are
 	// compact enough that it doesn't make sense to have them named.
 	if td.identifier == nil {
-		if userDefined, ok := td.definition.Message.Kind.(*model_starlark_pb.Transition_UserDefined_); ok {
-			if _, ok := userDefined.UserDefined.Kind.(*model_starlark_pb.Transition_UserDefined_Identifier); !ok {
+		if userDefined := td.definition.Message.GetUserDefined(); userDefined != nil {
+			if !userDefined.HasIdentifier() {
 				td.identifier = &identifier
 			}
 		}
@@ -107,38 +107,28 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) AssignIdentifier(ide
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition, TMetadata], error) {
 	if td.identifier != nil {
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Transition{
-				Kind: &model_starlark_pb.Transition_UserDefined_{
-					UserDefined: &model_starlark_pb.Transition_UserDefined{
-						Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-							Identifier: td.identifier.String(),
-						},
-					},
-				},
-			},
-		), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Transition_builder{
+			UserDefined: model_starlark_pb.Transition_UserDefined_builder{
+				Identifier: proto.String(td.identifier.String()),
+			}.Build(),
+		}.Build()), nil
 	}
 	return model_core.Patch(options.ObjectCapturer, td.definition), nil
 }
 
 func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTransition(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata], error) {
-	switch t := td.definition.Message.Kind.(type) {
-	case *model_starlark_pb.Transition_Target:
+	switch td.definition.Message.WhichKind() {
+	case model_starlark_pb.Transition_Target_case:
 		return model_core.NewSimplePatchedMessage[TMetadata](
 			(*model_starlark_pb.Transition_UserDefined)(nil),
 		), nil
-	case *model_starlark_pb.Transition_UserDefined_:
+	case model_starlark_pb.Transition_UserDefined_case:
 		if td.identifier != nil {
-			return model_core.NewSimplePatchedMessage[TMetadata](
-				&model_starlark_pb.Transition_UserDefined{
-					Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-						Identifier: td.identifier.String(),
-					},
-				},
-			), nil
+			return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Transition_UserDefined_builder{
+				Identifier: proto.String(td.identifier.String()),
+			}.Build()), nil
 		}
-		return model_core.Patch(options.ObjectCapturer, model_core.Nested(td.definition, t.UserDefined)), nil
+		return model_core.Patch(options.ObjectCapturer, model_core.Nested(td.definition, td.definition.Message.GetUserDefined())), nil
 	default:
 		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, errors.New("transition is not a target or user-defined transition")
 	}
@@ -147,30 +137,22 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeUserDefinedTra
 func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	if td.identifier != nil && (currentIdentifier == nil || *currentIdentifier != *td.identifier) {
 		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Transition{
-					Transition: &model_starlark_pb.Transition{
-						Kind: &model_starlark_pb.Transition_UserDefined_{
-							UserDefined: &model_starlark_pb.Transition_UserDefined{
-								Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-									Identifier: td.identifier.String(),
-								},
-							},
-						},
-					},
-				},
-			},
+			model_starlark_pb.Value_builder{
+				Transition: model_starlark_pb.Transition_builder{
+					UserDefined: model_starlark_pb.Transition_UserDefined_builder{
+						Identifier: proto.String(td.identifier.String()),
+					}.Build(),
+				}.Build(),
+			}.Build(),
 		), nil
 	}
 
 	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
 			patchedDefinition := model_core.Patch(options.ObjectCapturer, td.definition)
-			return &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Transition{
-					Transition: patchedDefinition.Merge(patcher),
-				},
-			}
+			return model_starlark_pb.Value_builder{
+				Transition: proto.ValueOrDefault(patchedDefinition.Merge(patcher)),
+			}.Build()
 		},
 	), nil
 }
@@ -178,26 +160,10 @@ func (td *protoTransitionDefinition[TReference, TMetadata]) EncodeValue(thread *
 // Transitions that are used frequently (e.g., "exec", "target",
 // config.none()).
 var (
-	DefaultExecGroupTransition = model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_ExecGroup{
-			ExecGroup: "",
-		},
-	}
-	NoneTransition = model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_None{
-			None: &emptypb.Empty{},
-		},
-	}
-	TargetTransition = model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_Target{
-			Target: &emptypb.Empty{},
-		},
-	}
-	UnconfiguredTransition = model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_Unconfigured{
-			Unconfigured: &emptypb.Empty{},
-		},
-	}
+	DefaultExecGroupTransition = model_starlark_pb.Transition_builder{ExecGroup: proto.String("")}.Build()
+	NoneTransition             = model_starlark_pb.Transition_builder{None: &emptypb.Empty{}}.Build()
+	TargetTransition           = model_starlark_pb.Transition_builder{Target: &emptypb.Empty{}}.Build()
+	UnconfiguredTransition     = model_starlark_pb.Transition_builder{Unconfigured: &emptypb.Empty{}}.Build()
 )
 
 type userDefinedTransitionDefinition[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -228,13 +194,9 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefi
 	if td.Identifier != nil && (currentIdentifier == nil || *currentIdentifier != *td.Identifier) {
 		// Not the canonical identifier under which this
 		// transition is known. Emit a reference.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: td.Identifier.String(),
-				},
-			},
-		), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Transition_UserDefined_builder{
+			Identifier: proto.String(td.Identifier.String()),
+		}.Build()), nil
 	}
 
 	implementation, err := EncodeFunction(thread, td.implementation, path, options)
@@ -242,16 +204,14 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) encodeUserDefi
 		return model_core.PatchedMessage[*model_starlark_pb.Transition_UserDefined, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Transition_UserDefined{
-			Kind: &model_starlark_pb.Transition_UserDefined_Definition_{
-				Definition: &model_starlark_pb.Transition_UserDefined_Definition{
-					Implementation:   implementation.Message,
-					Inputs:           td.inputs,
-					Outputs:          td.outputs,
-					CanonicalPackage: td.canonicalPackage.String(),
-				},
-			},
-		},
+		model_starlark_pb.Transition_UserDefined_builder{
+			Definition: model_starlark_pb.Transition_UserDefined_Definition_builder{
+				Implementation:   implementation.Message,
+				Inputs:           td.inputs,
+				Outputs:          td.outputs,
+				CanonicalPackage: td.canonicalPackage.String(),
+			}.Build(),
+		}.Build(),
 		implementation.Patcher,
 	), nil
 }
@@ -263,11 +223,9 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) Encode(thread 
 	}
 	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Transition {
-			return &model_starlark_pb.Transition{
-				Kind: &model_starlark_pb.Transition_UserDefined_{
-					UserDefined: userDefined.Merge(patcher),
-				},
-			}
+			return model_starlark_pb.Transition_builder{
+				UserDefined: proto.ValueOrDefault(userDefined.Merge(patcher)),
+			}.Build()
 		},
 	), nil
 }
@@ -288,15 +246,11 @@ func (td *userDefinedTransitionDefinition[TReference, TMetadata]) EncodeValue(th
 	}
 	return model_core.MustBuildPatchedMessage(
 		func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.Value {
-			return &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Transition{
-					Transition: &model_starlark_pb.Transition{
-						Kind: &model_starlark_pb.Transition_UserDefined_{
-							UserDefined: userDefined.Merge(patcher),
-						},
-					},
-				},
-			}
+			return model_starlark_pb.Value_builder{
+				Transition: model_starlark_pb.Transition_builder{
+					UserDefined: proto.ValueOrDefault(userDefined.Merge(patcher)),
+				}.Build(),
+			}.Build()
 		},
 	), nil
 }
@@ -317,11 +271,11 @@ func (transitionDefinitionUnpackerInto[TReference, TMetadata]) UnpackInto(thread
 		switch typedV {
 		case "exec":
 			*dst = NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.NewSimpleMessage[TReference](&DefaultExecGroupTransition),
+				model_core.NewSimpleMessage[TReference](DefaultExecGroupTransition),
 			)
 		case "target":
 			*dst = NewProtoTransitionDefinition[TReference, TMetadata](
-				model_core.NewSimpleMessage[TReference](&TargetTransition),
+				model_core.NewSimpleMessage[TReference](TargetTransition),
 			)
 		default:
 			return fmt.Errorf("got %#v, want \"exec\" or \"target\"", typedV)

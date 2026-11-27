@@ -14,6 +14,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // SelectGroup contains all of the conditions provided to a single call
@@ -144,7 +146,7 @@ func (s *Select[TReference, TMetadata]) EncodeGroups(thread *eval.Thread, path [
 	patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 
 	for _, group := range s.groups {
-		encodedGroup := model_starlark_pb.Select_Group{
+		encodedGroup := model_starlark_pb.Select_Group_builder{
 			Conditions: make([]*model_starlark_pb.Select_Condition, 0, len(group.conditions)),
 		}
 
@@ -157,10 +159,10 @@ func (s *Select[TReference, TMetadata]) EncodeGroups(thread *eval.Thread, path [
 				return model_core.PatchedMessage[[]*model_starlark_pb.Select_Group, TMetadata]{}, err
 			}
 
-			encodedGroup.Conditions = append(encodedGroup.Conditions, &model_starlark_pb.Select_Condition{
+			encodedGroup.Conditions = append(encodedGroup.Conditions, model_starlark_pb.Select_Condition_builder{
 				ConditionIdentifier: condition.String(),
 				Value:               value.Message,
-			})
+			}.Build())
 			patcher.Merge(value.Patcher)
 		}
 
@@ -170,17 +172,13 @@ func (s *Select[TReference, TMetadata]) EncodeGroups(thread *eval.Thread, path [
 				return model_core.PatchedMessage[[]*model_starlark_pb.Select_Group, TMetadata]{}, err
 			}
 
-			encodedGroup.NoMatch = &model_starlark_pb.Select_Group_NoMatchValue{
-				NoMatchValue: value.Message,
-			}
+			encodedGroup.NoMatchValue = value.Message
 			patcher.Merge(value.Patcher)
 		} else if group.noMatchError != "" {
-			encodedGroup.NoMatch = &model_starlark_pb.Select_Group_NoMatchError{
-				NoMatchError: group.noMatchError,
-			}
+			encodedGroup.NoMatchError = proto.String(group.noMatchError)
 		}
 
-		groups = append(groups, &encodedGroup)
+		groups = append(groups, encodedGroup.Build())
 	}
 
 	return model_core.NewPatchedMessage(groups, patcher), nil
@@ -204,14 +202,12 @@ func (s *Select[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Select{
-				Select: &model_starlark_pb.Select{
-					Groups:                groups.Message,
-					ConcatenationOperator: concatenationOperator,
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Select: model_starlark_pb.Select_builder{
+				Groups:                groups.Message,
+				ConcatenationOperator: concatenationOperator,
+			}.Build(),
+		}.Build(),
 		groups.Patcher,
 	), nil
 }
@@ -367,68 +363,68 @@ func DecodeSelectGroups[TReference object.BasicReference, TMetadata model_core.R
 	groups model_core.Message[[]*model_starlark_pb.Select_Group, TReference],
 	concatenationOperator syntax.Token,
 ) (eval.Value, error) {
-	encodedSelect := &model_starlark_pb.Select{
+	encodedSelect := model_starlark_pb.Select_builder{
 		Groups: groups.Message,
-	}
+	}.Build()
 	if len(groups.Message) > 1 {
 		switch concatenationOperator {
 		case syntax.PIPE:
-			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PIPE
+			encodedSelect.SetConcatenationOperator(model_starlark_pb.Select_PIPE)
 		case syntax.PLUS:
-			encodedSelect.ConcatenationOperator = model_starlark_pb.Select_PLUS
+			encodedSelect.SetConcatenationOperator(model_starlark_pb.Select_PLUS)
 		default:
 			return nil, errors.New("value consists of multiple parts, even though the attribute type cannot be concatenated")
 		}
 	}
 	return DecodeValue[TReference, TMetadata](
 		thread,
-		model_core.Nested(groups, &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Select{
-				Select: encodedSelect,
-			},
-		}),
+		model_core.Nested(groups, model_starlark_pb.Value_builder{
+			Select: encodedSelect,
+		}.Build()),
 		/* currentIdentifier = */ nil,
 	)
 }
 
 func decodeSelect[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](thread *eval.Thread, encodedValue model_core.Message[*model_starlark_pb.Value, TReference], encodedSelect *model_starlark_pb.Select) (*Select[TReference, TMetadata], error) {
-	if len(encodedSelect.Groups) < 1 {
+	encodedGroups := encodedSelect.GetGroups()
+	if len(encodedGroups) < 1 {
 		return nil, errors.New("select does not contain any groups")
 	}
-	groups := make([]SelectGroup, 0, len(encodedSelect.Groups))
-	for groupIndex, group := range encodedSelect.Groups {
-		conditions := make(map[pg_label.ResolvedLabel]eval.Value, len(group.Conditions))
-		for _, condition := range group.Conditions {
-			conditionIdentifier, err := pg_label.NewResolvedLabel(condition.ConditionIdentifier)
+	groups := make([]SelectGroup, 0, len(encodedGroups))
+	for groupIndex, group := range encodedGroups {
+		encodedConditions := group.GetConditions()
+		conditions := make(map[pg_label.ResolvedLabel]eval.Value, len(encodedConditions))
+		for _, condition := range encodedConditions {
+			conditionIdentifier, err := pg_label.NewResolvedLabel(condition.GetConditionIdentifier())
 			if err != nil {
-				return nil, fmt.Errorf("invalid condition identifier %#v in group %d: %w", condition.ConditionIdentifier, groupIndex, err)
+				return nil, fmt.Errorf("invalid condition identifier %#v in group %d: %w", condition.GetConditionIdentifier(), groupIndex, err)
 			}
-			conditionValue, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(encodedValue, condition.Value), nil)
+			conditionValue, err := DecodeValue[TReference, TMetadata](thread, model_core.Nested(encodedValue, condition.GetValue()), nil)
 			if err != nil {
-				return nil, fmt.Errorf("condition with identifier %#v in group %d: %w", condition.ConditionIdentifier, groupIndex, err)
+				return nil, fmt.Errorf("condition with identifier %#v in group %d: %w", condition.GetConditionIdentifier(), groupIndex, err)
 			}
 			conditions[conditionIdentifier] = conditionValue
 		}
 		var defaultValue eval.Value
 		noMatchError := ""
-		switch noMatch := group.NoMatch.(type) {
-		case *model_starlark_pb.Select_Group_NoMatchValue:
+		switch group.WhichNoMatch() {
+		case model_starlark_pb.Select_Group_NoMatchValue_case:
 			var err error
-			defaultValue, err = DecodeValue[TReference, TMetadata](thread, model_core.Nested(encodedValue, noMatch.NoMatchValue), nil)
+			defaultValue, err = DecodeValue[TReference, TMetadata](thread, model_core.Nested(encodedValue, group.GetNoMatchValue()), nil)
 			if err != nil {
 				return nil, fmt.Errorf("no match value of group %d: %w", groupIndex, err)
 			}
-		case *model_starlark_pb.Select_Group_NoMatchError:
-			noMatchError = noMatch.NoMatchError
-		case nil:
+		case model_starlark_pb.Select_Group_NoMatchError_case:
+			noMatchError = group.GetNoMatchError()
+		case model_starlark_pb.Select_Group_NoMatch_not_set_case:
 		default:
 			return nil, fmt.Errorf("invalid no match value for group %d", groupIndex)
 		}
 		groups = append(groups, NewSelectGroup(conditions, defaultValue, noMatchError))
 	}
 	var concatenationOperator syntax.Token
-	if len(encodedSelect.Groups) > 1 {
-		switch encodedSelect.ConcatenationOperator {
+	if len(encodedSelect.GetGroups()) > 1 {
+		switch encodedSelect.GetConcatenationOperator() {
 		case model_starlark_pb.Select_PIPE:
 			concatenationOperator = syntax.PIPE
 		case model_starlark_pb.Select_PLUS:

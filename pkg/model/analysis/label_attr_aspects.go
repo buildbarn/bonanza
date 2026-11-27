@@ -17,7 +17,7 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 	// Load the definitions of all aspects, including the ones that
 	// are required by them, directly or indirectly.
 	aspectDefinitions := map[string]model_core.Message[*model_starlark_pb.Aspect_Definition, TReference]{}
-	pendingAspectIdentifiers := append([]string(nil), key.AspectIdentifiers...)
+	pendingAspectIdentifiers := append([]string(nil), key.GetAspectIdentifiers()...)
 	missingDependencies := false
 	for len(pendingAspectIdentifiers) > 0 {
 		aspectIdentifierStr := pendingAspectIdentifiers[0]
@@ -38,7 +38,7 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 			return PatchedLabelAttrAspectsValue[TMetadata]{}, err
 		}
 		aspectDefinitions[aspectIdentifierStr] = aspectDefinition
-		pendingAspectIdentifiers = append(pendingAspectIdentifiers, aspectDefinition.Message.Requires...)
+		pendingAspectIdentifiers = append(pendingAspectIdentifiers, aspectDefinition.Message.GetRequires()...)
 	}
 	if missingDependencies {
 		return PatchedLabelAttrAspectsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -57,7 +57,7 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 			return nil
 		}
 		states[aspectIdentifier] = false
-		for _, requiredAspectIdentifier := range aspectDefinitions[aspectIdentifier].Message.Requires {
+		for _, requiredAspectIdentifier := range aspectDefinitions[aspectIdentifier].Message.GetRequires() {
 			if err := visit(requiredAspectIdentifier); err != nil {
 				return err
 			}
@@ -66,7 +66,7 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 		orderedAspectIdentifiers = append(orderedAspectIdentifiers, aspectIdentifier)
 		return nil
 	}
-	for _, aspectIdentifier := range key.AspectIdentifiers {
+	for _, aspectIdentifier := range key.GetAspectIdentifiers() {
 		if err := visit(aspectIdentifier); err != nil {
 			return PatchedLabelAttrAspectsValue[TMetadata]{}, err
 		}
@@ -77,8 +77,8 @@ func (baseComputer[TReference, TMetadata]) ComputeLabelAttrAspectsValue(ctx cont
 		for _, aspectIdentifier := range orderedAspectIdentifiers {
 			aspectDefinition := aspectDefinitions[aspectIdentifier]
 			var publicAttrs []*model_starlark_pb.NamedAttr
-			for _, namedAttr := range aspectDefinition.Message.Attrs {
-				if !strings.HasPrefix(namedAttr.Name, "_") {
+			for _, namedAttr := range aspectDefinition.Message.GetAttrs() {
+				if !strings.HasPrefix(namedAttr.GetName(), "_") {
 					publicAttrs = append(publicAttrs, model_core.Patch(e, model_core.Nested(aspectDefinition, namedAttr)).Merge(patcher))
 				}
 			}

@@ -20,8 +20,8 @@ import (
 )
 
 func decodeStringDict[TReference object.BasicReference](ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], fileReader *model_filesystem.FileReader[TReference], d model_core.Message[*model_starlark_pb.Value, TReference]) (map[string]string, error) {
-	dict, ok := d.Message.GetKind().(*model_starlark_pb.Value_Dict)
-	if !ok {
+	dict := d.Message.GetDict()
+	if dict == nil {
 		return nil, errors.New("not a dict")
 	}
 	var iterErr error
@@ -29,7 +29,7 @@ func decodeStringDict[TReference object.BasicReference](ctx context.Context, val
 	for key, value := range model_starlark.AllDictLeafEntries(
 		ctx,
 		valueReaders.Dict,
-		model_core.Nested(d, dict.Dict),
+		model_core.Nested(d, dict),
 		&iterErr,
 	) {
 		keyStr, ok, err := getStringValue(ctx, fileReader, key)

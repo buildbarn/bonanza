@@ -44,7 +44,7 @@ func starlarkTargetCall(callee Doc, name string, arguments []starlarkTargetArgum
 // consisting of a sequence of select() expressions whose values are
 // concatenated.
 func (sr *StarlarkRenderer) renderSelectGroups(groups model_core.Message[[]*model_starlark_pb.Select_Group, object.LocalReference]) Doc {
-	return sr.renderSelect(model_core.Nested(groups, &model_starlark_pb.Select{Groups: groups.Message}))
+	return sr.renderSelect(model_core.Nested(groups, model_starlark_pb.Select_builder{Groups: groups.Message}.Build()))
 }
 
 // isEmptyListAttrValue returns true if the value of an attribute
@@ -54,15 +54,15 @@ func (sr *StarlarkRenderer) renderSelectGroups(groups model_core.Message[[]*mode
 // common case.
 func isEmptyListAttrValue(groups []*model_starlark_pb.Select_Group) bool {
 	for _, group := range groups {
-		if len(group.Conditions) > 0 {
+		if len(group.GetConditions()) > 0 {
 			return false
 		}
-		noMatch, ok := group.NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue)
-		if !ok {
+		noMatch := group.GetNoMatchValue()
+		if noMatch == nil {
 			return false
 		}
-		list, ok := noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_List)
-		if !ok || len(list.List.Elements) > 0 {
+		list := noMatch.GetList()
+		if list == nil || len(list.GetElements()) > 0 {
 			return false
 		}
 	}
@@ -74,18 +74,17 @@ func isEmptyListAttrValue(groups []*model_starlark_pb.Select_Group) bool {
 // given value. This is used to omit attributes like shard_count, which
 // are always set, but have a default value in the common case.
 func isIntAttrValue(groups []*model_starlark_pb.Select_Group, expected int64) bool {
-	if len(groups) != 1 || len(groups[0].Conditions) > 0 {
+	if len(groups) != 1 || len(groups[0].GetConditions()) > 0 {
 		return false
 	}
-	noMatch, ok := groups[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue)
-	if !ok {
+	noMatch := groups[0].GetNoMatchValue()
+	if noMatch == nil {
 		return false
 	}
-	i, ok := noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_Int)
-	if !ok {
+	if !noMatch.HasInt() {
 		return false
 	}
-	value := model_starlark.DecodeInt(i.Int)
+	value := model_starlark.DecodeInt(noMatch.GetInt())
 	return value.IsInt64() && value.Int64() == expected
 }
 
@@ -95,7 +94,7 @@ func isIntAttrValue(groups []*model_starlark_pb.Select_Group, expected int64) bo
 // provided separately, in the order in which they are declared by the
 // rule.
 func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, object.LocalReference], publicAttrNames []string) []starlarkTargetArgument {
-	publicAttrValues := ruleTarget.Message.PublicAttrValues
+	publicAttrValues := ruleTarget.Message.GetPublicAttrValues()
 	if len(publicAttrValues) != len(publicAttrNames) {
 		return []starlarkTargetArgument{{
 			name:  "public_attrs",
@@ -105,10 +104,10 @@ func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Mess
 
 	var arguments []starlarkTargetArgument
 	for i, publicAttrValue := range publicAttrValues {
-		valueParts := publicAttrValue.ValueParts
-		if len(valueParts) == 1 && len(valueParts[0].Conditions) == 0 {
-			if noMatch, ok := valueParts[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-				if _, ok := noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_None); ok {
+		valueParts := publicAttrValue.GetValueParts()
+		if len(valueParts) == 1 && len(valueParts[0].GetConditions()) == 0 {
+			if noMatch := valueParts[0].GetNoMatchValue(); noMatch != nil {
+				if noMatch.GetNone() != nil {
 					// No value provided, meaning the
 					// default value is used.
 					continue
@@ -122,80 +121,80 @@ func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Mess
 	}
 
 	// Attributes that are common to all rules.
-	if l := ruleTarget.Message.ExecCompatibleWith; len(l) > 0 {
+	if l := ruleTarget.Message.GetExecCompatibleWith(); len(l) > 0 {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "exec_compatible_with",
 			value: starlarkStringList(l),
 		})
 	}
-	if l := ruleTarget.Message.Tags; len(l) > 0 {
+	if l := ruleTarget.Message.GetTags(); len(l) > 0 {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "tags",
 			value: starlarkStringList(l),
 		})
 	}
-	if l := ruleTarget.Message.TargetCompatibleWith; !isEmptyListAttrValue(l) {
+	if l := ruleTarget.Message.GetTargetCompatibleWith(); !isEmptyListAttrValue(l) {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "target_compatible_with",
 			value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
 		})
 	}
-	if v := ruleTarget.Message.BuildSetting.GetDefault(); v != nil {
+	if v := ruleTarget.Message.GetBuildSetting().GetDefault(); v != nil {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "build_setting_default",
 			value: sr.renderValue(model_core.Nested(ruleTarget, v)),
 		})
 	}
-	if v := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); v != nil {
+	if v := ruleTarget.Message.GetBuildSetting().GetOnLeaveScope(); v != nil {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "on_leave_scope",
 			value: sr.renderValue(model_core.Nested(ruleTarget, v)),
 		})
 	}
-	if v := ruleTarget.Message.BuildSetting; v != nil && !isDefaultBuildSettingScope(v.Scope) {
+	if v := ruleTarget.Message.GetBuildSetting(); v != nil && !isDefaultBuildSettingScope(v.GetScope()) {
 		arguments = append(arguments, starlarkTargetArgument{
 			name:  "scope",
-			value: renderBuildSettingScope(v.Scope),
+			value: renderBuildSettingScope(v.GetScope()),
 		})
 	}
 
 	// Attributes that are common to all tests. Only render the ones
 	// whose values differ from the defaults.
-	if test := ruleTarget.Message.Test; test != nil {
-		if l := test.Args; !isEmptyListAttrValue(l) {
+	if test := ruleTarget.Message.GetTest(); test != nil {
+		if l := test.GetArgs(); !isEmptyListAttrValue(l) {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "args",
 				value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
 			})
 		}
-		if test.Flaky {
+		if test.GetFlaky() {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "flaky",
 				value: starlarkBool(true),
 			})
 		}
-		if test.Local {
+		if test.GetLocal() {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "local",
 				value: starlarkBool(true),
 			})
 		}
-		if l := test.ShardCount; !isIntAttrValue(l, 1) {
+		if l := test.GetShardCount(); !isIntAttrValue(l, 1) {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "shard_count",
 				value: sr.renderSelectGroups(model_core.Nested(ruleTarget, l)),
 			})
 		}
-		if test.Size != model_starlark_pb.TestSize_MEDIUM {
+		if test.GetSize() != model_starlark_pb.TestSize_MEDIUM {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "size",
-				value: starlarkString(model_starlark.FormatTestSize(test.Size)),
+				value: starlarkString(model_starlark.FormatTestSize(test.GetSize())),
 			})
 		}
-		if test.Timeout != model_starlark.GetDefaultTestTimeout(test.Size) {
+		if test.GetTimeout() != model_starlark.GetDefaultTestTimeout(test.GetSize()) {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "timeout",
-				value: starlarkString(model_starlark.FormatTestTimeout(test.Timeout)),
+				value: starlarkString(model_starlark.FormatTestTimeout(test.GetTimeout())),
 			})
 		}
 	}
@@ -213,70 +212,70 @@ func (sr *StarlarkRenderer) renderRuleTargetArguments(ruleTarget model_core.Mess
 // rule.
 func (sr *StarlarkRenderer) Target(targetLabel label.CanonicalLabel, definition model_core.Message[*model_starlark_pb.Target_Definition, object.LocalReference], publicAttrNames []string) Doc {
 	name := targetLabel.GetTargetName().String()
-	switch kind := definition.Message.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
+	switch definition.Message.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
 		return starlarkTargetCall(
 			starlarkCallee("alias", ""),
 			name,
 			[]starlarkTargetArgument{{
 				name:  "actual",
-				value: sr.renderSelectGroup(model_core.Nested(definition, kind.Alias.Actual)),
+				value: sr.renderSelectGroup(model_core.Nested(definition, definition.Message.GetAlias().GetActual())),
 			}},
 		)
-	case *model_starlark_pb.Target_Definition_LabelSetting:
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
 		callee := "label_setting"
-		if kind.LabelSetting.Flag {
+		if definition.Message.GetLabelSetting().GetFlag() {
 			callee = "label_flag"
 		}
 		var arguments []starlarkTargetArgument
-		if l := kind.LabelSetting.BuildSettingDefault; l != "" {
+		if l := definition.Message.GetLabelSetting().GetBuildSettingDefault(); l != "" {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "build_setting_default",
 				value: starlarkString(l),
 			})
 		}
-		if l := kind.LabelSetting.OnLeaveScope; l != "" {
+		if l := definition.Message.GetLabelSetting().GetOnLeaveScope(); l != "" {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "on_leave_scope",
 				value: starlarkString(l),
 			})
 		}
-		if v := kind.LabelSetting.Scope; !isDefaultBuildSettingScope(v) {
+		if v := definition.Message.GetLabelSetting().GetScope(); !isDefaultBuildSettingScope(v) {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "scope",
 				value: renderBuildSettingScope(v),
 			})
 		}
 		return starlarkTargetCall(starlarkCallee(callee, ""), name, arguments)
-	case *model_starlark_pb.Target_Definition_PackageGroup:
+	case model_starlark_pb.Target_Definition_PackageGroup_case:
 		var arguments []starlarkTargetArgument
-		if l := kind.PackageGroup.IncludePackageGroups; len(l) > 0 {
+		if l := definition.Message.GetPackageGroup().GetIncludePackageGroups(); len(l) > 0 {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "includes",
 				value: starlarkStringList(l),
 			})
 		}
 		return starlarkTargetCall(starlarkCallee("package_group", ""), name, arguments)
-	case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget:
+	case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case:
 		return Styled(RoleDim, "# "+targetLabel.String()+" (generated file)")
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		ruleIdentifier := kind.RuleTarget.RuleIdentifier
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		ruleIdentifier := definition.Message.GetRuleTarget().GetRuleIdentifier()
 		return starlarkTargetCall(
 			starlarkCallee(starlarkIdentifierName(ruleIdentifier), ruleIdentifier),
 			name,
-			sr.renderRuleTargetArguments(model_core.Nested(definition, kind.RuleTarget), publicAttrNames),
+			sr.renderRuleTargetArguments(model_core.Nested(definition, definition.Message.GetRuleTarget()), publicAttrNames),
 		)
-	case *model_starlark_pb.Target_Definition_SourceFileTarget:
+	case model_starlark_pb.Target_Definition_SourceFileTarget_case:
 		return Styled(RoleDim, "# "+targetLabel.String()+" (source file)")
-	case *model_starlark_pb.Target_Definition_TestSuite:
+	case model_starlark_pb.Target_Definition_TestSuite_case:
 		var arguments []starlarkTargetArgument
-		if l := model_starlark.GetTestSuiteTags(kind.TestSuite); len(l) > 0 {
+		if l := model_starlark.GetTestSuiteTags(definition.Message.GetTestSuite()); len(l) > 0 {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "tags",
 				value: starlarkStringList(l),
 			})
 		}
-		if l := kind.TestSuite.Tests; len(l) > 0 {
+		if l := definition.Message.GetTestSuite().GetTests(); len(l) > 0 {
 			arguments = append(arguments, starlarkTargetArgument{
 				name:  "tests",
 				value: sr.renderTestSuiteTests(model_core.Nested(definition, l)),
@@ -302,6 +301,5 @@ func renderBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) Doc {
 // setting is equal to the default value of the "scope" attribute, and
 // can therefore be omitted.
 func isDefaultBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) bool {
-	_, ok := scope.GetKind().(*model_starlark_pb.BuildSettingScope_Target)
-	return ok
+	return scope.GetTarget() != nil
 }

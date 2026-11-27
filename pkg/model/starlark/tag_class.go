@@ -6,6 +6,8 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // TagClass is a Starlark value type for module extension tag classes.
@@ -59,11 +61,9 @@ func (tc *TagClass[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_TagClass{
-				TagClass: tagClass.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			TagClass: proto.ValueOrDefault(tagClass.Message),
+		}.Build(),
 		tagClass.Patcher,
 	), nil
 }
@@ -97,9 +97,9 @@ func (tcd *starlarkTagClassDefinition[TReference, TMetadata]) Encode(thread *eva
 		return model_core.PatchedMessage[*model_starlark_pb.TagClass, TMetadata]{}, nil
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.TagClass{
+		model_starlark_pb.TagClass_builder{
 			Attrs: encodedAttrs.Message,
-		},
+		}.Build(),
 		encodedAttrs.Patcher,
 	), nil
 }

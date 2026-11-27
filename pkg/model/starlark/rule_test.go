@@ -82,14 +82,14 @@ func TestRuleCallTest(t *testing.T) {
 		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget(), nil
 	}
 	intValue := func(i int64) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Int{Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(i)))},
-		}
+		return model_starlark_pb.Value_builder{
+			Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(i))),
+		}.Build()
 	}
 	noMatchGroup := func(v *model_starlark_pb.Value) *model_starlark_pb.Select_Group {
-		return &model_starlark_pb.Select_Group{
-			NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: v},
-		}
+		return model_starlark_pb.Select_Group_builder{
+			NoMatchValue: proto.ValueOrDefault(v),
+		}.Build()
 	}
 
 	t.Run("NotATest", func(t *testing.T) {
@@ -106,14 +106,14 @@ func TestRuleCallTest(t *testing.T) {
 	t.Run("Defaults", func(t *testing.T) {
 		ruleTarget, err := callRule(t, model_starlark_pb.Rule_Definition_TEST)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.RuleTarget_Test{
+		testutil.RequireEqualProto(t, model_starlark_pb.RuleTarget_Test_builder{
 			Size:       model_starlark_pb.TestSize_MEDIUM,
 			Timeout:    model_starlark_pb.TestTimeout_MODERATE,
 			ShardCount: []*model_starlark_pb.Select_Group{noMatchGroup(intValue(1))},
-			Args: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}},
-			})},
-		}, ruleTarget.GetTest())
+			Args: []*model_starlark_pb.Select_Group{noMatchGroup(model_starlark_pb.Value_builder{
+				List: &model_starlark_pb.List{},
+			}.Build())},
+		}.Build(), ruleTarget.GetTest())
 	})
 
 	t.Run("TimeoutDerivedFromSize", func(t *testing.T) {
@@ -146,26 +146,26 @@ func TestRuleCallTest(t *testing.T) {
 			eval.NamedArg{Name: "args", Value: eval.NewList([]eval.Value{eval.String("--foo")})},
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.RuleTarget_Test{
+		testutil.RequireEqualProto(t, model_starlark_pb.RuleTarget_Test_builder{
 			Size:    model_starlark_pb.TestSize_SMALL,
 			Timeout: model_starlark_pb.TestTimeout_LONG,
 			Flaky:   true,
 			Local:   true,
-			ShardCount: []*model_starlark_pb.Select_Group{{
-				Conditions: []*model_starlark_pb.Select_Condition{{
+			ShardCount: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+				Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
 					ConditionIdentifier: "@@main+//:cond",
 					Value:               intValue(4),
-				}},
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: intValue(2)},
-			}},
-			Args: []*model_starlark_pb.Select_Group{noMatchGroup(&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{
-					Elements: []*model_starlark_pb.List_Element{{
-						Level: &model_starlark_pb.List_Element_Leaf{Leaf: newStringValue("--foo")},
-					}},
-				}},
-			})},
-		}, ruleTarget.GetTest())
+				}.Build()},
+				NoMatchValue: proto.ValueOrDefault(intValue(2)),
+			}.Build()},
+			Args: []*model_starlark_pb.Select_Group{noMatchGroup(model_starlark_pb.Value_builder{
+				List: model_starlark_pb.List_builder{
+					Elements: []*model_starlark_pb.List_Element{model_starlark_pb.List_Element_builder{
+						Leaf: proto.ValueOrDefault(newStringValue("--foo")),
+					}.Build()},
+				}.Build(),
+			}.Build())},
+		}.Build(), ruleTarget.GetTest())
 	})
 
 	t.Run("InvalidValues", func(t *testing.T) {
@@ -320,9 +320,9 @@ func TestRuleCallBuildSetting(t *testing.T) {
 		}
 		return targetRegistrar.GetAndRemoveTarget("t").Message.GetRuleTarget().GetBuildSetting(), nil
 	}
-	targetScope := &model_starlark_pb.BuildSettingScope{
-		Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
-	}
+	targetScope := model_starlark_pb.BuildSettingScope_builder{
+		Target: &emptypb.Empty{},
+	}.Build()
 
 	t.Run("Defaults", func(t *testing.T) {
 		buildSetting, err := callRule(t, nil)
@@ -339,12 +339,12 @@ func TestRuleCallBuildSetting(t *testing.T) {
 			eval.NamedArg{Name: "on_leave_scope", Value: eval.False},
 		)
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &model_starlark_pb.BuildSettingScope{
-			Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//foo:host_flag"},
-		}, buildSetting.GetScope())
-		testutil.RequireEqualProto(t, &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Bool{Bool: false},
-		}, buildSetting.GetOnLeaveScope())
+		testutil.RequireEqualProto(t, model_starlark_pb.BuildSettingScope_builder{
+			Exec: proto.String("@@main+//foo:host_flag"),
+		}.Build(), buildSetting.GetScope())
+		testutil.RequireEqualProto(t, model_starlark_pb.Value_builder{
+			Bool: proto.Bool(false),
+		}.Build(), buildSetting.GetOnLeaveScope())
 	})
 
 	t.Run("InvalidScope", func(t *testing.T) {

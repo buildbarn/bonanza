@@ -22,6 +22,8 @@ import (
 	model_filesystem_pb "bonanza.build/pkg/proto/model/filesystem"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // labelSet is a set of canonical labels of targets, as yielded by the
@@ -90,12 +92,12 @@ type queryAttr[TReference any] struct {
 // expression to an attribute value.
 func (a *queryAttr[TReference]) appendSelectGroup(selectGroup model_core.Message[*model_starlark_pb.Select_Group, TReference]) {
 	var alternatives []model_core.Message[*model_starlark_pb.Value, TReference]
-	for _, condition := range selectGroup.Message.Conditions {
-		a.conditionLabels = append(a.conditionLabels, condition.ConditionIdentifier)
-		alternatives = append(alternatives, model_core.Nested(selectGroup, condition.Value))
+	for _, condition := range selectGroup.Message.GetConditions() {
+		a.conditionLabels = append(a.conditionLabels, condition.GetConditionIdentifier())
+		alternatives = append(alternatives, model_core.Nested(selectGroup, condition.GetValue()))
 	}
-	if noMatch, ok := selectGroup.Message.NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-		alternatives = append(alternatives, model_core.Nested(selectGroup, noMatch.NoMatchValue))
+	if noMatch := selectGroup.Message.GetNoMatchValue(); noMatch != nil {
+		alternatives = append(alternatives, model_core.Nested(selectGroup, noMatch))
 	}
 	a.parts = append(a.parts, alternatives)
 }
@@ -103,19 +105,17 @@ func (a *queryAttr[TReference]) appendSelectGroup(selectGroup model_core.Message
 func newQueryLabelListValue[TReference any](labels []string) model_core.Message[*model_starlark_pb.Value, TReference] {
 	elements := make([]*model_starlark_pb.List_Element, 0, len(labels))
 	for _, l := range labels {
-		elements = append(elements, &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Label{Label: l},
-				},
-			},
-		})
+		elements = append(elements, model_starlark_pb.List_Element_builder{
+			Leaf: model_starlark_pb.Value_builder{
+				Label: proto.String(l),
+			}.Build(),
+		}.Build())
 	}
-	return model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_List{
-			List: &model_starlark_pb.List{Elements: elements},
-		},
-	})
+	return model_core.NewSimpleMessage[TReference](model_starlark_pb.Value_builder{
+		List: model_starlark_pb.List_builder{
+			Elements: elements,
+		}.Build(),
+	}.Build())
 }
 
 // queryRuleTarget contains properties of a rule target that are needed
@@ -147,15 +147,15 @@ func getQueryRuleDefinition[TReference any](
 	if !ruleValue.IsSet() {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, evaluation.ErrMissingDependency
 	}
-	v, ok := ruleValue.Message.Global.GetKind().(*model_starlark_pb.Value_Rule)
-	if !ok {
+	v := ruleValue.Message.GetGlobal().GetRule()
+	if v == nil {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, fmt.Errorf("%#v is not a rule", ruleIdentifier.String())
 	}
-	d, ok := v.Rule.Kind.(*model_starlark_pb.Rule_Definition_)
-	if !ok {
+	d := v.GetDefinition()
+	if d == nil {
 		return model_core.Message[*model_starlark_pb.Rule_Definition, TReference]{}, fmt.Errorf("%#v is not a rule definition", ruleIdentifier.String())
 	}
-	return model_core.Nested(ruleValue, d.Definition), nil
+	return model_core.Nested(ruleValue, d), nil
 }
 
 // getQueryRuleTarget obtains the attribute values of a rule target,
@@ -166,9 +166,9 @@ func getQueryRuleTarget[TReference any](
 	targetLabel label.CanonicalLabel,
 	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
 ) (*queryRuleTarget[TReference], error) {
-	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.RuleIdentifier)
+	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.GetRuleIdentifier())
 	if err != nil {
-		return nil, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.Message.RuleIdentifier, err)
+		return nil, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.Message.GetRuleIdentifier(), err)
 	}
 	ruleDefinition, err := getQueryRuleDefinition(e, ruleIdentifier)
 	if err != nil {
@@ -178,13 +178,12 @@ func getQueryRuleTarget[TReference any](
 	t := &queryRuleTarget[TReference]{}
 
 	// Attributes that are common to all rules.
-	tags := make([]*model_starlark_pb.List_Element, 0, len(ruleTarget.Message.Tags))
-	for _, tag := range ruleTarget.Message.Tags {
-		tags = append(tags, &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: newQueryStringValue(tag),
-			},
-		})
+	ruleTargetTags := ruleTarget.Message.GetTags()
+	tags := make([]*model_starlark_pb.List_Element, 0, len(ruleTargetTags))
+	for _, tag := range ruleTargetTags {
+		tags = append(tags, model_starlark_pb.List_Element_builder{
+			Leaf: proto.ValueOrDefault(newQueryStringValue(tag)),
+		}.Build())
 	}
 	t.attrs = append(
 		t.attrs,
@@ -192,7 +191,7 @@ func getQueryRuleTarget[TReference any](
 			name:       "exec_compatible_with",
 			isExplicit: true,
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-				newQueryLabelListValue[TReference](ruleTarget.Message.ExecCompatibleWith),
+				newQueryLabelListValue[TReference](ruleTarget.Message.GetExecCompatibleWith()),
 			}},
 		},
 		queryAttr[TReference]{
@@ -205,27 +204,25 @@ func getQueryRuleTarget[TReference any](
 		queryAttr[TReference]{
 			name: "package_metadata",
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-				newQueryLabelListValue[TReference](ruleTarget.Message.InheritableAttrs.GetPackageMetadata()),
+				newQueryLabelListValue[TReference](ruleTarget.Message.GetInheritableAttrs().GetPackageMetadata()),
 			}},
 		},
 		queryAttr[TReference]{
 			name:       "tags",
 			isExplicit: true,
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-				model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_List{
-						List: &model_starlark_pb.List{Elements: tags},
-					},
-				}),
+				model_core.NewSimpleMessage[TReference](model_starlark_pb.Value_builder{
+					List: model_starlark_pb.List_builder{Elements: tags}.Build(),
+				}.Build()),
 			}},
 		},
 		queryAttr[TReference]{
 			name:       "testonly",
 			isExplicit: true,
 			parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-				model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Bool{Bool: ruleTarget.Message.InheritableAttrs.GetTestonly()},
-				}),
+				model_core.NewSimpleMessage[TReference](model_starlark_pb.Value_builder{
+					Bool: proto.Bool(ruleTarget.Message.GetInheritableAttrs().GetTestonly()),
+				}.Build()),
 			}},
 		},
 	)
@@ -233,11 +230,11 @@ func getQueryRuleTarget[TReference any](
 		name:       "target_compatible_with",
 		isExplicit: true,
 	}
-	for _, selectGroup := range ruleTarget.Message.TargetCompatibleWith {
+	for _, selectGroup := range ruleTarget.Message.GetTargetCompatibleWith() {
 		targetCompatibleWith.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
 	}
 	t.attrs = append(t.attrs, targetCompatibleWith)
-	if buildSettingDefault := ruleTarget.Message.BuildSetting.GetDefault(); buildSettingDefault != nil {
+	if buildSettingDefault := ruleTarget.Message.GetBuildSetting().GetDefault(); buildSettingDefault != nil {
 		t.attrs = append(t.attrs, queryAttr[TReference]{
 			name:       "build_setting_default",
 			isExplicit: true,
@@ -246,7 +243,7 @@ func getQueryRuleTarget[TReference any](
 			}},
 		})
 	}
-	if onLeaveScope := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); onLeaveScope != nil {
+	if onLeaveScope := ruleTarget.Message.GetBuildSetting().GetOnLeaveScope(); onLeaveScope != nil {
 		t.attrs = append(t.attrs, queryAttr[TReference]{
 			name:       "on_leave_scope",
 			isExplicit: true,
@@ -255,8 +252,8 @@ func getQueryRuleTarget[TReference any](
 			}},
 		})
 	}
-	if buildSetting := ruleTarget.Message.BuildSetting; buildSetting != nil {
-		scopeStr, err := model_starlark.FormatBuildSettingScope(buildSetting.Scope)
+	if buildSetting := ruleTarget.Message.GetBuildSetting(); buildSetting != nil {
+		scopeStr, err := model_starlark.FormatBuildSettingScope(buildSetting.GetScope())
 		if err != nil {
 			return nil, fmt.Errorf("attr \"scope\": %w", err)
 		}
@@ -268,7 +265,7 @@ func getQueryRuleTarget[TReference any](
 			}},
 		})
 	}
-	if test := ruleTarget.Message.Test; test != nil {
+	if test := ruleTarget.Message.GetTest(); test != nil {
 		// Attributes that are common to all tests.
 		newSimpleAttr := func(name string, value *model_starlark_pb.Value) queryAttr[TReference] {
 			return queryAttr[TReference]{
@@ -280,52 +277,52 @@ func getQueryRuleTarget[TReference any](
 			}
 		}
 		args := queryAttr[TReference]{name: "args", isExplicit: true}
-		for _, selectGroup := range test.Args {
+		for _, selectGroup := range test.GetArgs() {
 			args.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
 		}
 		shardCount := queryAttr[TReference]{name: "shard_count", isExplicit: true}
-		for _, selectGroup := range test.ShardCount {
+		for _, selectGroup := range test.GetShardCount() {
 			shardCount.appendSelectGroup(model_core.Nested(ruleTarget, selectGroup))
 		}
 		t.attrs = append(
 			t.attrs,
 			args,
-			newSimpleAttr("flaky", &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Bool{Bool: test.Flaky},
-			}),
-			newSimpleAttr("local", &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Bool{Bool: test.Local},
-			}),
+			newSimpleAttr("flaky", model_starlark_pb.Value_builder{
+				Bool: proto.Bool(test.GetFlaky()),
+			}.Build()),
+			newSimpleAttr("local", model_starlark_pb.Value_builder{
+				Bool: proto.Bool(test.GetLocal()),
+			}.Build()),
 			shardCount,
-			newSimpleAttr("size", newQueryStringValue(model_starlark.FormatTestSize(test.Size))),
-			newSimpleAttr("timeout", newQueryStringValue(model_starlark.FormatTestTimeout(test.Timeout))),
+			newSimpleAttr("size", newQueryStringValue(model_starlark.FormatTestSize(test.GetSize()))),
+			newSimpleAttr("timeout", newQueryStringValue(model_starlark.FormatTestTimeout(test.GetTimeout()))),
 		)
 	}
 
 	// Attributes declared by the rule. Values of public attributes
 	// are stored in the rule target, in the same order as the
 	// attributes in the rule definition.
-	publicAttrValues := ruleTarget.Message.PublicAttrValues
-	for _, namedAttr := range ruleDefinition.Message.Attrs {
-		attr := queryAttr[TReference]{name: namedAttr.Name}
-		switch namedAttr.Attr.GetType().(type) {
-		case *model_starlark_pb.Attr_Output, *model_starlark_pb.Attr_OutputList:
+	publicAttrValues := ruleTarget.Message.GetPublicAttrValues()
+	for _, namedAttr := range ruleDefinition.Message.GetAttrs() {
+		attr := queryAttr[TReference]{name: namedAttr.GetName()}
+		switch namedAttr.GetAttr().WhichType() {
+		case model_starlark_pb.Attr_Output_case, model_starlark_pb.Attr_OutputList_case:
 			attr.isOutput = true
 		}
 
-		if !strings.HasPrefix(namedAttr.Name, "_") {
+		if !strings.HasPrefix(namedAttr.GetName(), "_") {
 			if len(publicAttrValues) == 0 {
 				return nil, errors.New("rule target has fewer public attr values than the rule definition has public attrs")
 			}
-			valueParts := publicAttrValues[0].ValueParts
+			valueParts := publicAttrValues[0].GetValueParts()
 			publicAttrValues = publicAttrValues[1:]
 
 			// Values that are None cause the default value
 			// to be used.
 			isNone := false
-			if len(valueParts) == 1 && len(valueParts[0].Conditions) == 0 {
-				if noMatch, ok := valueParts[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-					_, isNone = noMatch.NoMatchValue.GetKind().(*model_starlark_pb.Value_None)
+			if len(valueParts) == 1 && len(valueParts[0].GetConditions()) == 0 {
+				if noMatch := valueParts[0].GetNoMatchValue(); noMatch != nil {
+					isNone = noMatch.GetNone() != nil
 				}
 			}
 			if !isNone {
@@ -337,7 +334,7 @@ func getQueryRuleTarget[TReference any](
 		}
 
 		if !attr.isExplicit {
-			defaultValue := namedAttr.Attr.GetDefault()
+			defaultValue := namedAttr.GetAttr().GetDefault()
 			if defaultValue == nil {
 				// Mandatory attribute without a value.
 				continue
@@ -364,7 +361,7 @@ func getQueryRuleTarget[TReference any](
 func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.Context, analysisReaders *Readers[TReference], valueReaders *model_starlark.ValueReaders[TReference], targetLabel label.CanonicalLabel, testSuite model_core.Message[*model_starlark_pb.TestSuite, TReference]) (*queryRuleTarget[TReference], error) {
 	var tests []string
 	var errIter error
-	for test := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(testSuite, testSuite.Message.Tests), &errIter) {
+	for test := range allTestSuiteTests(ctx, analysisReaders, model_core.Nested(testSuite, testSuite.Message.GetTests()), &errIter) {
 		tests = append(tests, test)
 	}
 	if errIter != nil {
@@ -374,11 +371,9 @@ func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.
 	tags := model_starlark.GetTestSuiteQueryTags(testSuite.Message)
 	tagElements := make([]*model_starlark_pb.List_Element, 0, len(tags))
 	for _, tag := range tags {
-		tagElements = append(tagElements, &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: newQueryStringValue(tag),
-			},
-		})
+		tagElements = append(tagElements, model_starlark_pb.List_Element_builder{
+			Leaf: proto.ValueOrDefault(newQueryStringValue(tag)),
+		}.Build())
 	}
 	return &queryRuleTarget[TReference]{
 		attrs: []queryAttr[TReference]{
@@ -393,11 +388,9 @@ func (*baseComputer[TReference, TMetadata]) getQueryTestSuiteTarget(ctx context.
 				name:       "tags",
 				isExplicit: true,
 				parts: [][]model_core.Message[*model_starlark_pb.Value, TReference]{{
-					model_core.NewSimpleMessage[TReference](&model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_List{
-							List: &model_starlark_pb.List{Elements: tagElements},
-						},
-					}),
+					model_core.NewSimpleMessage[TReference](model_starlark_pb.Value_builder{
+						List: model_starlark_pb.List_builder{Elements: tagElements}.Build(),
+					}.Build()),
 				}},
 			},
 			{
@@ -457,32 +450,32 @@ func (s *queryValueString) String() string {
 // canonical labels, and Booleans are converted to "0" and "1". It
 // returns false if the value has no string representation.
 func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Context, valueReaders *model_starlark.ValueReaders[TReference], fileReader *model_filesystem.FileReader[TReference], value model_core.Message[*model_starlark_pb.Value, TReference]) (queryValueString, bool, error) {
-	switch kind := value.Message.GetKind().(type) {
-	case *model_starlark_pb.Value_Bool:
-		if kind.Bool {
+	switch value.Message.WhichKind() {
+	case model_starlark_pb.Value_Bool_case:
+		if value.Message.GetBool() {
 			return queryValueString{scalar: "1"}, true, nil
 		}
 		return queryValueString{scalar: "0"}, true, nil
-	case *model_starlark_pb.Value_Int:
-		return queryValueString{scalar: model_starlark.DecodeInt(kind.Int).String()}, true, nil
-	case *model_starlark_pb.Value_Label:
-		canonicalLabel, err := canonicalizeQueryLabel(kind.Label)
+	case model_starlark_pb.Value_Int_case:
+		return queryValueString{scalar: model_starlark.DecodeInt(value.Message.GetInt()).String()}, true, nil
+	case model_starlark_pb.Value_Label_case:
+		canonicalLabel, err := canonicalizeQueryLabel(value.Message.GetLabel())
 		if err != nil {
 			return queryValueString{}, false, err
 		}
 		return queryValueString{scalar: canonicalLabel.String()}, true, nil
-	case *model_starlark_pb.Value_None:
+	case model_starlark_pb.Value_None_case:
 		return queryValueString{}, true, nil
-	case *model_starlark_pb.Value_Str:
+	case model_starlark_pb.Value_Str_case:
 		str, _, err := getStringValue(ctx, fileReader, value)
 		if err != nil {
 			return queryValueString{}, false, err
 		}
 		return queryValueString{scalar: str}, true, nil
-	case *model_starlark_pb.Value_List:
+	case model_starlark_pb.Value_List_case:
 		s := queryValueString{isList: true}
 		var errIter error
-		for element := range model_starlark.AllListLeafElements(ctx, valueReaders.List, model_core.Nested(value, kind.List.Elements), &errIter) {
+		for element := range model_starlark.AllListLeafElements(ctx, valueReaders.List, model_core.Nested(value, value.Message.GetList().GetElements()), &errIter) {
 			elementString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, element)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
@@ -490,10 +483,10 @@ func (c *baseComputer[TReference, TMetadata]) stringifyQueryValue(ctx context.Co
 			s.elements = append(s.elements, elementString.String())
 		}
 		return s, true, errIter
-	case *model_starlark_pb.Value_Dict:
+	case model_starlark_pb.Value_Dict_case:
 		var entries []string
 		var errIter error
-		for key, value := range model_starlark.AllDictLeafEntries(ctx, valueReaders.Dict, model_core.Nested(value, kind.Dict), &errIter) {
+		for key, value := range model_starlark.AllDictLeafEntries(ctx, valueReaders.Dict, model_core.Nested(value, value.Message.GetDict()), &errIter) {
 			keyString, ok, err := c.stringifyQueryValue(ctx, valueReaders, fileReader, key)
 			if err != nil || !ok {
 				return queryValueString{}, ok, err
@@ -712,11 +705,11 @@ func (c *baseComputer[TReference, TMetadata]) queryDeps(ctx context.Context, e T
 // this includes targets declared using built-in functions that behave
 // like rules.
 func isQueryRuleTarget(definition *model_starlark_pb.Target_Definition) bool {
-	switch definition.GetKind().(type) {
-	case *model_starlark_pb.Target_Definition_Alias,
-		*model_starlark_pb.Target_Definition_LabelSetting,
-		*model_starlark_pb.Target_Definition_RuleTarget,
-		*model_starlark_pb.Target_Definition_TestSuite:
+	switch definition.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case,
+		model_starlark_pb.Target_Definition_LabelSetting_case,
+		model_starlark_pb.Target_Definition_RuleTarget_case,
+		model_starlark_pb.Target_Definition_TestSuite_case:
 		return true
 	default:
 		return false
@@ -826,11 +819,11 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 			// sorted alphabetically. Other kinds of targets
 			// don't have any tags.
 			var tags []string
-			switch kind := definition.Message.GetKind().(type) {
-			case *model_starlark_pb.Target_Definition_RuleTarget:
-				tags = kind.RuleTarget.Tags
-			case *model_starlark_pb.Target_Definition_TestSuite:
-				tags = model_starlark.GetTestSuiteQueryTags(kind.TestSuite)
+			switch definition.Message.WhichKind() {
+			case model_starlark_pb.Target_Definition_RuleTarget_case:
+				tags = definition.Message.GetRuleTarget().GetTags()
+			case model_starlark_pb.Target_Definition_TestSuite_case:
+				tags = model_starlark.GetTestSuiteQueryTags(definition.Message.GetTestSuite())
 			}
 			if _, found := slices.BinarySearch(tags, expression.Tag); found {
 				results[labels[i]] = struct{}{}
@@ -860,7 +853,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		} else {
 			ruleIdentifier := expression.RuleIdentifier.String()
 			for i, definition := range definitions {
-				if ruleTarget, ok := definition.Message.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget); ok && ruleTarget.RuleTarget.RuleIdentifier == ruleIdentifier {
+				if ruleTarget := definition.Message.GetRuleTarget(); ruleTarget != nil && ruleTarget.GetRuleIdentifier() == ruleIdentifier {
 					results[labels[i]] = struct{}{}
 				}
 			}
@@ -879,13 +872,13 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 		results := labelSet{}
 		missingDependencies := false
 		for i, definition := range definitions {
-			ruleTarget, ok := definition.Message.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
-			if !ok {
+			ruleTarget := definition.Message.GetRuleTarget()
+			if ruleTarget == nil {
 				continue
 			}
-			ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.RuleTarget.RuleIdentifier)
+			ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.GetRuleIdentifier())
 			if err != nil {
-				return nil, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.RuleTarget.RuleIdentifier, err)
+				return nil, fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.GetRuleIdentifier(), err)
 			}
 			ruleDefinition, err := getQueryRuleDefinition(e, ruleIdentifier)
 			if err != nil {
@@ -895,7 +888,7 @@ func (c *baseComputer[TReference, TMetadata]) applyPerTargetQueryExpression(ctx 
 				}
 				return nil, err
 			}
-			if ruleDefinition.Message.Type == model_starlark_pb.Rule_Definition_EXECUTABLE {
+			if ruleDefinition.Message.GetType() == model_starlark_pb.Rule_Definition_EXECUTABLE {
 				results[labels[i]] = struct{}{}
 			}
 		}
@@ -1402,11 +1395,11 @@ func (c *baseComputer[TReference, TMetadata]) forEachQueryRuleTargetAttr(ctx con
 	for i, definition := range definitions {
 		var t *queryRuleTarget[TReference]
 		var err error
-		switch kind := definition.Message.GetKind().(type) {
-		case *model_starlark_pb.Target_Definition_RuleTarget:
-			t, err = getQueryRuleTarget(e, labels[i], model_core.Nested(definition, kind.RuleTarget))
-		case *model_starlark_pb.Target_Definition_TestSuite:
-			t, err = c.getQueryTestSuiteTarget(ctx, analysisReaders, valueReaders, labels[i], model_core.Nested(definition, kind.TestSuite))
+		switch definition.Message.WhichKind() {
+		case model_starlark_pb.Target_Definition_RuleTarget_case:
+			t, err = getQueryRuleTarget(e, labels[i], model_core.Nested(definition, definition.Message.GetRuleTarget()))
+		case model_starlark_pb.Target_Definition_TestSuite_case:
+			t, err = c.getQueryTestSuiteTarget(ctx, analysisReaders, valueReaders, labels[i], model_core.Nested(definition, definition.Message.GetTestSuite()))
 		default:
 			continue
 		}
@@ -1916,12 +1909,12 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 			return nil
 		}
 		for i, definition := range definitions {
-			switch kind := definition.Message.GetKind().(type) {
-			case *model_starlark_pb.Target_Definition_RuleTarget:
-				if kind.RuleTarget.Test != nil {
+			switch definition.Message.WhichKind() {
+			case model_starlark_pb.Target_Definition_RuleTarget_case:
+				if definition.Message.GetRuleTarget().GetTest() != nil {
 					tests[batch[i]] = struct{}{}
 				}
-			case *model_starlark_pb.Target_Definition_TestSuite:
+			case model_starlark_pb.Target_Definition_TestSuite_case:
 				testSuiteTests := e.GetTestSuiteTestsValue(&model_analysis_pb.TestSuiteTests_Key{
 					Label: batch[i].String(),
 				})
@@ -1929,14 +1922,14 @@ func (c *baseComputer[TReference, TMetadata]) expandQueryTests(ctx context.Conte
 					missingDependencies = true
 					continue
 				}
-				testSuites = append(testSuites, model_core.Nested(testSuiteTests, testSuiteTests.Message.TargetLabels))
+				testSuites = append(testSuites, model_core.Nested(testSuiteTests, testSuiteTests.Message.GetTargetLabels()))
 			}
 		}
 		batch = batch[:0]
 		return nil
 	}
 	var errIter error
-	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.TargetLabels), &errIter) {
+	for l := range c.allTargetLabels(ctx, analysisReaders, model_core.Nested(queryExpansion, queryExpansion.Message.GetTargetLabels()), &errIter) {
 		batch = append(batch, l)
 		if len(batch) == queryStreamingBatchSize {
 			if err := flushBatch(); err != nil {
@@ -2644,29 +2637,29 @@ func (*baseComputer[TReference, TMetadata]) forEachPackageTargetLabel(
 		analysisReaders.PackageValueTarget,
 		targets,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (*model_core_pb.DecodableReference, error) {
-			if level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Parent_); ok {
-				return level.Parent.Reference, nil
+			if level := entry.Message.GetParent(); level != nil {
+				return level.GetReference(), nil
 			}
 			return nil, nil
 		},
 		&errIter,
 	) {
-		level, ok := entry.Message.Level.(*model_analysis_pb.Package_Value_Target_Leaf)
-		if !ok {
+		level := entry.Message.GetLeaf()
+		if level == nil {
 			return errors.New("not a valid leaf entry")
 		}
-		reportTarget := isQueryRuleTarget(level.Leaf.Definition)
+		reportTarget := isQueryRuleTarget(level.GetDefinition())
 		if includeFileTargets {
-			switch level.Leaf.Definition.GetKind().(type) {
-			case *model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget,
-				*model_starlark_pb.Target_Definition_SourceFileTarget:
+			switch level.GetDefinition().WhichKind() {
+			case model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget_case,
+				model_starlark_pb.Target_Definition_SourceFileTarget_case:
 				reportTarget = true
 			}
 		}
 		if reportTarget {
-			targetName, err := label.NewTargetName(level.Leaf.Name)
+			targetName, err := label.NewTargetName(level.GetName())
 			if err != nil {
-				return fmt.Errorf("invalid target name %#v: %w", level.Leaf.Name, err)
+				return fmt.Errorf("invalid target name %#v: %w", level.GetName(), err)
 			}
 			if err := yield(canonicalPackage.AppendTargetName(targetName)); err != nil {
 				return err
@@ -2685,9 +2678,9 @@ type QueryExpansionEnvironmentForTesting QueryExpansionEnvironment[model_core.Cr
 // used to evaluate queries and are never written to storage, the
 // string can be stored inline, regardless of its size.
 func newQueryStringValue(s string) *model_starlark_pb.Value {
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{Str: model_filesystem_pb.MaybeInlineFileContents_builder{
+	return model_starlark_pb.Value_builder{
+		Str: model_filesystem_pb.MaybeInlineFileContents_builder{
 			ContentsInline: []byte(s),
-		}.Build()},
-	}
+		}.Build(),
+	}.Build()
 }

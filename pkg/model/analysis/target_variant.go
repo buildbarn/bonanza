@@ -14,8 +14,8 @@ func newTargetVariant(configurationReference *model_core_pb.DecodableReference, 
 	if configurationReference == nil && len(aspects) == 0 {
 		return nil
 	}
-	return &model_starlark_pb.TargetVariant{
+	return model_starlark_pb.TargetVariant_builder{
 		ConfigurationReference: configurationReference,
 		Aspects:                aspects,
-	}
+	}.Build()
 }

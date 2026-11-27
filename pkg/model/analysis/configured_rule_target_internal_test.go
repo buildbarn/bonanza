@@ -44,36 +44,36 @@ func TestCheckProvides(t *testing.T) {
 
 func TestRuleTargetAnalysisCheckAttrsNonEmpty(t *testing.T) {
 	stringListAttr := func(name string, allowEmpty bool) *model_starlark_pb.NamedAttr {
-		return &model_starlark_pb.NamedAttr{
+		return model_starlark_pb.NamedAttr_builder{
 			Name: name,
-			Attr: &model_starlark_pb.Attr{
-				Type: &model_starlark_pb.Attr_StringList{StringList: &model_starlark_pb.Attr_StringListType{
-					ListOptions: &model_starlark_pb.Attr_CompositeOptions{AllowEmpty: allowEmpty},
-				}},
-			},
-		}
+			Attr: model_starlark_pb.Attr_builder{
+				StringList: model_starlark_pb.Attr_StringListType_builder{
+					ListOptions: model_starlark_pb.Attr_CompositeOptions_builder{AllowEmpty: allowEmpty}.Build(),
+				}.Build(),
+			}.Build(),
+		}.Build()
 	}
 	newAnalysis := func(attrValues map[string]any) *ruleTargetAnalysis[object.LocalReference, model_core.CreatedObjectTree] {
 		return &ruleTargetAnalysis[object.LocalReference, model_core.CreatedObjectTree]{
 			thread: eval.NewThread(t.Context(), nil),
-			ruleDefinition: model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Rule_Definition{
+			ruleDefinition: model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Rule_Definition_builder{
 				Attrs: []*model_starlark_pb.NamedAttr{
 					stringListAttr("allowed", true),
 					stringListAttr("disallowed", false),
-					{
+					model_starlark_pb.NamedAttr_builder{
 						Name: "string_dict",
-						Attr: &model_starlark_pb.Attr{
-							Type: &model_starlark_pb.Attr_StringDict{StringDict: &model_starlark_pb.Attr_StringDictType{}},
-						},
-					},
-					{
+						Attr: model_starlark_pb.Attr_builder{
+							StringDict: &model_starlark_pb.Attr_StringDictType{},
+						}.Build(),
+					}.Build(),
+					model_starlark_pb.NamedAttr_builder{
 						Name: "string",
-						Attr: &model_starlark_pb.Attr{
-							Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-						},
-					},
+						Attr: model_starlark_pb.Attr_builder{
+							String: &model_starlark_pb.Attr_StringType{},
+						}.Build(),
+					}.Build(),
 				},
-			}),
+			}.Build()),
 			attrValues: attrValues,
 		}
 	}

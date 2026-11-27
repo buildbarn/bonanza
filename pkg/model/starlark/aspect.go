@@ -14,6 +14,7 @@ import (
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -67,17 +68,11 @@ func (a *Aspect[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []
 	if currentIdentifier == nil || *currentIdentifier != *a.Identifier {
 		// Not the canonical identifier under which this aspect
 		// is known. Emit a reference.
-		return model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Aspect{
-					Aspect: &model_starlark_pb.Aspect{
-						Kind: &model_starlark_pb.Aspect_Reference{
-							Reference: a.Identifier.String(),
-						},
-					},
-				},
-			},
-		), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Aspect: model_starlark_pb.Aspect_builder{
+				Reference: proto.String(a.Identifier.String()),
+			}.Build(),
+		}.Build()), nil
 	}
 
 	definition, err := a.definition.Encode(thread, path, options)
@@ -85,15 +80,11 @@ func (a *Aspect[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Aspect{
-				Aspect: &model_starlark_pb.Aspect{
-					Kind: &model_starlark_pb.Aspect_Definition_{
-						Definition: definition.Message,
-					},
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Aspect: model_starlark_pb.Aspect_builder{
+				Definition: proto.ValueOrDefault(definition.Message),
+			}.Build(),
+		}.Build(),
 		definition.Patcher,
 	), nil
 }
@@ -173,13 +164,11 @@ func (pe *fixedAspectPropagationEdges[TReference, TMetadata]) Encode(thread *eva
 	if len(pe.names) == 0 {
 		return model_core.PatchedMessage[*model_starlark_pb.Aspect_PropagationEdges, TMetadata]{}, nil
 	}
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Aspect_PropagationEdges{
-		Kind: &model_starlark_pb.Aspect_PropagationEdges_Fixed_{
-			Fixed: &model_starlark_pb.Aspect_PropagationEdges_Fixed{
-				Names: pe.names,
-			},
-		},
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Aspect_PropagationEdges_builder{
+		Fixed: model_starlark_pb.Aspect_PropagationEdges_Fixed_builder{
+			Names: pe.names,
+		}.Build(),
+	}.Build()), nil
 }
 
 type allAspectPropagationEdges[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -192,11 +181,9 @@ func NewAllAspectPropagationEdges[TReference any, TMetadata model_core.Reference
 }
 
 func (allAspectPropagationEdges[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Aspect_PropagationEdges, TMetadata], error) {
-	return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Aspect_PropagationEdges{
-		Kind: &model_starlark_pb.Aspect_PropagationEdges_All{
-			All: &emptypb.Empty{},
-		},
-	}), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Aspect_PropagationEdges_builder{
+		All: &emptypb.Empty{},
+	}.Build()), nil
 }
 
 type functionAspectPropagationEdges[TReference any, TMetadata model_core.ReferenceMetadata] struct {
@@ -218,11 +205,9 @@ func (pe *functionAspectPropagationEdges[TReference, TMetadata]) Encode(thread *
 		return model_core.PatchedMessage[*model_starlark_pb.Aspect_PropagationEdges, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Aspect_PropagationEdges{
-			Kind: &model_starlark_pb.Aspect_PropagationEdges_Function{
-				Function: function.Message,
-			},
-		},
+		model_starlark_pb.Aspect_PropagationEdges_builder{
+			Function: proto.ValueOrDefault(function.Message),
+		}.Build(),
 		function.Patcher,
 	), nil
 }
@@ -341,10 +326,10 @@ func (ad *starlarkAspectDefinition[TReference, TMetadata]) Encode(thread *eval.T
 
 	execGroups := make([]*model_starlark_pb.NamedExecGroup, 0, len(ad.execGroups))
 	for _, name := range slices.Sorted(maps.Keys(ad.execGroups)) {
-		execGroups = append(execGroups, &model_starlark_pb.NamedExecGroup{
+		execGroups = append(execGroups, model_starlark_pb.NamedExecGroup_builder{
 			Name:      name,
 			ExecGroup: ad.execGroups[name].Encode(),
-		})
+		}.Build())
 	}
 
 	implementation, err := EncodeFunction(thread, ad.implementation, path, options)
@@ -387,7 +372,7 @@ func (ad *starlarkAspectDefinition[TReference, TMetadata]) Encode(thread *eval.T
 
 	success = true
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Aspect_Definition{
+		model_starlark_pb.Aspect_Definition_builder{
 			Attrs:                   namedAttrsMessage,
 			AttrAspects:             attrAspects,
 			ExecGroups:              execGroups,
@@ -400,7 +385,7 @@ func (ad *starlarkAspectDefinition[TReference, TMetadata]) Encode(thread *eval.T
 			SubruleIdentifiers:      slices.Compact(subruleIdentifiers),
 			ToolchainsAspects:       toolchainsAspects,
 			PropagationPredicate:    propagationPredicateMessage,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }

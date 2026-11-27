@@ -14,6 +14,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -22,74 +23,74 @@ func newStringValue(s string) *model_starlark_pb.Value {
 	if s != "" {
 		contents.SetContentsInline([]byte(s))
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{Str: contents},
-	}
+	return model_starlark_pb.Value_builder{
+		Str: proto.ValueOrDefault(contents),
+	}.Build()
 }
 
-var noneValue = &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &emptypb.Empty{}}}
+var noneValue = model_starlark_pb.Value_builder{None: &emptypb.Empty{}}.Build()
 
 func newValueSelectGroup(v *model_starlark_pb.Value) *model_starlark_pb.Select_Group {
-	return &model_starlark_pb.Select_Group{
-		NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: v},
-	}
+	return model_starlark_pb.Select_Group_builder{
+		NoMatchValue: proto.ValueOrDefault(v),
+	}.Build()
 }
 
 func TestIsPublicAttrExplicitlySet(t *testing.T) {
 	t.Run("None", func(t *testing.T) {
 		// Attrs whose value is None are left at their default
 		// value.
-		require.False(t, isPublicAttrExplicitlySet(&model_starlark_pb.RuleTarget_PublicAttrValue{
+		require.False(t, isPublicAttrExplicitlySet(model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 			ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)},
-		}))
+		}.Build()))
 	})
 
 	t.Run("Value", func(t *testing.T) {
-		require.True(t, isPublicAttrExplicitlySet(&model_starlark_pb.RuleTarget_PublicAttrValue{
+		require.True(t, isPublicAttrExplicitlySet(model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 			ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("hello"))},
-		}))
+		}.Build()))
 	})
 
 	t.Run("SelectWithConditions", func(t *testing.T) {
 		// Even if the default branch of the select() is None,
 		// another branch may yield an explicit value.
-		require.True(t, isPublicAttrExplicitlySet(&model_starlark_pb.RuleTarget_PublicAttrValue{
-			ValueParts: []*model_starlark_pb.Select_Group{{
-				Conditions: []*model_starlark_pb.Select_Condition{{
+		require.True(t, isPublicAttrExplicitlySet(model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+			ValueParts: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+				Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
 					ConditionIdentifier: "@@main+//:linux",
 					Value:               newStringValue("linux"),
-				}},
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: noneValue},
-			}},
-		}))
+				}.Build()},
+				NoMatchValue: proto.ValueOrDefault(noneValue),
+			}.Build()},
+		}.Build()))
 	})
 
 	t.Run("SelectWithoutDefault", func(t *testing.T) {
-		require.True(t, isPublicAttrExplicitlySet(&model_starlark_pb.RuleTarget_PublicAttrValue{
-			ValueParts: []*model_starlark_pb.Select_Group{{
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchError{NoMatchError: "no match"},
-			}},
-		}))
+		require.True(t, isPublicAttrExplicitlySet(model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+			ValueParts: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+				NoMatchError: proto.String("no match"),
+			}.Build()},
+		}.Build()))
 	})
 
 	t.Run("Concatenation", func(t *testing.T) {
 		// Values consisting of multiple parts are concatenated,
 		// meaning they are never None.
-		require.True(t, isPublicAttrExplicitlySet(&model_starlark_pb.RuleTarget_PublicAttrValue{
+		require.True(t, isPublicAttrExplicitlySet(model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 			ValueParts: []*model_starlark_pb.Select_Group{
 				newValueSelectGroup(noneValue),
 				newValueSelectGroup(noneValue),
 			},
-		}))
+		}.Build()))
 	})
 }
 
 func TestGetExplicitPublicAttrIndices(t *testing.T) {
 	require.Equal(t, []uint32{1, 3}, getExplicitPublicAttrIndices([]*model_starlark_pb.RuleTarget_PublicAttrValue{
-		{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)}},
-		{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("b"))}},
-		{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)}},
-		{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("d"))}},
+		model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)}}.Build(),
+		model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("b"))}}.Build(),
+		model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)}}.Build(),
+		model_starlark_pb.RuleTarget_PublicAttrValue_builder{ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("d"))}}.Build(),
 	}))
 	require.Empty(t, getExplicitPublicAttrIndices(nil))
 }
@@ -98,39 +99,39 @@ func TestGetExplicitPublicAttrIndices(t *testing.T) {
 // public and private attrs, some of which are mandatory.
 func newTestRuleDefinition() model_core.Message[*model_starlark_pb.Rule_Definition, model_core.CreatedObjectTree] {
 	stringAttr := func(defaultValue *model_starlark_pb.Value) *model_starlark_pb.Attr {
-		return &model_starlark_pb.Attr{
-			Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+		return model_starlark_pb.Attr_builder{
+			String:  &model_starlark_pb.Attr_StringType{},
 			Default: defaultValue,
-		}
+		}.Build()
 	}
-	return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_starlark_pb.Rule_Definition{
+	return model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_starlark_pb.Rule_Definition_builder{
 		Attrs: []*model_starlark_pb.NamedAttr{
-			{
+			model_starlark_pb.NamedAttr_builder{
 				// Public attr 0.
 				Name: "a_default",
 				Attr: stringAttr(newStringValue("default of a")),
-			},
-			{
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				Name: "_private",
-				Attr: &model_starlark_pb.Attr{
-					Type: &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{}},
-					Default: &model_starlark_pb.Value{
-						Kind: &model_starlark_pb.Value_Label{Label: "@@rules+//:tool"},
-					},
-				},
-			},
-			{
+				Attr: model_starlark_pb.Attr_builder{
+					Label: &model_starlark_pb.Attr_LabelType{},
+					Default: model_starlark_pb.Value_builder{
+						Label: proto.String("@@rules+//:tool"),
+					}.Build(),
+				}.Build(),
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				// Public attr 1.
 				Name: "b_explicit",
 				Attr: stringAttr(newStringValue("default of b")),
-			},
-			{
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				// Public attr 2.
 				Name: "c_mandatory",
 				Attr: stringAttr(nil),
-			},
+			}.Build(),
 		},
-	})
+	}.Build())
 }
 
 func TestNewRuleUsageTransitionAttr(t *testing.T) {
@@ -281,65 +282,59 @@ func TestGetAllPublicAttrIndices(t *testing.T) {
 
 func TestGetConfiguredRuleUsageExplicitPublicAttrIndices(t *testing.T) {
 	labelListAttr := func(cfg *model_starlark_pb.Transition, defaultValue *model_starlark_pb.Value) *model_starlark_pb.Attr {
-		return &model_starlark_pb.Attr{
-			Type: &model_starlark_pb.Attr_LabelList{
-				LabelList: &model_starlark_pb.Attr_LabelListType{
-					ListValueOptions: &model_starlark_pb.Attr_LabelOptions{Cfg: cfg},
-				},
-			},
+		return model_starlark_pb.Attr_builder{
+			LabelList: model_starlark_pb.Attr_LabelListType_builder{
+				ListValueOptions: model_starlark_pb.Attr_LabelOptions_builder{Cfg: cfg}.Build(),
+			}.Build(),
 			Default: defaultValue,
-		}
+		}.Build()
 	}
-	targetTransition := &model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_Target{Target: &emptypb.Empty{}},
-	}
-	userDefinedTransition := &model_starlark_pb.Transition{
-		Kind: &model_starlark_pb.Transition_UserDefined_{
-			UserDefined: &model_starlark_pb.Transition_UserDefined{
-				Kind: &model_starlark_pb.Transition_UserDefined_Identifier{
-					Identifier: "@@rules+//:defs.bzl%my_transition",
-				},
-			},
-		},
-	}
-	labelDefault := &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Label{Label: "@@rules+//:default"},
-	}
-	explicitValue := &model_starlark_pb.RuleTarget_PublicAttrValue{
+	targetTransition := model_starlark_pb.Transition_builder{
+		Target: &emptypb.Empty{},
+	}.Build()
+	userDefinedTransition := model_starlark_pb.Transition_builder{
+		UserDefined: model_starlark_pb.Transition_UserDefined_builder{
+			Identifier: proto.String("@@rules+//:defs.bzl%my_transition"),
+		}.Build(),
+	}.Build()
+	labelDefault := model_starlark_pb.Value_builder{
+		Label: proto.String("@@rules+//:default"),
+	}.Build()
+	explicitValue := model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 		ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(newStringValue("explicit"))},
-	}
-	unsetValue := &model_starlark_pb.RuleTarget_PublicAttrValue{
+	}.Build()
+	unsetValue := model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 		ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)},
-	}
+	}.Build()
 	newRuleDefinition := func(cfg *model_starlark_pb.Transition) *model_starlark_pb.Rule_Definition {
-		return &model_starlark_pb.Rule_Definition{
+		return model_starlark_pb.Rule_Definition_builder{
 			Attrs: []*model_starlark_pb.NamedAttr{
-				{
+				model_starlark_pb.NamedAttr_builder{
 					// Public attr 0: non-label attr.
 					Name: "a_string",
-					Attr: &model_starlark_pb.Attr{
-						Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
+					Attr: model_starlark_pb.Attr_builder{
+						String:  &model_starlark_pb.Attr_StringType{},
 						Default: newStringValue(""),
-					},
-				},
-				{
+					}.Build(),
+				}.Build(),
+				model_starlark_pb.NamedAttr_builder{
 					// Public attr 1: label attr with a
 					// default value.
 					Name: "b_with_default",
 					Attr: labelListAttr(cfg, labelDefault),
-				},
-				{
+				}.Build(),
+				model_starlark_pb.NamedAttr_builder{
 					Name: "_private",
 					Attr: labelListAttr(targetTransition, labelDefault),
-				},
-				{
+				}.Build(),
+				model_starlark_pb.NamedAttr_builder{
 					// Public attr 2: label attr defaulting
 					// to None.
 					Name: "c_none_default",
 					Attr: labelListAttr(targetTransition, noneValue),
-				},
+				}.Build(),
 			},
-		}
+		}.Build()
 	}
 
 	t.Run("BuiltinTransitionsAllUnset", func(t *testing.T) {
@@ -458,45 +453,43 @@ func TestConfiguredRuleUsageResolvesDefaultValue(t *testing.T) {
 	// ConfiguredRuleUsage, even though the attr is omitted from the
 	// key. This happened for go_config's "export_stdlib" attr.
 	labelAttr := func(defaultValue *model_starlark_pb.Value) *model_starlark_pb.Attr {
-		return &model_starlark_pb.Attr{
-			Type: &model_starlark_pb.Attr_Label{
-				Label: &model_starlark_pb.Attr_LabelType{
-					ValueOptions: &model_starlark_pb.Attr_LabelOptions{
-						Cfg: &model_starlark_pb.Transition{
-							Kind: &model_starlark_pb.Transition_Target{Target: &emptypb.Empty{}},
-						},
-					},
-				},
-			},
+		return model_starlark_pb.Attr_builder{
+			Label: model_starlark_pb.Attr_LabelType_builder{
+				ValueOptions: model_starlark_pb.Attr_LabelOptions_builder{
+					Cfg: model_starlark_pb.Transition_builder{
+						Target: &emptypb.Empty{},
+					}.Build(),
+				}.Build(),
+			}.Build(),
 			Default: defaultValue,
-		}
+		}.Build()
 	}
-	ruleDefinition := model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_starlark_pb.Rule_Definition{
+	ruleDefinition := model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_starlark_pb.Rule_Definition_builder{
 		Attrs: []*model_starlark_pb.NamedAttr{
-			{
+			model_starlark_pb.NamedAttr_builder{
 				Name: "a_none_default",
 				Attr: labelAttr(noneValue),
-			},
-			{
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				Name: "b_label_default",
-				Attr: labelAttr(&model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Label{Label: "@@rules+//:default"},
-				}),
-			},
-			{
+				Attr: labelAttr(model_starlark_pb.Value_builder{
+					Label: proto.String("@@rules+//:default"),
+				}.Build()),
+			}.Build(),
+			model_starlark_pb.NamedAttr_builder{
 				Name: "c_mandatory",
 				Attr: labelAttr(nil),
-			},
+			}.Build(),
 		},
-	})
-	explicitValue := &model_starlark_pb.RuleTarget_PublicAttrValue{
-		ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Label{Label: "@@main+//:explicit"},
-		})},
-	}
-	unsetValue := &model_starlark_pb.RuleTarget_PublicAttrValue{
+	}.Build())
+	explicitValue := model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+		ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(model_starlark_pb.Value_builder{
+			Label: proto.String("@@main+//:explicit"),
+		}.Build())},
+	}.Build()
+	unsetValue := model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 		ValueParts: []*model_starlark_pb.Select_Group{newValueSelectGroup(noneValue)},
-	}
+	}.Build()
 
 	for _, publicAttrValues := range [][]*model_starlark_pb.RuleTarget_PublicAttrValue{
 		{explicitValue, explicitValue, explicitValue},
@@ -513,17 +506,17 @@ func TestConfiguredRuleUsageResolvesDefaultValue(t *testing.T) {
 		require.NoError(t, err)
 
 		anyResolved := false
-		for i, namedAttr := range ruleDefinition.Message.Attrs {
+		for i, namedAttr := range ruleDefinition.Message.GetAttrs() {
 			resolves := configuredRuleUsageResolvesDefaultValue(namedAttr, a.explicitAttrs)
 			anyResolved = anyResolved || resolves
 			if isPublicAttrExplicitlySet(publicAttrValues[i]) {
 				// Attrs set explicitly by the target must
 				// never be overridden.
-				require.False(t, resolves, namedAttr.Name)
+				require.False(t, resolves, namedAttr.GetName())
 			} else {
 				// Only the attr with a label default
 				// needs its default resolved.
-				require.Equal(t, namedAttr.Name == "b_label_default", resolves, namedAttr.Name)
+				require.Equal(t, namedAttr.GetName() == "b_label_default", resolves, namedAttr.GetName())
 			}
 		}
 		// ConfiguredRuleUsage should be requested if and only
@@ -534,13 +527,11 @@ func TestConfiguredRuleUsageResolvesDefaultValue(t *testing.T) {
 
 func TestGetDefaultValueLabels(t *testing.T) {
 	labelElement := func(l string) *model_starlark_pb.List_Element {
-		return &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Leaf{
-				Leaf: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Label{Label: l},
-				},
-			},
-		}
+		return model_starlark_pb.List_Element_builder{
+			Leaf: model_starlark_pb.Value_builder{
+				Label: proto.String(l),
+			}.Build(),
+		}.Build()
 	}
 
 	// Labels should be deduplicated and sorted, so that resolved
@@ -548,18 +539,16 @@ func TestGetDefaultValueLabels(t *testing.T) {
 	originalLabels, err := getDefaultValueLabels(
 		t.Context(),
 		&model_starlark.ValueReaders[model_core.CreatedObjectTree]{},
-		model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_List{
-				List: &model_starlark_pb.List{
-					Elements: []*model_starlark_pb.List_Element{
-						labelElement("@@rules+//:c"),
-						labelElement("@@rules+//:a"),
-						labelElement("@@rules+//:c"),
-						labelElement("@@rules+//:b"),
-					},
+		model_core.NewSimpleMessage[model_core.CreatedObjectTree](model_starlark_pb.Value_builder{
+			List: model_starlark_pb.List_builder{
+				Elements: []*model_starlark_pb.List_Element{
+					labelElement("@@rules+//:c"),
+					labelElement("@@rules+//:a"),
+					labelElement("@@rules+//:c"),
+					labelElement("@@rules+//:b"),
 				},
-			},
-		}),
+			}.Build(),
+		}.Build()),
 	)
 	require.NoError(t, err)
 	require.Equal(t, []string{"@@rules+//:a", "@@rules+//:b", "@@rules+//:c"}, originalLabels)
@@ -585,11 +574,11 @@ func TestGetLabelAttrOptions(t *testing.T) {
 		expectedScalar   bool
 		expectedIsLabels bool
 	}{
-		{"Label", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_Label{Label: &model_starlark_pb.Attr_LabelType{ValueOptions: labelOptions}}}, true, true},
-		{"LabelKeyedStringDict", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_LabelKeyedStringDict{LabelKeyedStringDict: &model_starlark_pb.Attr_LabelKeyedStringDictType{DictKeyOptions: labelOptions}}}, false, true},
-		{"LabelList", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_LabelList{LabelList: &model_starlark_pb.Attr_LabelListType{ListValueOptions: labelOptions}}}, false, true},
-		{"StringKeyedLabelDict", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_StringKeyedLabelDict{StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{DictValueOptions: labelOptions}}}, false, true},
-		{"String", &model_starlark_pb.Attr{Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}}}, false, false},
+		{"Label", model_starlark_pb.Attr_builder{Label: model_starlark_pb.Attr_LabelType_builder{ValueOptions: labelOptions}.Build()}.Build(), true, true},
+		{"LabelKeyedStringDict", model_starlark_pb.Attr_builder{LabelKeyedStringDict: model_starlark_pb.Attr_LabelKeyedStringDictType_builder{DictKeyOptions: labelOptions}.Build()}.Build(), false, true},
+		{"LabelList", model_starlark_pb.Attr_builder{LabelList: model_starlark_pb.Attr_LabelListType_builder{ListValueOptions: labelOptions}.Build()}.Build(), false, true},
+		{"StringKeyedLabelDict", model_starlark_pb.Attr_builder{StringKeyedLabelDict: model_starlark_pb.Attr_StringKeyedLabelDictType_builder{DictValueOptions: labelOptions}.Build()}.Build(), false, true},
+		{"String", model_starlark_pb.Attr_builder{String: &model_starlark_pb.Attr_StringType{}}.Build(), false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			actualOptions, isScalar, isLabelAttr := getLabelAttrOptions(tc.attr)

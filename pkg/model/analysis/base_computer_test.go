@@ -303,5 +303,5 @@ func newTestTargetVariant(aspects []*model_starlark_pb.AppliedAspect) *model_sta
 	if len(aspects) == 0 {
 		return nil
 	}
-	return &model_starlark_pb.TargetVariant{Aspects: aspects}
+	return model_starlark_pb.TargetVariant_builder{Aspects: aspects}.Build()
 }

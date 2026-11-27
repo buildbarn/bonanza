@@ -81,13 +81,13 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	targetLabel label.CanonicalLabel,
 	ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference],
 ) (PatchedConfiguredTargetValue[TMetadata], error) {
-	aspects := model_core.Nested(key, key.Message.Variant.GetAspects())
+	aspects := model_core.Nested(key, key.Message.GetVariant().GetAspects())
 	lastAspect := aspects.Message[len(aspects.Message)-1]
-	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(lastAspect.Identifier)
+	aspectIdentifier, err := label.NewCanonicalStarlarkIdentifier(lastAspect.GetIdentifier())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid aspect identifier: %w", err)
 	}
-	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.RuleIdentifier)
+	ruleIdentifier, err := label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.GetRuleIdentifier())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, fmt.Errorf("invalid rule identifier: %w", err)
 	}
@@ -102,12 +102,12 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	aspectIdentifiers := make([]string, 0, len(aspects.Message))
 	for _, aspect := range aspects.Message {
-		aspectIdentifiers = append(aspectIdentifiers, aspect.Identifier)
+		aspectIdentifiers = append(aspectIdentifiers, aspect.GetIdentifier())
 	}
 	aspectChain := e.GetAspectChainValue(&model_analysis_pb.AspectChain_Key{
 		AspectIdentifiers: aspectIdentifiers,
 	})
-	configurationReference := model_core.Nested(key, key.Message.Variant.GetConfigurationReference())
+	configurationReference := model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())
 	patchedConfigurationReference := model_core.Patch(e, configurationReference)
 	configuredAspect := e.GetConfiguredAspectValue(
 		model_core.NewPatchedMessage(
@@ -140,13 +140,13 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	}
 
 	// TODO: Add support for these features.
-	if aspectDefinition.Message.PropagationPredicate != nil {
+	if aspectDefinition.Message.GetPropagationPredicate() != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, errors.New("aspects with a propagation predicate are not supported yet")
 	}
 
 	// The aspect is only applied to targets of rules that advertise
 	// the providers that the aspect requires.
-	if !model_starlark.ProviderSetsSatisfiedBy(aspectDefinition.Message.RequiredProviders, ruleDefinition.Message.Provides) {
+	if !model_starlark.ProviderSetsSatisfiedBy(aspectDefinition.Message.GetRequiredProviders(), ruleDefinition.Message.GetProvides()) {
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ConfiguredTarget_Value{}), nil
 	}
 
@@ -161,7 +161,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	// aspect requires.
 	targetProviderSources := []providerInstanceSource[TReference]{}
 	missingDependencies := false
-	for i, prefixLength := range append([]uint32{0}, aspectChain.Message.VisibleAspectIndices...) {
+	for i, prefixLength := range append([]uint32{0}, aspectChain.Message.GetVisibleAspectIndices()...) {
 		if i > 0 {
 			prefixLength++
 		}
@@ -185,22 +185,22 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		}
 		description := fmt.Sprintf("target %#v", targetLabel.String())
 		if prefixLength > 0 {
-			description = fmt.Sprintf("aspect %#v", aspects.Message[prefixLength-1].Identifier)
+			description = fmt.Sprintf("aspect %#v", aspects.Message[prefixLength-1].GetIdentifier())
 		}
 		targetProviderSources = append(targetProviderSources, providerInstanceSource[TReference]{
 			description:       description,
-			providerInstances: model_core.Nested(prefixConfiguredTarget, prefixConfiguredTarget.Message.ProviderInstances),
+			providerInstances: model_core.Nested(prefixConfiguredTarget, prefixConfiguredTarget.Message.GetProviderInstances()),
 		})
 	}
 
 	// Configure the attrs of the rule target, applying aspects to
 	// the targets referenced by label attrs if they propagate along
 	// them. These are provided to the aspect through ctx.rule.
-	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.BuiltinsModuleNames)
+	thread, err := c.newStarlarkThread(ctx, e, starlarkValueEncoders, allBuiltinsModulesNames.Message.GetBuiltinsModuleNames())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
-	propagatedAspects, err := getPropagatedAspectsByEdge(aspects, aspectChain.Message.AttrPropagatingAspects)
+	propagatedAspects, err := getPropagatedAspectsByEdge(aspects, aspectChain.Message.GetAttrPropagatingAspects())
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
@@ -241,9 +241,9 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	ruleToolchainTargets, err := getRuleToolchainTargets(
 		e,
 		aspects,
-		aspectChain.Message.ToolchainPropagatingAspects,
+		aspectChain.Message.GetToolchainPropagatingAspects(),
 		configurationReference,
-		ruleDefinition.Message.ExecGroups,
+		ruleDefinition.Message.GetExecGroups(),
 		ruleExecGroups,
 		&missingDependencies,
 	)
@@ -253,16 +253,18 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 
 	// Configure the attrs of the aspect and the subrules it may
 	// invoke.
-	aspectExecGroupStates := make([]targetContextExecGroupState, 0, len(configuredAspect.Message.ExecGroups))
-	for _, execGroup := range configuredAspect.Message.ExecGroups {
+	configuredExecGroups := configuredAspect.Message.GetExecGroups()
+	aspectExecGroupStates := make([]targetContextExecGroupState, 0, len(configuredExecGroups))
+	for _, execGroup := range configuredExecGroups {
+		toolchainIdentifiers := execGroup.GetToolchainIdentifiers()
 		aspectExecGroupStates = append(aspectExecGroupStates, targetContextExecGroupState{
-			platformPkixPublicKey: execGroup.PlatformPkixPublicKey,
-			toolchainIdentifiers:  execGroup.ToolchainIdentifiers,
-			toolchainInfos:        make([]eval.Value, len(execGroup.ToolchainIdentifiers)),
+			platformPkixPublicKey: execGroup.GetPlatformPkixPublicKey(),
+			toolchainIdentifiers:  toolchainIdentifiers,
+			toolchainInfos:        make([]eval.Value, len(toolchainIdentifiers)),
 		})
 	}
 	a.prefetchToolchains(aspectExecGroupStates)
-	subrules, err := a.configureSubrules(model_core.Nested(configuredAspect, configuredAspect.Message.Subrules))
+	subrules, err := a.configureSubrules(model_core.Nested(configuredAspect, configuredAspect.Message.GetSubrules()))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
 	}
@@ -274,8 +276,8 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		analysisEncoders,
 		starlarkValueEncoders,
 		aspectDefinition,
-		model_core.Nested(aspects, lastAspect.Parameters),
-		model_core.Nested(configuredAspect, configuredAspect.Message.LabelAttrs),
+		model_core.Nested(aspects, lastAspect.GetParameters()),
+		model_core.Nested(configuredAspect, configuredAspect.Message.GetLabelAttrs()),
 		aspectFiles,
 	)
 	if err != nil {
@@ -318,14 +320,15 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 
 	// Construct ctx.rule, providing access to the attrs and
 	// toolchains of the rule target.
+	ruleNamedExecGroups := ruleDefinition.Message.GetExecGroups()
 	ruleExecGroupsValue := &aspectRuleExecGroups[TReference, TMetadata]{
-		namedExecGroups:  ruleDefinition.Message.ExecGroups,
+		namedExecGroups:  ruleNamedExecGroups,
 		toolchainTargets: ruleToolchainTargets,
 	}
 	var ruleToolchains eval.Value = eval.None
 	if defaultExecGroupIndex, ok := sort.Find(
-		len(ruleDefinition.Message.ExecGroups),
-		func(i int) int { return strings.Compare("", ruleDefinition.Message.ExecGroups[i].Name) },
+		len(ruleNamedExecGroups),
+		func(i int) int { return strings.Compare("", ruleNamedExecGroups[i].GetName()) },
 	); ok {
 		ruleToolchains = ruleExecGroupsValue.getToolchains(defaultExecGroupIndex)
 	}
@@ -343,7 +346,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	// are placed in the same package as the rule target, but are
 	// owned by the aspect.
 	aspectOutputRegistrar := &targetOutputRegistrar[TReference, TMetadata]{
-		variant:     model_core.Nested(key, key.Message.Variant),
+		variant:     model_core.Nested(key, key.Message.GetVariant()),
 		targetLabel: targetLabel,
 
 		outputsByPackageRelativePath: map[string]*targetOutput[TMetadata]{},
@@ -364,7 +367,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 			analysisEncoders:            analysisEncoders,
 			targetLabel:                 targetLabel,
 			configurationReference:      configurationReference,
-			namedExecGroups:             model_core.Nested(aspectDefinition, aspectDefinition.Message.ExecGroups),
+			namedExecGroups:             model_core.Nested(aspectDefinition, aspectDefinition.Message.GetExecGroups()),
 			execGroups:                  aspectExecGroupStates,
 			executableFileToFilesToRun:  aspectFiles.executableFileToFilesToRun,
 			outputRegistrar:             aspectOutputRegistrar,
@@ -383,7 +386,7 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 		ac.actions.Discard()
 	}()
 
-	registerSubruleInvoker(thread, ac.targetContext, aspectDefinition.Message.SubruleIdentifiers, subrules, ruleImplementationWrappers)
+	registerSubruleInvoker(thread, ac.targetContext, aspectDefinition.Message.GetSubruleIdentifiers(), subrules, ruleImplementationWrappers)
 	identifierGenerator, err := c.getReferenceEqualIdentifierGenerator(model_core.Nested(key, proto.Message(key.Message)))
 	if err != nil {
 		return PatchedConfiguredTargetValue[TMetadata]{}, err
@@ -394,10 +397,10 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 	// implementation function, the target and ctx.
 	returnValue, err := eval.Call(
 		thread,
-		decodeImplementationWrapper[TReference, TMetadata](model_core.Nested(ruleImplementationWrappers, ruleImplementationWrappers.Message.Aspect)),
+		decodeImplementationWrapper[TReference, TMetadata](model_core.Nested(ruleImplementationWrappers, ruleImplementationWrappers.Message.GetAspect())),
 		eval.Args{
 			Positional: []eval.Value{
-				model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(aspectDefinition, aspectDefinition.Message.Implementation)),
+				model_starlark.DecodeFunction[TReference, TMetadata](model_core.Nested(aspectDefinition, aspectDefinition.Message.GetImplementation())),
 				target,
 				ac,
 			},
@@ -441,13 +444,13 @@ func (c *baseComputer[TReference, TMetadata]) computeAspectTargetValue(
 			}
 			encodedProviderInstances = append(encodedProviderInstances, v.Merge(patcher))
 		}
-		if err := checkProvides(providersSeen, aspectDefinition.Message.Provides); err != nil {
+		if err := checkProvides(providersSeen, aspectDefinition.Message.GetProvides()); err != nil {
 			return nil, err
 		}
 		slices.SortFunc(encodedProviderInstances, func(a, b *model_starlark_pb.Struct) int {
 			return strings.Compare(
-				a.ProviderInstanceProperties.ProviderIdentifier,
-				b.ProviderInstanceProperties.ProviderIdentifier,
+				a.GetProviderInstanceProperties().GetProviderIdentifier(),
+				b.GetProviderInstanceProperties().GetProviderIdentifier(),
 			)
 		})
 
@@ -515,22 +518,22 @@ func getAspectIDs[TReference object.BasicReference, TMetadata model_core.Referen
 ) (eval.Value, error) {
 	aspectIDs := make([]eval.Value, 0, len(aspects.Message))
 	for _, aspect := range aspects.Message {
-		parameterValues, err := getAspectParameters(ctx, analysisReaders, valueReaders, model_core.Nested(aspects, aspect.Parameters))
+		parameterValues, err := getAspectParameters(ctx, analysisReaders, valueReaders, model_core.Nested(aspects, aspect.GetParameters()))
 		if err != nil {
-			return nil, fmt.Errorf("aspect %#v: %w", aspect.Identifier, err)
+			return nil, fmt.Errorf("aspect %#v: %w", aspect.GetIdentifier(), err)
 		}
 		var aspectID strings.Builder
-		aspectID.WriteString(aspect.Identifier)
+		aspectID.WriteString(aspect.GetIdentifier())
 		if len(parameterValues) > 0 {
 			aspectID.WriteByte('[')
 			for i, name := range slices.Sorted(maps.Keys(parameterValues)) {
 				value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, parameterValues[name], nil)
 				if err != nil {
-					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.Identifier, name, err)
+					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.GetIdentifier(), name, err)
 				}
 				valueStr, err := eval.Repr(thread, value)
 				if err != nil {
-					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.Identifier, name, err)
+					return nil, fmt.Errorf("aspect %#v: parameter %#v: %w", aspect.GetIdentifier(), name, err)
 				}
 				if i > 0 {
 					aspectID.WriteByte(',')
@@ -569,18 +572,18 @@ func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core
 		return nil, err
 	}
 
-	namedAttrs := aspectDefinition.Message.Attrs
+	namedAttrs := aspectDefinition.Message.GetAttrs()
 	attrValues := make(map[string]any, len(namedAttrs))
 	var labelAttrs []*model_starlark_pb.NamedAttr
 	var labelAttrConfigurations []*model_analysis_pb.ConfiguredLabelAttr
 	remainingConfiguredLabelAttrs := configuredLabelAttrs.Message
 	for attrIndex, namedAttr := range namedAttrs {
-		if _, _, isLabelAttr := getLabelAttrOptions(namedAttr.Attr); isLabelAttr {
-			if len(remainingConfiguredLabelAttrs) == 0 || remainingConfiguredLabelAttrs[0].AttrIndex != uint32(attrIndex) {
-				return nil, fmt.Errorf("configured aspect does not contain a value for label attr %#v", namedAttr.Name)
+		if _, _, isLabelAttr := getLabelAttrOptions(namedAttr.GetAttr()); isLabelAttr {
+			if len(remainingConfiguredLabelAttrs) == 0 || remainingConfiguredLabelAttrs[0].GetAttrIndex() != uint32(attrIndex) {
+				return nil, fmt.Errorf("configured aspect does not contain a value for label attr %#v", namedAttr.GetName())
 			}
 			labelAttrs = append(labelAttrs, namedAttr)
-			labelAttrConfigurations = append(labelAttrConfigurations, remainingConfiguredLabelAttrs[0].Configured)
+			labelAttrConfigurations = append(labelAttrConfigurations, remainingConfiguredLabelAttrs[0].GetConfigured())
 			remainingConfiguredLabelAttrs = remainingConfiguredLabelAttrs[1:]
 			continue
 		}
@@ -588,30 +591,30 @@ func configureAspectAttrs[TReference object.BasicReference, TMetadata model_core
 		// Attrs that are not label attrs use the value of the
 		// parameter if set, or their default value otherwise.
 		var encodedValue model_core.Message[*model_starlark_pb.Value, TReference]
-		if parameterValue, ok := parameterValues[namedAttr.Name]; ok {
-			if !strings.HasPrefix(namedAttr.Name, "_") {
-				delete(parameterValues, namedAttr.Name)
+		if parameterValue, ok := parameterValues[namedAttr.GetName()]; ok {
+			if !strings.HasPrefix(namedAttr.GetName(), "_") {
+				delete(parameterValues, namedAttr.GetName())
 				encodedValue = parameterValue
 			}
 		}
 		if encodedValue.Message == nil {
-			defaultValue := namedAttr.Attr.GetDefault()
+			defaultValue := namedAttr.GetAttr().GetDefault()
 			if defaultValue == nil {
-				return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.Name)
+				return nil, fmt.Errorf("missing value for mandatory attr %#v", namedAttr.GetName())
 			}
 			encodedValue = model_core.Nested(aspectDefinition, defaultValue)
 		}
 		value, err := model_starlark.DecodeValue[TReference, TMetadata](thread, encodedValue, nil)
 		if err != nil {
-			return nil, fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+			return nil, fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 		}
-		attrValues[namedAttr.Name] = value
+		attrValues[namedAttr.GetName()] = value
 	}
 	for name := range parameterValues {
 		return nil, fmt.Errorf("aspect parameter %#v does not correspond to a public attr of the aspect", name)
 	}
 	if len(remainingConfiguredLabelAttrs) > 0 {
-		return nil, fmt.Errorf("configured aspect contains a value for attr index %d, which does not refer to a label attr", remainingConfiguredLabelAttrs[0].AttrIndex)
+		return nil, fmt.Errorf("configured aspect contains a value for attr index %d, which does not refer to a label attr", remainingConfiguredLabelAttrs[0].GetAttrIndex())
 	}
 
 	kwargs, err := configureResolvedLabelAttrs[TReference, TMetadata](
@@ -743,9 +746,9 @@ func getRuleToolchainTargets[TReference object.BasicReference, TMetadata model_c
 
 	toolchainTargets := make([][]eval.Value, 0, len(execGroups))
 	for execGroupIndex, execGroup := range execGroups {
-		toolchains := namedExecGroups[execGroupIndex].ExecGroup.GetToolchains()
+		toolchains := namedExecGroups[execGroupIndex].GetExecGroup().GetToolchains()
 		if len(execGroup.toolchainIdentifiers) != len(toolchains) {
-			return nil, fmt.Errorf("exec group %#v has %d toolchains, while %d toolchains were resolved", namedExecGroups[execGroupIndex].Name, len(toolchains), len(execGroup.toolchainIdentifiers))
+			return nil, fmt.Errorf("exec group %#v has %d toolchains, while %d toolchains were resolved", namedExecGroups[execGroupIndex].GetName(), len(toolchains), len(execGroup.toolchainIdentifiers))
 		}
 		execGroupToolchainTargets := make([]eval.Value, 0, len(toolchains))
 		for toolchainIndex, toolchainIdentifier := range execGroup.toolchainIdentifiers {
@@ -766,7 +769,7 @@ func getRuleToolchainTargets[TReference object.BasicReference, TMetadata model_c
 						Label: toolchainIdentifier,
 						Variant: newTargetVariant(
 							model_core.Patch(e, configurationReference).Merge(patcher),
-							model_core.PatchList(e, propagatedAspects(toolchains[toolchainIndex].ToolchainType)).Merge(patcher),
+							model_core.PatchList(e, propagatedAspects(toolchains[toolchainIndex].GetToolchainType())).Merge(patcher),
 						),
 					}
 				}),
@@ -782,7 +785,7 @@ func getRuleToolchainTargets[TReference object.BasicReference, TMetadata model_c
 					toolchainLabel.AsResolved(),
 					model_starlark.NewConfiguredTargetReference[TReference, TMetadata](
 						toolchainLabel,
-						model_core.Nested(targetProviders, targetProviders.Message.ProviderInstances),
+						model_core.Nested(targetProviders, targetProviders.Message.GetProviderInstances()),
 					),
 				),
 			)
@@ -822,7 +825,7 @@ func (eg *aspectRuleExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, 
 	}
 	execGroupIndex, ok := sort.Find(
 		len(eg.namedExecGroups),
-		func(i int) int { return strings.Compare(execGroupName, eg.namedExecGroups[i].Name) },
+		func(i int) int { return strings.Compare(execGroupName, eg.namedExecGroups[i].GetName()) },
 	)
 	if !ok {
 		return nil, false, nil
@@ -834,7 +837,7 @@ func (eg *aspectRuleExecGroups[TReference, TMetadata]) Get(thread *eval.Thread, 
 
 func (eg *aspectRuleExecGroups[TReference, TMetadata]) getToolchains(execGroupIndex int) eval.Value {
 	return &aspectRuleToolchains[TReference, TMetadata]{
-		toolchains:       eg.namedExecGroups[execGroupIndex].ExecGroup.GetToolchains(),
+		toolchains:       eg.namedExecGroups[execGroupIndex].GetExecGroup().GetToolchains(),
 		toolchainTargets: eg.toolchainTargets[execGroupIndex],
 	}
 }
@@ -876,7 +879,7 @@ func (tc *aspectRuleToolchains[TReference, TMetadata]) Get(thread *eval.Thread, 
 	}
 	toolchainIndex, ok := sort.Find(
 		len(tc.toolchains),
-		func(i int) int { return strings.Compare(toolchainType, tc.toolchains[i].ToolchainType) },
+		func(i int) int { return strings.Compare(toolchainType, tc.toolchains[i].GetToolchainType()) },
 	)
 	if !ok {
 		// Exec group does not depend on the toolchain type.

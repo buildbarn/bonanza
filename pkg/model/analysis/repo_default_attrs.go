@@ -18,7 +18,7 @@ import (
 func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx context.Context, key *model_analysis_pb.RepoDefaultAttrs_Key, e RepoDefaultAttrsEnvironment[TReference, TMetadata]) (PatchedRepoDefaultAttrsValue[TMetadata], error) {
 	starlarkValueEncoders, gotStarlarkValueEncoders := getStarlarkValueEncoders(e)
 
-	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
+	canonicalRepo, err := label.NewCanonicalRepo(key.GetCanonicalRepo())
 	if err != nil {
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid canonical repo: %w", err)
 	}
@@ -35,13 +35,14 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 
 	// Read the contents of REPO.bazel.
 	repoFileLabel := canonicalRepo.GetRootPackage().AppendTargetName(dotbazel.RepoTargetName)
-	if repoFileProperties.Message.Exists == nil {
+	exists := repoFileProperties.Message.GetExists()
+	if exists == nil {
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.RepoDefaultAttrs_Value{
-			InheritableAttrs: &model_starlark.DefaultInheritableAttrs,
+			InheritableAttrs: model_starlark.DefaultInheritableAttrs,
 		}), nil
 	}
 	repoFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(repoFileProperties, repoFileProperties.Message.Exists.GetContents()),
+		model_core.Nested(repoFileProperties, exists.GetContents()),
 	)
 	if err != nil {
 		return PatchedRepoDefaultAttrsValue[TMetadata]{}, fmt.Errorf("invalid contents for file %#v: %w", repoFileLabel.String(), err)
@@ -79,7 +80,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeRepoDefaultAttrsValue(ctx c
 			return nil, fmt.Errorf("failed to parse %#v: %w", repoFileLabel.String(), err)
 		}
 		if !defaultAttrs.IsSet() {
-			defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](&model_starlark.DefaultInheritableAttrs)
+			defaultAttrs = model_core.NewSimplePatchedMessage[TMetadata](model_starlark.DefaultInheritableAttrs)
 		}
 		return &model_analysis_pb.RepoDefaultAttrs_Value{
 			InheritableAttrs: defaultAttrs.Merge(patcher),

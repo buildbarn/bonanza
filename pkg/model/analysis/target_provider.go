@@ -14,8 +14,8 @@ func (baseComputer[TReference, TMetadata]) ComputeTargetProviderValue(ctx contex
 	targetProviders := e.GetTargetProvidersValue(
 		model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProviders_Key {
 			return &model_analysis_pb.TargetProviders_Key{
-				Label:   key.Message.Label,
-				Variant: model_core.Patch(e, model_core.Nested(key, key.Message.Variant)).Merge(patcher),
+				Label:   key.Message.GetLabel(),
+				Variant: model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant())).Merge(patcher),
 			}
 		}),
 	)
@@ -23,19 +23,19 @@ func (baseComputer[TReference, TMetadata]) ComputeTargetProviderValue(ctx contex
 		return PatchedTargetProviderValue[TMetadata]{}, model_evaluation.ErrMissingDependency
 	}
 
-	providerIdentifier := key.Message.ProviderIdentifier
-	providerInstances := targetProviders.Message.ProviderInstances
+	providerIdentifier := key.Message.GetProviderIdentifier()
+	providerInstances := targetProviders.Message.GetProviderInstances()
 	if providerIndex, ok := sort.Find(
 		len(providerInstances),
 		func(i int) int {
-			return strings.Compare(providerIdentifier, providerInstances[i].ProviderInstanceProperties.GetProviderIdentifier())
+			return strings.Compare(providerIdentifier, providerInstances[i].GetProviderInstanceProperties().GetProviderIdentifier())
 		},
 	); ok {
 		return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Value {
 			return &model_analysis_pb.TargetProvider_Value{
 				Fields: model_core.Patch(
 					e,
-					model_core.Nested(targetProviders, providerInstances[providerIndex].Fields),
+					model_core.Nested(targetProviders, providerInstances[providerIndex].GetFields()),
 				).Merge(patcher),
 			}
 		}), nil

@@ -154,9 +154,9 @@ func (b *existingRuleBuilder[TReference, TMetadata]) setValueParts(name string, 
 // configurable. Values that don't depend on any conditions are
 // returned as is. All other values are returned as select() objects.
 func (b *existingRuleBuilder[TReference, TMetadata]) decodeValueParts(valueParts model_core.Message[[]*model_starlark_pb.Select_Group, TReference], concatenationOperator syntax.Token) (eval.Value, error) {
-	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].Conditions) == 0 {
-		if noMatchValue, ok := groups[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-			return DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(valueParts, noMatchValue.NoMatchValue), nil)
+	if groups := valueParts.Message; len(groups) == 1 && len(groups[0].GetConditions()) == 0 {
+		if noMatchValue := groups[0].GetNoMatchValue(); noMatchValue != nil {
+			return DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(valueParts, noMatchValue), nil)
 		}
 	}
 	return DecodeSelectGroups[TReference, TMetadata](b.thread, valueParts, concatenationOperator)
@@ -289,30 +289,30 @@ func newExistingRule[TReference object.BasicReference, TMetadata model_core.Refe
 		return nil, err
 	}
 
-	switch kind := definition.Message.Kind.(type) {
-	case *model_starlark_pb.Target_Definition_Alias:
+	switch definition.Message.WhichKind() {
+	case model_starlark_pb.Target_Definition_Alias_case:
 		if err := b.set("kind", eval.String("alias")); err != nil {
 			return nil, err
 		}
 		if err := b.setValueParts(
 			"actual",
-			model_core.Nested(definition, []*model_starlark_pb.Select_Group{kind.Alias.Actual}),
+			model_core.Nested(definition, []*model_starlark_pb.Select_Group{definition.Message.GetAlias().GetActual()}),
 			0,
 		); err != nil {
 			return nil, err
 		}
-	case *model_starlark_pb.Target_Definition_LabelSetting:
-		labelSetting := kind.LabelSetting
+	case model_starlark_pb.Target_Definition_LabelSetting_case:
+		labelSetting := definition.Message.GetLabelSetting()
 		ruleKind := "label_setting"
-		if labelSetting.Flag {
+		if labelSetting.GetFlag() {
 			ruleKind = "label_flag"
 		}
 		if err := b.set("kind", eval.String(ruleKind)); err != nil {
 			return nil, err
 		}
 		var buildSettingDefault eval.Value = eval.None
-		if labelSetting.BuildSettingDefault != "" {
-			buildSettingDefaults, err := b.labelStringsToTuple([]string{labelSetting.BuildSettingDefault})
+		if labelSetting.GetBuildSettingDefault() != "" {
+			buildSettingDefaults, err := b.labelStringsToTuple([]string{labelSetting.GetBuildSettingDefault()})
 			if err != nil {
 				return nil, err
 			}
@@ -321,7 +321,7 @@ func newExistingRule[TReference object.BasicReference, TMetadata model_core.Refe
 		if err := b.set("build_setting_default", buildSettingDefault); err != nil {
 			return nil, err
 		}
-		if l := labelSetting.OnLeaveScope; l != "" {
+		if l := labelSetting.GetOnLeaveScope(); l != "" {
 			onLeaveScopes, err := b.labelStringsToTuple([]string{l})
 			if err != nil {
 				return nil, err
@@ -330,19 +330,19 @@ func newExistingRule[TReference object.BasicReference, TMetadata model_core.Refe
 				return nil, err
 			}
 		}
-		scope, err := FormatBuildSettingScope(labelSetting.Scope)
+		scope, err := FormatBuildSettingScope(labelSetting.GetScope())
 		if err != nil {
 			return nil, err
 		}
 		if err := b.set("scope", eval.String(scope)); err != nil {
 			return nil, err
 		}
-	case *model_starlark_pb.Target_Definition_RuleTarget:
-		if err := b.addRuleTargetAttrs(model_core.Nested(definition, kind.RuleTarget)); err != nil {
+	case model_starlark_pb.Target_Definition_RuleTarget_case:
+		if err := b.addRuleTargetAttrs(model_core.Nested(definition, definition.Message.GetRuleTarget())); err != nil {
 			return nil, err
 		}
-	case *model_starlark_pb.Target_Definition_TestSuite:
-		if err := b.addTestSuiteAttrs(model_core.Nested(definition, kind.TestSuite)); err != nil {
+	case model_starlark_pb.Target_Definition_TestSuite_case:
+		if err := b.addTestSuiteAttrs(model_core.Nested(definition, definition.Message.GetTestSuite())); err != nil {
 			return nil, err
 		}
 	default:
@@ -354,9 +354,9 @@ func newExistingRule[TReference object.BasicReference, TMetadata model_core.Refe
 }
 
 func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarget model_core.Message[*model_starlark_pb.RuleTarget, TReference]) error {
-	ruleIdentifier, err := pg_label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.RuleIdentifier)
+	ruleIdentifier, err := pg_label.NewCanonicalStarlarkIdentifier(ruleTarget.Message.GetRuleIdentifier())
 	if err != nil {
-		return fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.Message.RuleIdentifier, err)
+		return fmt.Errorf("invalid rule identifier %#v: %w", ruleTarget.Message.GetRuleIdentifier(), err)
 	}
 	if err := b.set("kind", eval.String(ruleIdentifier.GetStarlarkIdentifier().String())); err != nil {
 		return err
@@ -369,45 +369,45 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 	if err != nil {
 		return err
 	}
-	ruleValueKind, ok := ruleValue.Message.Kind.(*model_starlark_pb.Value_Rule)
-	if !ok {
+	ruleValueKind := ruleValue.Message.GetRule()
+	if ruleValueKind == nil {
 		return fmt.Errorf("identifier %#v is not a rule", ruleIdentifier.String())
 	}
-	ruleDefinitionKind, ok := ruleValueKind.Rule.Kind.(*model_starlark_pb.Rule_Definition_)
-	if !ok {
+	ruleDefinitionKind := ruleValueKind.GetDefinition()
+	if ruleDefinitionKind == nil {
 		return fmt.Errorf("rule %#v does not have a definition", ruleIdentifier.String())
 	}
-	ruleDefinition := model_core.Nested(ruleValue, ruleDefinitionKind.Definition)
+	ruleDefinition := model_core.Nested(ruleValue, ruleDefinitionKind)
 
-	publicAttrValues := ruleTarget.Message.PublicAttrValues
-	for _, namedAttr := range ruleDefinition.Message.Attrs {
-		if strings.HasPrefix(namedAttr.Name, "_") {
+	publicAttrValues := ruleTarget.Message.GetPublicAttrValues()
+	for _, namedAttr := range ruleDefinition.Message.GetAttrs() {
+		if strings.HasPrefix(namedAttr.GetName(), "_") {
 			continue
 		}
 		if len(publicAttrValues) == 0 {
 			return errors.New("rule target has fewer public attr values than the rule definition has public attrs")
 		}
-		valueParts := model_core.Nested(ruleTarget, publicAttrValues[0].ValueParts)
+		valueParts := model_core.Nested(ruleTarget, publicAttrValues[0].GetValueParts())
 		publicAttrValues = publicAttrValues[1:]
 
-		if groups := valueParts.Message; len(groups) == 1 && len(groups[0].Conditions) == 0 {
-			if noMatchValue, ok := groups[0].NoMatch.(*model_starlark_pb.Select_Group_NoMatchValue); ok {
-				if _, ok := noMatchValue.NoMatchValue.Kind.(*model_starlark_pb.Value_None); ok {
+		if groups := valueParts.Message; len(groups) == 1 && len(groups[0].GetConditions()) == 0 {
+			if noMatchValue := groups[0].GetNoMatchValue(); noMatchValue != nil {
+				if noMatchValue.GetNone() != nil {
 					// No value provided. Use the
 					// default value of the attribute,
 					// unless it is computed.
-					defaultValue := namedAttr.Attr.GetDefault()
-					if _, ok := defaultValue.GetKind().(*model_starlark_pb.Value_Function); ok {
+					defaultValue := namedAttr.GetAttr().GetDefault()
+					if defaultValue.GetFunction() != nil {
 						continue
 					}
 					var value eval.Value = eval.None
 					if defaultValue != nil {
 						value, err = DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(ruleDefinition, defaultValue), nil)
 						if err != nil {
-							return fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+							return fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 						}
 					}
-					if err := b.setValue(namedAttr.Name, value); err != nil {
+					if err := b.setValue(namedAttr.GetName(), value); err != nil {
 						return err
 					}
 					continue
@@ -415,11 +415,11 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 			}
 		}
 
-		attrType, err := DecodeAttrType[TReference, TMetadata](model_core.Nested(ruleDefinition, namedAttr.Attr))
+		attrType, err := DecodeAttrType[TReference, TMetadata](model_core.Nested(ruleDefinition, namedAttr.GetAttr()))
 		if err != nil {
-			return fmt.Errorf("attr %#v: %w", namedAttr.Name, err)
+			return fmt.Errorf("attr %#v: %w", namedAttr.GetName(), err)
 		}
-		if err := b.setValueParts(namedAttr.Name, valueParts, attrType.GetCanonicalizer(b.currentPackage).GetConcatenationOperator()); err != nil {
+		if err := b.setValueParts(namedAttr.GetName(), valueParts, attrType.GetCanonicalizer(b.currentPackage).GetConcatenationOperator()); err != nil {
 			return err
 		}
 	}
@@ -428,7 +428,7 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 	}
 
 	// Attributes that are common to all rule targets.
-	inheritableAttrs := ruleTarget.Message.InheritableAttrs
+	inheritableAttrs := ruleTarget.Message.GetInheritableAttrs()
 	var deprecation eval.Value = eval.None
 	if d := inheritableAttrs.GetDeprecation(); d != "" {
 		deprecation = eval.String(d)
@@ -436,21 +436,22 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 	if err := b.set("deprecation", deprecation); err != nil {
 		return err
 	}
-	execCompatibleWith, err := b.labelStringsToTuple(ruleTarget.Message.ExecCompatibleWith)
+	execCompatibleWith, err := b.labelStringsToTuple(ruleTarget.Message.GetExecCompatibleWith())
 	if err != nil {
 		return fmt.Errorf("attr \"exec_compatible_with\": %w", err)
 	}
 	if err := b.set("exec_compatible_with", eval.NewTuple(execCompatibleWith)); err != nil {
 		return err
 	}
-	tags := make([]eval.Value, 0, len(ruleTarget.Message.Tags))
-	for _, tag := range ruleTarget.Message.Tags {
+	ruleTargetTags := ruleTarget.Message.GetTags()
+	tags := make([]eval.Value, 0, len(ruleTargetTags))
+	for _, tag := range ruleTargetTags {
 		tags = append(tags, eval.String(tag))
 	}
 	if err := b.set("tags", eval.NewTuple(tags)); err != nil {
 		return err
 	}
-	if targetCompatibleWith := ruleTarget.Message.TargetCompatibleWith; len(targetCompatibleWith) > 0 {
+	if targetCompatibleWith := ruleTarget.Message.GetTargetCompatibleWith(); len(targetCompatibleWith) > 0 {
 		if err := b.setValueParts("target_compatible_with", model_core.Nested(ruleTarget, targetCompatibleWith), syntax.PLUS); err != nil {
 			return err
 		}
@@ -461,7 +462,7 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 		return err
 	}
 
-	if buildSettingDefault := ruleTarget.Message.BuildSetting.GetDefault(); buildSettingDefault != nil {
+	if buildSettingDefault := ruleTarget.Message.GetBuildSetting().GetDefault(); buildSettingDefault != nil {
 		value, err := DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(ruleTarget, buildSettingDefault), nil)
 		if err != nil {
 			return fmt.Errorf("attr \"build_setting_default\": %w", err)
@@ -470,7 +471,7 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 			return err
 		}
 	}
-	if onLeaveScope := ruleTarget.Message.BuildSetting.GetOnLeaveScope(); onLeaveScope != nil {
+	if onLeaveScope := ruleTarget.Message.GetBuildSetting().GetOnLeaveScope(); onLeaveScope != nil {
 		value, err := DecodeValue[TReference, TMetadata](b.thread, model_core.Nested(ruleTarget, onLeaveScope), nil)
 		if err != nil {
 			return fmt.Errorf("attr \"on_leave_scope\": %w", err)
@@ -479,8 +480,8 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 			return err
 		}
 	}
-	if buildSetting := ruleTarget.Message.BuildSetting; buildSetting != nil {
-		scopeStr, err := FormatBuildSettingScope(buildSetting.Scope)
+	if buildSetting := ruleTarget.Message.GetBuildSetting(); buildSetting != nil {
+		scopeStr, err := FormatBuildSettingScope(buildSetting.GetScope())
 		if err != nil {
 			return fmt.Errorf("attr \"scope\": %w", err)
 		}
@@ -489,31 +490,31 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addRuleTargetAttrs(ruleTarg
 		}
 	}
 
-	if test := ruleTarget.Message.Test; test != nil {
-		if len(test.Args) > 0 {
-			if err := b.setValueParts("args", model_core.Nested(ruleTarget, test.Args), syntax.PLUS); err != nil {
+	if test := ruleTarget.Message.GetTest(); test != nil {
+		if args := test.GetArgs(); len(args) > 0 {
+			if err := b.setValueParts("args", model_core.Nested(ruleTarget, args), syntax.PLUS); err != nil {
 				return err
 			}
 		} else if err := b.set("args", eval.NewTuple(nil)); err != nil {
 			return err
 		}
-		if err := b.set("flaky", eval.Bool(test.Flaky)); err != nil {
+		if err := b.set("flaky", eval.Bool(test.GetFlaky())); err != nil {
 			return err
 		}
-		if err := b.set("local", eval.Bool(test.Local)); err != nil {
+		if err := b.set("local", eval.Bool(test.GetLocal())); err != nil {
 			return err
 		}
-		if len(test.ShardCount) > 0 {
-			if err := b.setValueParts("shard_count", model_core.Nested(ruleTarget, test.ShardCount), 0); err != nil {
+		if shardCount := test.GetShardCount(); len(shardCount) > 0 {
+			if err := b.setValueParts("shard_count", model_core.Nested(ruleTarget, shardCount), 0); err != nil {
 				return err
 			}
 		} else if err := b.set("shard_count", eval.None); err != nil {
 			return err
 		}
-		if err := b.set("size", eval.String(testSizeNames[test.Size])); err != nil {
+		if err := b.set("size", eval.String(testSizeNames[test.GetSize()])); err != nil {
 			return err
 		}
-		if err := b.set("timeout", eval.String(testTimeoutNames[test.Timeout])); err != nil {
+		if err := b.set("timeout", eval.String(testTimeoutNames[test.GetTimeout()])); err != nil {
 			return err
 		}
 	}
@@ -528,18 +529,18 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addTestSuiteAttrs(testSuite
 	// Test suites store their tags in a decomposed form.
 	// Reconstruct them.
 	var tags []eval.Value
-	for _, tag := range testSuite.Message.PositiveTags {
+	for _, tag := range testSuite.Message.GetPositiveTags() {
 		tags = append(tags, eval.String(tag))
 	}
-	for _, tag := range testSuite.Message.NegativeTags {
+	for _, tag := range testSuite.Message.GetNegativeTags() {
 		tags = append(tags, eval.String("-"+tag))
 	}
-	if len(testSuite.Message.Sizes) < len(testSizeNames) {
-		for _, size := range testSuite.Message.Sizes {
+	if sizes := testSuite.Message.GetSizes(); len(sizes) < len(testSizeNames) {
+		for _, size := range sizes {
 			tags = append(tags, eval.String(testSizeNames[size]))
 		}
 	}
-	if testSuite.Message.Manual {
+	if testSuite.Message.GetManual() {
 		tags = append(tags, eval.String("manual"))
 	}
 	if err := b.set("tags", eval.NewTuple(tags)); err != nil {
@@ -551,17 +552,17 @@ func (b *existingRuleBuilder[TReference, TMetadata]) addTestSuiteAttrs(testSuite
 	for entry := range btree.AllLeaves(
 		b.thread.Context(),
 		b.testSuiteTestReader,
-		model_core.Nested(testSuite, testSuite.Message.Tests),
+		model_core.Nested(testSuite, testSuite.Message.GetTests()),
 		func(entry model_core.Message[*model_starlark_pb.TestSuite_Test, TReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil
 		},
 		&errIter,
 	) {
-		test, ok := entry.Message.Level.(*model_starlark_pb.TestSuite_Test_Leaf)
-		if !ok {
+		leaf := entry.Message.GetLeaf()
+		if leaf == "" {
 			return errors.New("not a valid leaf entry")
 		}
-		tests = append(tests, test.Leaf)
+		tests = append(tests, leaf)
 	}
 	if errIter != nil {
 		return errIter

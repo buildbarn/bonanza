@@ -101,36 +101,35 @@ func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx co
 	// Obtain all compatible execution platforms and toolchains.
 	missingDependencies := false
 	compatibleExecutionPlatforms := e.GetCompatibleExecutionPlatformsValue(&model_analysis_pb.CompatibleExecutionPlatforms_Key{
-		Constraints: key.Message.ExecCompatibleWith,
+		Constraints: key.Message.GetExecCompatibleWith(),
 	})
 	if !compatibleExecutionPlatforms.IsSet() {
 		missingDependencies = true
 	}
-	compatibleToolchainsByType := make([][]*model_analysis_pb.RegisteredToolchain, 0, len(key.Message.Toolchains))
-	visibleToolchainTypes := make([]string, 0, len(key.Message.Toolchains))
-	for _, toolchain := range key.Message.Toolchains {
-		toolchainTypeLabel, err := label.NewCanonicalLabel(toolchain.ToolchainType)
+	requestedToolchains := key.Message.GetToolchains()
+	compatibleToolchainsByType := make([][]*model_analysis_pb.RegisteredToolchain, 0, len(requestedToolchains))
+	visibleToolchainTypes := make([]string, 0, len(requestedToolchains))
+	for _, toolchain := range requestedToolchains {
+		toolchainTypeLabel, err := label.NewCanonicalLabel(toolchain.GetToolchainType())
 		if err != nil {
 			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("invalid toolchain %#v label: %w", toolchain, err)
 		}
 		visibleToolchainType := e.GetVisibleTargetValue(
-			model_core.NewSimplePatchedMessage[TMetadata](
-				&model_analysis_pb.VisibleTarget_Key{
-					FromPackage: toolchainTypeLabel.GetCanonicalPackage().String(),
-					ToLabel:     toolchainTypeLabel.String(),
-				},
-			),
+			model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Key{
+				FromPackage: toolchainTypeLabel.GetCanonicalPackage().String(),
+				ToLabel:     toolchainTypeLabel.String(),
+			}),
 		)
 		if !visibleToolchainType.IsSet() {
 			missingDependencies = true
 			continue
 		}
 
-		configurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.ConfigurationReference))
+		configurationReference := model_core.Patch(e, model_core.Nested(key, key.Message.GetConfigurationReference()))
 		compatibleToolchainsForTypeValue := e.GetCompatibleToolchainsForTypeValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.CompatibleToolchainsForType_Key{
-					ToolchainType:          visibleToolchainType.Message.Label,
+					ToolchainType:          visibleToolchainType.Message.GetLabel(),
 					ConfigurationReference: configurationReference.Message,
 				},
 				configurationReference.Patcher,
@@ -141,16 +140,16 @@ func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx co
 			continue
 		}
 
-		compatibleToolchainsForType := compatibleToolchainsForTypeValue.Message.Toolchains
-		if len(compatibleToolchainsForType) == 0 && toolchain.Mandatory {
-			noMatchError, err := getToolchainTypeNoMatchError(ctx, e, visibleToolchainType.Message.Label)
+		compatibleToolchainsForType := compatibleToolchainsForTypeValue.Message.GetToolchains()
+		if len(compatibleToolchainsForType) == 0 && toolchain.GetMandatory() {
+			noMatchError, err := getToolchainTypeNoMatchError(ctx, e, visibleToolchainType.Message.GetLabel())
 			if err != nil {
 				return PatchedResolvedToolchainsValue[TMetadata]{}, err
 			}
-			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target%s", toolchain.ToolchainType, noMatchError)
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but no toolchains exist that are compatible with the target%s", toolchain.GetToolchainType(), noMatchError)
 		}
 		compatibleToolchainsByType = append(compatibleToolchainsByType, compatibleToolchainsForType)
-		visibleToolchainTypes = append(visibleToolchainTypes, visibleToolchainType.Message.Label)
+		visibleToolchainTypes = append(visibleToolchainTypes, visibleToolchainType.Message.GetLabel())
 	}
 	if missingDependencies {
 		return PatchedResolvedToolchainsValue[TMetadata]{}, evaluation.ErrMissingDependency
@@ -158,7 +157,7 @@ func (baseComputer[TReference, TMetadata]) ComputeResolvedToolchainsValue(ctx co
 
 	// Pick the first execution platform having at least one
 	// matching toolchain for all mandatory toolchain types.
-	executionPlatforms := compatibleExecutionPlatforms.Message.ExecutionPlatforms
+	executionPlatforms := compatibleExecutionPlatforms.Message.GetExecutionPlatforms()
 	toolchainTypeHasAtLeastOneMatchingExecutionPlatform := make([]bool, len(compatibleToolchainsByType))
 CheckExecutionPlatform:
 	for _, executionPlatform := range executionPlatforms {
@@ -166,12 +165,12 @@ CheckExecutionPlatform:
 	CheckToolchainType:
 		for i, toolchainsForType := range compatibleToolchainsByType {
 			for _, toolchain := range toolchainsForType {
-				compatibleWith := toolchain.CompatibleWith
+				compatibleWith := toolchain.GetCompatibleWith()
 				if compatibleWith == nil {
 					// TODO: Add support for this.
-					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("toolchain %#v uses use_target_platform_constraints, which is not yet supported", toolchain.Toolchain)
+					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("toolchain %#v uses use_target_platform_constraints, which is not yet supported", toolchain.GetToolchain())
 				}
-				if constraintsAreCompatible(executionPlatform.Constraints, compatibleWith.Exec) {
+				if constraintsAreCompatible(executionPlatform.GetConstraints(), compatibleWith.GetExec()) {
 					toolchainTypeHasAtLeastOneMatchingExecutionPlatform[i] = true
 					resolvedToolchains = append(resolvedToolchains, toolchain)
 					continue CheckToolchainType
@@ -179,7 +178,7 @@ CheckExecutionPlatform:
 			}
 
 			// Did not find any compatible toolchain.
-			if key.Message.Toolchains[i].Mandatory {
+			if requestedToolchains[i].GetMandatory() {
 				continue CheckExecutionPlatform
 			}
 			toolchainTypeHasAtLeastOneMatchingExecutionPlatform[i] = true
@@ -201,27 +200,26 @@ CheckExecutionPlatform:
 				// Optional toolchain that is missing.
 				toolchainIdentifiers = append(toolchainIdentifiers, "")
 			} else {
-				resolvedToolchainLabel, err := label.NewCanonicalLabel(resolvedToolchain.Toolchain)
+				resolvedToolchainLabel, err := label.NewCanonicalLabel(resolvedToolchain.GetToolchain())
 				if err != nil {
-					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("invalid toolchain label %#v: %w", resolvedToolchain.Toolchain, err)
+					return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("invalid toolchain label %#v: %w", resolvedToolchain.GetToolchain(), err)
 				}
+				vk := &model_analysis_pb.VisibleTarget_Key{
+					FromPackage: resolvedToolchainLabel.GetCanonicalPackage().String(),
+					ToLabel:     resolvedToolchainLabel.String(),
+				}
+				// Don't specify a configuration, as
+				// the toolchain() itself is also
+				// evaluated without one.
 				visibleTarget := e.GetVisibleTargetValue(
-					model_core.NewSimplePatchedMessage[TMetadata](
-						&model_analysis_pb.VisibleTarget_Key{
-							FromPackage: resolvedToolchainLabel.GetCanonicalPackage().String(),
-							ToLabel:     resolvedToolchainLabel.String(),
-							// Don't specify a configuration, as
-							// the toolchain() itself is also
-							// evaluated without one.
-						},
-					),
+					model_core.NewSimplePatchedMessage[TMetadata](vk),
 				)
 				if !visibleTarget.IsSet() {
 					missingDependencies = true
 					continue
 				}
 				if !missingDependencies {
-					toolchainIdentifiers = append(toolchainIdentifiers, visibleTarget.Message.Label)
+					toolchainIdentifiers = append(toolchainIdentifiers, visibleTarget.Message.GetLabel())
 				}
 			}
 		}
@@ -230,8 +228,8 @@ CheckExecutionPlatform:
 		}
 		return model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ResolvedToolchains_Value{
 			ToolchainIdentifiers:  toolchainIdentifiers,
-			PlatformLabel:         executionPlatform.Label,
-			PlatformPkixPublicKey: executionPlatform.ExecPkixPublicKey,
+			PlatformLabel:         executionPlatform.GetLabel(),
+			PlatformPkixPublicKey: executionPlatform.GetExecPkixPublicKey(),
 		}), nil
 	}
 
@@ -241,7 +239,7 @@ CheckExecutionPlatform:
 			if err != nil {
 				return PatchedResolvedToolchainsValue[TMetadata]{}, err
 			}
-			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms%s", key.Message.Toolchains[i].ToolchainType, len(compatibleToolchainsByType[i]), len(executionPlatforms), noMatchError)
+			return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("dependency on toolchain type %#v is mandatory, but none of the %d toolchains that are compatible with the target are also compatible with any of the %d execution platforms%s", requestedToolchains[i].GetToolchainType(), len(compatibleToolchainsByType[i]), len(executionPlatforms), noMatchError)
 		}
 	}
 	return PatchedResolvedToolchainsValue[TMetadata]{}, fmt.Errorf("even though all mandatory toolchain types have at least one toolchain that is compatible with one of the %d execution platforms, no single execution platform exists for which all mandatory toolchain types have at least one compatible toolchain", len(executionPlatforms))

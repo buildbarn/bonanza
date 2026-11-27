@@ -18,6 +18,7 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -47,16 +48,16 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 		}.Build(), referenceFormat)),
 	}
 	boolAttr := func(defaultValue bool) *model_starlark_pb.Attr {
-		return &model_starlark_pb.Attr{
-			Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Bool{Bool: defaultValue}},
-			Type:    &model_starlark_pb.Attr_Bool{Bool: &emptypb.Empty{}},
-		}
+		return model_starlark_pb.Attr_builder{
+			Default: model_starlark_pb.Value_builder{Bool: proto.Bool(defaultValue)}.Build(),
+			Bool:    &emptypb.Empty{},
+		}.Build()
 	}
 	stringAttr := func(values ...string) *model_starlark_pb.Attr {
-		return &model_starlark_pb.Attr{
-			Default: &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Str{Str: &model_filesystem_pb.MaybeInlineFileContents{}}},
-			Type:    &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{Values: values}},
-		}
+		return model_starlark_pb.Attr_builder{
+			Default: model_starlark_pb.Value_builder{Str: &model_filesystem_pb.MaybeInlineFileContents{}}.Build(),
+			String:  model_starlark_pb.Attr_StringType_builder{Values: values}.Build(),
+		}.Build()
 	}
 	getAspectParameters := func(publicAttrs ...*model_starlark_pb.NamedAttr) (*model_core.Decodable[model_core.CreatedObject[model_core.CreatedObjectTree]], error) {
 		return a.getAspectParameters(
@@ -78,8 +79,8 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 		// Values equal to the default value are omitted. If no
 		// values remain, no object is created.
 		parameters, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "flag", Attr: boolAttr(true)},
-			&model_starlark_pb.NamedAttr{Name: "off", Attr: boolAttr(false)},
+			model_starlark_pb.NamedAttr_builder{Name: "flag", Attr: boolAttr(true)}.Build(),
+			model_starlark_pb.NamedAttr_builder{Name: "off", Attr: boolAttr(false)}.Build(),
 		)
 		require.NoError(t, err)
 		require.Nil(t, parameters)
@@ -87,16 +88,16 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 
 	t.Run("NonDefaultValues", func(t *testing.T) {
 		parameters, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "flag", Attr: boolAttr(false)},
-			&model_starlark_pb.NamedAttr{Name: "mode", Attr: stringAttr("fast", "slow")},
+			model_starlark_pb.NamedAttr_builder{Name: "flag", Attr: boolAttr(false)}.Build(),
+			model_starlark_pb.NamedAttr_builder{Name: "mode", Attr: stringAttr("fast", "slow")}.Build(),
 		)
 		require.NoError(t, err)
 		require.NotNil(t, parameters)
 
 		// Equal parameters should yield the same object.
 		parameters2, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "flag", Attr: boolAttr(false)},
-			&model_starlark_pb.NamedAttr{Name: "mode", Attr: stringAttr("fast", "slow")},
+			model_starlark_pb.NamedAttr_builder{Name: "flag", Attr: boolAttr(false)}.Build(),
+			model_starlark_pb.NamedAttr_builder{Name: "mode", Attr: stringAttr("fast", "slow")}.Build(),
 		)
 		require.NoError(t, err)
 		require.Equal(t, parameters.Value.GetLocalReference(), parameters2.Value.GetLocalReference())
@@ -104,21 +105,21 @@ func TestRuleTargetAnalysisGetAspectParameters(t *testing.T) {
 
 	t.Run("MissingRuleAttr", func(t *testing.T) {
 		_, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "missing", Attr: boolAttr(false)},
+			model_starlark_pb.NamedAttr_builder{Name: "missing", Attr: boolAttr(false)}.Build(),
 		)
 		require.EqualError(t, err, "aspect \"@@rules+//:defs.bzl%my_aspect\" requires rule \"@@rules+//:defs.bzl%my_rule\" to have attr \"missing\"")
 	})
 
 	t.Run("DisallowedValue", func(t *testing.T) {
 		_, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "mode", Attr: stringAttr("slow")},
+			model_starlark_pb.NamedAttr_builder{Name: "mode", Attr: stringAttr("slow")}.Build(),
 		)
 		require.EqualError(t, err, "attr \"mode\" of aspect \"@@rules+//:defs.bzl%my_aspect\" does not permit value \"fast\"")
 	})
 
 	t.Run("WrongType", func(t *testing.T) {
 		_, err := getAspectParameters(
-			&model_starlark_pb.NamedAttr{Name: "mode", Attr: boolAttr(false)},
+			model_starlark_pb.NamedAttr_builder{Name: "mode", Attr: boolAttr(false)}.Build(),
 		)
 		require.ErrorContains(t, err, "attr \"mode\" of aspect \"@@rules+//:defs.bzl%my_aspect\":")
 	})

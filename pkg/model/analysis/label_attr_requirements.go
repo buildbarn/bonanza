@@ -51,16 +51,16 @@ func newLabelAttrRequirements[TReference object.BasicReference, TMetadata model_
 	}
 	if allowFiles := labelOptions.GetAllowFiles(); allowFiles != nil {
 		r.allowFileTargets = true
-		if len(allowFiles.FilenamePattern) > 0 {
-			filenamePattern, err := glob.NewNFAFromBytes(allowFiles.FilenamePattern)
+		if pattern := allowFiles.GetFilenamePattern(); len(pattern) > 0 {
+			filenamePattern, err := glob.NewNFAFromBytes(pattern)
 			if err != nil {
 				return nil, fmt.Errorf("invalid allow_files filename pattern: %w", err)
 			}
 			r.filenamePattern = filenamePattern
 		}
 	}
-	if attrType, ok := attr.GetType().(*model_starlark_pb.Attr_Label); ok {
-		r.allowSingleFile = attrType.Label.AllowSingleFile
+	if attrType := attr.GetLabel(); attrType != nil {
+		r.allowSingleFile = attrType.GetAllowSingleFile()
 	}
 	return r, nil
 }
@@ -117,8 +117,9 @@ func (r *labelAttrRequirements[TReference, TMetadata]) checkFiles(
 	if err != nil {
 		return err
 	}
-	filesElements := make([]any, 0, len(filesDepset.Message.Elements))
-	for _, element := range filesDepset.Message.Elements {
+	depsetElements := filesDepset.Message.GetElements()
+	filesElements := make([]any, 0, len(depsetElements))
+	for _, element := range depsetElements {
 		filesElements = append(filesElements, model_core.Nested(filesDepset, element))
 	}
 	files, err := model_starlark.NewDepsetContentsFromList[TReference, TMetadata](
@@ -141,14 +142,14 @@ func (r *labelAttrRequirements[TReference, TMetadata]) checkFiles(
 			return fmt.Errorf("files of target with label %#v contain a value of type %s, while File was expected", resolvedLabel, file.Type())
 		}
 		fileDefinition := typedFile.GetDefinition().Message
-		if fileDefinition.Owner.GetType() == model_starlark_pb.File_Owner_DIRECTORY {
+		if fileDefinition.GetOwner().GetType() == model_starlark_pb.File_Owner_DIRECTORY {
 			// Like Bazel, accept directories, as their
 			// contents are unknown at this point.
 			return nil
 		}
-		fileLabel, err := label.NewCanonicalLabel(fileDefinition.Label)
+		fileLabel, err := label.NewCanonicalLabel(fileDefinition.GetLabel())
 		if err != nil {
-			return fmt.Errorf("invalid label %#v of file of target with label %#v: %w", fileDefinition.Label, resolvedLabel, err)
+			return fmt.Errorf("invalid label %#v of file of target with label %#v: %w", fileDefinition.GetLabel(), resolvedLabel, err)
 		}
 		if r.matchesFilenamePattern(fileLabel.GetTargetName().String()) {
 			return nil
@@ -169,20 +170,20 @@ func getDefaultInfoFilesDepset[TReference any](
 	defaultInfoIndex, ok := sort.Find(
 		len(providerInstances.Message),
 		func(i int) int {
-			return strings.Compare(defaultInfoProviderIdentifierStr, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+			return strings.Compare(defaultInfoProviderIdentifierStr, providerInstances.Message[i].GetProviderInstanceProperties().GetProviderIdentifier())
 		},
 	)
 	if !ok {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, model_core.Message[*model_starlark_pb.Depset, TReference]{}, fmt.Errorf("target with label %#v did not yield provider %#v", resolvedLabel, defaultInfoProviderIdentifierStr)
 	}
-	defaultInfoFields := model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].Fields)
+	defaultInfoFields := model_core.Nested(providerInstances, providerInstances.Message[defaultInfoIndex].GetFields())
 	files, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, defaultInfoFields, "files")
 	if err != nil {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, model_core.Message[*model_starlark_pb.Depset, TReference]{}, fmt.Errorf("failed to obtain field \"files\" of DefaultInfo provider of target with label %#v: %w", resolvedLabel, err)
 	}
-	valueDepset, ok := files.Message.Kind.(*model_starlark_pb.Value_Depset)
-	if !ok {
+	valueDepset := files.Message.GetDepset()
+	if valueDepset == nil {
 		return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}, model_core.Message[*model_starlark_pb.Depset, TReference]{}, fmt.Errorf("field \"files\" of DefaultInfo provider of target with label %#v is not a depset", resolvedLabel)
 	}
-	return defaultInfoFields, model_core.Nested(files, valueDepset.Depset), nil
+	return defaultInfoFields, model_core.Nested(files, valueDepset), nil
 }

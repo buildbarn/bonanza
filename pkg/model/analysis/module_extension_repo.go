@@ -17,7 +17,7 @@ import (
 func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepo_Key, e ModuleExtensionRepoEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	canonicalRepo, err := label.NewCanonicalRepo(key.CanonicalRepo)
+	canonicalRepo, err := label.NewCanonicalRepo(key.GetCanonicalRepo())
 	if err != nil {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, fmt.Errorf("invalid repo: %w", err)
 	}
@@ -36,13 +36,13 @@ func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx 
 	repo, err := btree.Find(
 		ctx,
 		analysisReaders.ModuleExtensionReposValueRepo,
-		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.Repos),
+		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.GetRepos()),
 		func(entry model_core.Message[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
+			switch entry.Message.GetLevel().(type) {
 			case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf:
-				return strings.Compare(repoName, level.Leaf.Name), nil
+				return strings.Compare(repoName, entry.Message.GetLeaf().GetName()), nil
 			case *model_analysis_pb.ModuleExtensionRepos_Value_Repo_Parent_:
-				return strings.Compare(repoName, level.Parent.FirstName), level.Parent.Reference
+				return strings.Compare(repoName, entry.Message.GetParent().GetFirstName()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -55,11 +55,11 @@ func (*baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoValue(ctx 
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not exist")
 	}
 
-	level, ok := repo.Message.Level.(*model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf)
-	if !ok {
+	level := repo.Message.GetLeaf()
+	if level == nil {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo has an unknown level type")
 	}
-	definition := level.Leaf.Definition
+	definition := level.GetDefinition()
 	if definition == nil {
 		return PatchedModuleExtensionRepoValue[TMetadata]{}, errors.New("repo does not have a definition")
 	}

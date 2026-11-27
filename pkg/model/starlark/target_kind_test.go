@@ -11,48 +11,32 @@ import (
 
 func TestGetTargetKind(t *testing.T) {
 	for kind, definition := range map[string]*model_starlark_pb.Target_Definition{
-		"alias rule": {
-			Kind: &model_starlark_pb.Target_Definition_Alias{
-				Alias: &model_starlark_pb.Alias{},
-			},
-		},
-		"label_flag rule": {
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{
-				LabelSetting: &model_starlark_pb.LabelSetting{Flag: true},
-			},
-		},
-		"label_setting rule": {
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{
-				LabelSetting: &model_starlark_pb.LabelSetting{},
-			},
-		},
-		"package group": {
-			Kind: &model_starlark_pb.Target_Definition_PackageGroup{
-				PackageGroup: &model_starlark_pb.PackageGroup{},
-			},
-		},
-		"generated file": {
-			Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{
-				PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{},
-			},
-		},
-		"cc_library rule": {
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: "@@rules_cc+//cc:defs.bzl%cc_library",
-				},
-			},
-		},
-		"source file": {
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-			},
-		},
-		"test_suite rule": {
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{
-				TestSuite: &model_starlark_pb.TestSuite{},
-			},
-		},
+		"alias rule": model_starlark_pb.Target_Definition_builder{
+			Alias: &model_starlark_pb.Alias{},
+		}.Build(),
+		"label_flag rule": model_starlark_pb.Target_Definition_builder{
+			LabelSetting: model_starlark_pb.LabelSetting_builder{Flag: true}.Build(),
+		}.Build(),
+		"label_setting rule": model_starlark_pb.Target_Definition_builder{
+			LabelSetting: &model_starlark_pb.LabelSetting{},
+		}.Build(),
+		"package group": model_starlark_pb.Target_Definition_builder{
+			PackageGroup: &model_starlark_pb.PackageGroup{},
+		}.Build(),
+		"generated file": model_starlark_pb.Target_Definition_builder{
+			PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{},
+		}.Build(),
+		"cc_library rule": model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: "@@rules_cc+//cc:defs.bzl%cc_library",
+			}.Build(),
+		}.Build(),
+		"source file": model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build(),
+		"test_suite rule": model_starlark_pb.Target_Definition_builder{
+			TestSuite: &model_starlark_pb.TestSuite{},
+		}.Build(),
 	} {
 		t.Run(kind, func(t *testing.T) {
 			got, err := model_starlark.GetTargetKind(definition)
@@ -62,13 +46,11 @@ func TestGetTargetKind(t *testing.T) {
 	}
 
 	t.Run("InvalidRuleIdentifier", func(t *testing.T) {
-		_, err := model_starlark.GetTargetKind(&model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: "cc_library",
-				},
-			},
-		})
+		_, err := model_starlark.GetTargetKind(model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: "cc_library",
+			}.Build(),
+		}.Build())
 		require.ErrorContains(t, err, "invalid rule identifier \"cc_library\": ")
 	})
 }

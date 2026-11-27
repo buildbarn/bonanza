@@ -15,6 +15,8 @@ import (
 	"bonanza.build/pkg/storage/object"
 
 	bb_path "github.com/buildbarn/bb-storage/pkg/filesystem/path"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Names of commonly used pathname components of source and output files.
@@ -88,7 +90,7 @@ func (File[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 func (f *File[TReference, TMetadata]) Hash(thread *eval.Thread) (uint32, error) {
 	d := f.definition.Message
 	h := fnv.New32a()
-	h.Write([]byte(d.Label))
+	h.Write([]byte(d.GetLabel()))
 	return h.Sum32(), nil
 }
 
@@ -137,7 +139,7 @@ func (f *File[TReference, TMetadata]) getPathEnd() (string, error) {
 	if f.treeRelativePath != nil {
 		return f.treeRelativePath.GetUNIXString(), nil
 	}
-	labelStr := f.definition.Message.Label
+	labelStr := f.definition.Message.GetLabel()
 	canonicalLabel, err := pg_label.NewCanonicalLabel(labelStr)
 	if err != nil {
 		return "", fmt.Errorf("invalid canonical label %#v: %w", labelStr, err)
@@ -153,7 +155,7 @@ func (f *File[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (ev
 	case "basename":
 		pathEnd, err := f.getPathEnd()
 		if err != nil {
-			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.GetLabel(), err)
 		}
 		return eval.String(go_path.Base(pathEnd)), nil
 	case "dirname":
@@ -165,7 +167,7 @@ func (f *File[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (ev
 	case "extension":
 		p, err := f.getPathEnd()
 		if err != nil {
-			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.GetLabel(), err)
 		}
 		for i := len(p) - 1; i >= 0 && p[i] != '/' && p[i] != ':'; i-- {
 			if p[i] == '.' {
@@ -178,33 +180,35 @@ func (f *File[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (ev
 		if f.treeRelativePath != nil {
 			return nil, errors.New("files with tree relative paths cannot be identified with a label")
 		}
-		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
+		canonicalLabel, err := pg_label.NewCanonicalLabel(d.GetLabel())
 		if err != nil {
-			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.GetLabel(), err)
 		}
 		return NewLabel[TReference, TMetadata](canonicalLabel.AsResolved()), nil
 	case "is_directory":
 		// For files created by DirectoryExpander, the
 		// definition still refers to the directory from which
 		// the files originated.
-		return eval.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_DIRECTORY && f.treeRelativePath == nil), nil
+		owner := d.GetOwner()
+		return eval.Bool(owner != nil && owner.GetType() == model_starlark_pb.File_Owner_DIRECTORY && f.treeRelativePath == nil), nil
 	case "is_source":
-		return eval.Bool(d.Owner == nil), nil
+		return eval.Bool(d.GetOwner() == nil), nil
 	case "is_symlink":
-		return eval.Bool(d.Owner != nil && d.Owner.Type == model_starlark_pb.File_Owner_SYMLINK), nil
+		owner := d.GetOwner()
+		return eval.Bool(owner != nil && owner.GetType() == model_starlark_pb.File_Owner_SYMLINK), nil
 	case "owner":
-		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
+		canonicalLabel, err := pg_label.NewCanonicalLabel(d.GetLabel())
 		if err != nil {
-			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.GetLabel(), err)
 		}
 
 		// If the file is an output file, return the label of
 		// the target that generates it. If it is a source file,
 		// return a label of the file itself.
-		if o := d.Owner; o != nil {
-			targetName, err := pg_label.NewTargetName(o.TargetName)
+		if o := d.GetOwner(); o != nil {
+			targetName, err := pg_label.NewTargetName(o.GetTargetName())
 			if err != nil {
-				return nil, fmt.Errorf("invalid owner target name %#v: %w", o.TargetName, err)
+				return nil, fmt.Errorf("invalid owner target name %#v: %w", o.GetTargetName(), err)
 			}
 			canonicalLabel = canonicalLabel.GetCanonicalPackage().AppendTargetName(targetName)
 		}
@@ -231,9 +235,9 @@ func (f *File[TReference, TMetadata]) Attr(thread *eval.Thread, name string) (ev
 			[]any{eval.String(rootPath)},
 		), nil
 	case "short_path":
-		canonicalLabel, err := pg_label.NewCanonicalLabel(d.Label)
+		canonicalLabel, err := pg_label.NewCanonicalLabel(d.GetLabel())
 		if err != nil {
-			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.Label, err)
+			return nil, fmt.Errorf("invalid canonical label %#v: %w", d.GetLabel(), err)
 		}
 		canonicalPackage := canonicalLabel.GetCanonicalPackage()
 		return eval.String(go_path.Join(
@@ -282,11 +286,9 @@ func (f *File[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []ev
 	}
 	d := model_core.Patch(options.ObjectCapturer, f.definition)
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_File{
-				File: d.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			File: proto.ValueOrDefault(d.Message),
+		}.Build(),
 		d.Patcher,
 	), nil
 }
@@ -310,9 +312,9 @@ func (f *File[TReference, TMetadata]) GetTreeRelativePath() *bb_path.Trace {
 // to a File object, similar to accessing the "path" attribute of a File
 // from within Starlark code.
 func FileGetInputRootPath[TReference object.BasicReference](f model_core.Message[*model_starlark_pb.File, TReference], treeRelativePath *bb_path.Trace) (string, error) {
-	canonicalLabel, err := pg_label.NewCanonicalLabel(f.Message.Label)
+	canonicalLabel, err := pg_label.NewCanonicalLabel(f.Message.GetLabel())
 	if err != nil {
-		return "", fmt.Errorf("invalid canonical label %#v: %w", f.Message.Label, err)
+		return "", fmt.Errorf("invalid canonical label %#v: %w", f.Message.GetLabel(), err)
 	}
 	parts, err := appendFileOwnerToPath(f, make([]string, 0, 7))
 	if err != nil {
@@ -334,9 +336,9 @@ func FileGetInputRootPath[TReference object.BasicReference](f model_core.Message
 // FileGetRunfilesPath returns a runfiles root directory relative path
 // corresponding to a File object.
 func FileGetRunfilesPath[TReference object.BasicReference](f model_core.Message[*model_starlark_pb.File, TReference]) (string, error) {
-	canonicalLabel, err := pg_label.NewCanonicalLabel(f.Message.Label)
+	canonicalLabel, err := pg_label.NewCanonicalLabel(f.Message.GetLabel())
 	if err != nil {
-		return "", fmt.Errorf("invalid canonical label %#v: %w", f.Message.Label, err)
+		return "", fmt.Errorf("invalid canonical label %#v: %w", f.Message.GetLabel(), err)
 	}
 	canonicalPackage := canonicalLabel.GetCanonicalPackage()
 	return go_path.Join(
@@ -347,8 +349,8 @@ func FileGetRunfilesPath[TReference object.BasicReference](f model_core.Message[
 }
 
 func appendFileOwnerToPath[TReference object.BasicReference](f model_core.Message[*model_starlark_pb.File, TReference], parts []string) ([]string, error) {
-	if o := f.Message.Owner; o != nil {
-		configurationComponent, err := ConfigurationReferenceToComponent(model_core.Nested(f, o.Variant.GetConfigurationReference()))
+	if o := f.Message.GetOwner(); o != nil {
+		configurationComponent, err := ConfigurationReferenceToComponent(model_core.Nested(f, o.GetVariant().GetConfigurationReference()))
 		if err != nil {
 			return nil, err
 		}

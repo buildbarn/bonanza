@@ -10,6 +10,8 @@ import (
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // ModuleExtensionDefinition contains the actual definition of the
@@ -87,22 +89,20 @@ func (med *starlarkModuleExtensionDefinition[TReference, TMetadata]) EncodeValue
 			patcher.Discard()
 			return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 		}
-		tagClasses = append(tagClasses, &model_starlark_pb.ModuleExtension_NamedTagClass{
+		tagClasses = append(tagClasses, model_starlark_pb.ModuleExtension_NamedTagClass_builder{
 			Name:     name.String(),
 			TagClass: encodedTagClass.Message,
-		})
+		}.Build())
 		patcher.Merge(encodedTagClass.Patcher)
 	}
 
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_ModuleExtension{
-				ModuleExtension: &model_starlark_pb.ModuleExtension{
-					Implementation: implementation.Message,
-					TagClasses:     tagClasses,
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			ModuleExtension: model_starlark_pb.ModuleExtension_builder{
+				Implementation: implementation.Message,
+				TagClasses:     tagClasses,
+			}.Build(),
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -123,11 +123,9 @@ func NewProtoModuleExtensionDefinition[TReference object.BasicReference, TMetada
 func (med *protoModuleExtensionDefinition[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
 	patchedMessage := model_core.Patch(options.ObjectCapturer, med.message)
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_ModuleExtension{
-				ModuleExtension: patchedMessage.Message,
-			},
-		},
+		model_starlark_pb.Value_builder{
+			ModuleExtension: proto.ValueOrDefault(patchedMessage.Message),
+		}.Build(),
 		patchedMessage.Patcher,
 	), nil
 }

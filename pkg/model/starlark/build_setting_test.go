@@ -13,9 +13,11 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestBuildSettingScopeUnpackerInto(t *testing.T) {
@@ -31,12 +33,12 @@ func TestBuildSettingScopeUnpackerInto(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		for input, expected := range map[string]*model_starlark_pb.BuildSettingScope{
-			"target":                {Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}}},
-			"project":               {Kind: &model_starlark_pb.BuildSettingScope_Project{Project: &emptypb.Empty{}}},
-			"universal":             {Kind: &model_starlark_pb.BuildSettingScope_Universal{Universal: &emptypb.Empty{}}},
-			"exec:--:host_flag":     {Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//foo:host_flag"}},
-			"exec:--//bar:host":     {Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@main+//bar:host"}},
-			"exec:--@@other+//:baz": {Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: "@@other+//:baz"}},
+			"target":                model_starlark_pb.BuildSettingScope_builder{Target: &emptypb.Empty{}}.Build(),
+			"project":               model_starlark_pb.BuildSettingScope_builder{Project: &emptypb.Empty{}}.Build(),
+			"universal":             model_starlark_pb.BuildSettingScope_builder{Universal: &emptypb.Empty{}}.Build(),
+			"exec:--:host_flag":     model_starlark_pb.BuildSettingScope_builder{Exec: proto.String("@@main+//foo:host_flag")}.Build(),
+			"exec:--//bar:host":     model_starlark_pb.BuildSettingScope_builder{Exec: proto.String("@@main+//bar:host")}.Build(),
+			"exec:--@@other+//:baz": model_starlark_pb.BuildSettingScope_builder{Exec: proto.String("@@other+//:baz")}.Build(),
 		} {
 			var scope *model_starlark_pb.BuildSettingScope
 			require.NoError(t, unpacker.UnpackInto(newThread(), eval.String(input), &scope), input)

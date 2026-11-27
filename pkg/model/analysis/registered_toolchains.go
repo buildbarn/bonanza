@@ -80,20 +80,18 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				&iterErr,
 			) {
 				visibleTargetValue := h.environment.GetVisibleTargetValue(
-					model_core.NewSimplePatchedMessage[TMetadata](
-						&model_analysis_pb.VisibleTarget_Key{
-							FromPackage:        canonicalToolchainLabel.GetCanonicalPackage().String(),
-							ToLabel:            canonicalToolchainLabel.String(),
-							PermitAliasNoMatch: true,
-						},
-					),
+					model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.VisibleTarget_Key{
+						FromPackage:        canonicalToolchainLabel.GetCanonicalPackage().String(),
+						ToLabel:            canonicalToolchainLabel.String(),
+						PermitAliasNoMatch: true,
+					}),
 				)
 				if !visibleTargetValue.IsSet() {
 					*h.missingDependencies = true
 					continue
 				}
 
-				toolchainLabelStr := visibleTargetValue.Message.Label
+				toolchainLabelStr := visibleTargetValue.Message.GetLabel()
 				if toolchainLabelStr == "" {
 					// Target is an alias() that does not
 					// have a default condition. Ignore.
@@ -111,14 +109,15 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					*h.missingDependencies = true
 					continue
 				}
-				if targetValue.Message.Definition == nil {
+				definition := targetValue.Message.GetDefinition()
+				if definition == nil {
 					return fmt.Errorf("toolchain %#v does not exist", toolchainLabelStr)
 				}
-				ruleTarget, ok := targetValue.Message.Definition.GetKind().(*model_starlark_pb.Target_Definition_RuleTarget)
-				if !ok {
+				ruleTarget := definition.GetRuleTarget()
+				if ruleTarget == nil {
 					return fmt.Errorf("toolchain %#v is not a rule target", toolchainLabelStr)
 				}
-				if ruleTarget.RuleTarget.RuleIdentifier != toolchainRuleIdentifier.String() {
+				if ruleTarget.GetRuleIdentifier() != toolchainRuleIdentifier.String() {
 					return fmt.Errorf("toolchain %#v is not a toolchain() target", toolchainLabelStr)
 				}
 
@@ -148,45 +147,44 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				) {
 					switch key {
 					case "target_settings":
-						l, ok := value.Message.Kind.(*model_starlark_pb.Value_List)
-						if !ok {
+						l := value.Message.GetList()
+						if l == nil {
 							return fmt.Errorf("target_settings field of DeclaredToolchainInfo of toolchain %#v is not a list", toolchainLabelStr)
 						}
 						var errIter error
 						for targetSetting := range model_starlark.AllListLeafElementsSkippingDuplicateParents(
 							h.context,
 							listReader,
-							model_core.Nested(value, l.List.Elements),
+							model_core.Nested(value, l.GetElements()),
 							map[model_core.Decodable[object.LocalReference]]struct{}{},
 							&errIter,
 						) {
-							targetSettingLabel, ok := targetSetting.Message.Kind.(*model_starlark_pb.Value_Label)
-							if !ok {
+							targetSettingLabel := targetSetting.Message.GetLabel()
+							if targetSettingLabel == "" {
 								return fmt.Errorf("target_settings field of DeclaredToolchainInfo of toolchain %#v contains an element that is not a label", toolchainLabelStr)
 							}
-							targetSettings = append(targetSettings, targetSettingLabel.Label)
+							targetSettings = append(targetSettings, targetSettingLabel)
 						}
 						if errIter != nil {
 							return errIter
 						}
 					case "toolchain":
-						l, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
-						if !ok {
+						l := value.Message.GetLabel()
+						if l == "" {
 							return fmt.Errorf("toolchain field of DeclaredToolchainInfo of toolchain %#v is not a label", toolchainLabelStr)
 						}
-						toolchain = &l.Label
+						toolchain = &l
 					case "toolchain_type":
-						l, ok := value.Message.Kind.(*model_starlark_pb.Value_Label)
-						if !ok {
+						l := value.Message.GetLabel()
+						if l == "" {
 							return fmt.Errorf("toolchain_type field of DeclaredToolchainInfo of toolchain %#v is not a label", toolchainLabelStr)
 						}
-						toolchainType = &l.Label
+						toolchainType = &l
 					case "use_target_platform_constraints":
-						b, ok := value.Message.Kind.(*model_starlark_pb.Value_Bool)
-						if !ok {
+						if !value.Message.HasBool() {
 							return fmt.Errorf("use_target_platform_constraints field of DeclaredToolchainInfo of toolchain %#v is not a bool", toolchainLabelStr)
 						}
-						useTargetPlatformConstraints = b.Bool
+						useTargetPlatformConstraints = value.Message.GetBool()
 					}
 				}
 				if errIter != nil {
@@ -205,7 +203,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					h.environment,
 					h.valueReaders,
 					toolchainPackage,
-					ruleTarget.RuleTarget.ExecCompatibleWith,
+					ruleTarget.GetExecCompatibleWith(),
 				)
 				if err != nil {
 					if !errors.Is(err, evaluation.ErrMissingDependency) {
@@ -218,7 +216,7 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 				// configurable. Expand select() expressions.
 				// TODO: Is this using the right configuration?
 				var targetCompatibleWithLabels []string
-				for _, selectGroup := range ruleTarget.RuleTarget.TargetCompatibleWith {
+				for _, selectGroup := range ruleTarget.GetTargetCompatibleWith() {
 					targetCompatibleWithValue, err := getValueFromSelectGroup(
 						h.environment,
 						model_core.NewSimpleMessage[TReference]((*model_core_pb.DecodableReference)(nil)),
@@ -229,8 +227,8 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					if err != nil {
 						return err
 					}
-					targetCompatibleWithList, ok := targetCompatibleWithValue.Kind.(*model_starlark_pb.Value_List)
-					if !ok {
+					targetCompatibleWithList := targetCompatibleWithValue.GetList()
+					if targetCompatibleWithList == nil {
 						return fmt.Errorf("target_compatible_with of toolchain %#v is not a list", toolchainLabelStr)
 					}
 
@@ -238,21 +236,21 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 					for element := range btree.AllLeaves(
 						h.context,
 						listReader,
-						model_core.Nested(targetValue, targetCompatibleWithList.List.Elements),
+						model_core.Nested(targetValue, targetCompatibleWithList.GetElements()),
 						func(element model_core.Message[*model_starlark_pb.List_Element, TReference]) (*model_core_pb.DecodableReference, error) {
 							return element.Message.GetParent().GetReference(), nil
 						},
 						&errIter,
 					) {
-						level, ok := element.Message.Level.(*model_starlark_pb.List_Element_Leaf)
-						if !ok {
+						level := element.Message.GetLeaf()
+						if level == nil {
 							return fmt.Errorf("invalid list element level type for target_compatible_with of toolchain %#v", toolchainLabelStr)
 						}
-						label, ok := level.Leaf.Kind.(*model_starlark_pb.Value_Label)
-						if !ok {
+						l := level.GetLabel()
+						if l == "" {
 							return fmt.Errorf("invalid list element type for target_compatible_with of toolchain %#v", toolchainLabelStr)
 						}
-						targetCompatibleWithLabels = append(targetCompatibleWithLabels, label.Label)
+						targetCompatibleWithLabels = append(targetCompatibleWithLabels, l)
 					}
 					if errIter != nil {
 						return err
@@ -282,17 +280,15 @@ func (h *registeredToolchainExtractingModuleDotBazelHandler[TReference, TMetadat
 						return fmt.Errorf("target_compatible_with of toolchain %#v is non-empty, while use_target_platform_constraints is set to True", toolchainLabelStr)
 					}
 				} else {
-					compatibleWith = &model_analysis_pb.RegisteredToolchain_CompatibleWith{
-						Exec:   execCompatibleWith,
-						Target: targetCompatibleWith,
-					}
+					compatibleWith = &model_analysis_pb.RegisteredToolchain_CompatibleWith{}
+					compatibleWith.Exec = execCompatibleWith
+					compatibleWith.Target = targetCompatibleWith
 				}
 
 				if !*h.missingDependencies {
 					slices.Sort(targetSettings)
 					h.registeredToolchainsByType[*toolchainType] = append(
-						h.registeredToolchainsByType[*toolchainType],
-						&model_analysis_pb.RegisteredToolchain{
+						h.registeredToolchainsByType[*toolchainType], &model_analysis_pb.RegisteredToolchain{
 							CompatibleWith: compatibleWith,
 							TargetSettings: slices.Compact(targetSettings),
 							Toolchain:      *toolchain,

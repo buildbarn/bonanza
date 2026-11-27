@@ -28,6 +28,8 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.uber.org/mock/gomock"
 )
 
@@ -70,26 +72,22 @@ func newQueryExpansionValue(labels ...string) model_core.Message[*model_analysis
 
 func newSourceFileTargetValue() model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree] {
 	return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-		Definition: &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-			},
-		},
+		Definition: model_starlark_pb.Target_Definition_builder{
+			SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+		}.Build(),
 	})
 }
 
 func labelListValue(labels ...string) *model_starlark_pb.Value {
 	elements := make([]*model_starlark_pb.List_Element, 0, len(labels))
 	for _, l := range labels {
-		elements = append(elements, &model_starlark_pb.List_Element{
-			Level: &model_starlark_pb.List_Element_Leaf{Leaf: labelValue(l)},
-		})
+		elements = append(elements, model_starlark_pb.List_Element_builder{
+			Leaf: proto.ValueOrDefault(labelValue(l)),
+		}.Build())
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_List{
-			List: &model_starlark_pb.List{Elements: elements},
-		},
-	}
+	return model_starlark_pb.Value_builder{
+		List: model_starlark_pb.List_builder{Elements: elements}.Build(),
+	}.Build()
 }
 
 func stringValue(s string) *model_starlark_pb.Value {
@@ -100,25 +98,21 @@ func stringValue(s string) *model_starlark_pb.Value {
 // key that refers to a rule having a given set of attributes.
 func newRuleDefinitionValue(ruleType model_starlark_pb.Rule_Definition_Type, attrs ...*model_starlark_pb.NamedAttr) model_core.Message[*model_analysis_pb.CompiledBzlFileGlobal_Value, model_core.CreatedObjectTree] {
 	return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-		Global: &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Rule{
-				Rule: &model_starlark_pb.Rule{
-					Kind: &model_starlark_pb.Rule_Definition_{
-						Definition: &model_starlark_pb.Rule_Definition{
-							Attrs: attrs,
-							Type:  ruleType,
-						},
-					},
-				},
-			},
-		},
+		Global: model_starlark_pb.Value_builder{
+			Rule: model_starlark_pb.Rule_builder{
+				Definition: model_starlark_pb.Rule_Definition_builder{
+					Attrs: attrs,
+					Type:  ruleType,
+				}.Build(),
+			}.Build(),
+		}.Build(),
 	})
 }
 
 func valueSelectGroup(v *model_starlark_pb.Value) *model_starlark_pb.Select_Group {
-	return &model_starlark_pb.Select_Group{
-		NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: v},
-	}
+	return model_starlark_pb.Select_Group_builder{
+		NoMatchValue: proto.ValueOrDefault(v),
+	}.Build()
 }
 
 func TestQueryExpansion(t *testing.T) {
@@ -146,13 +140,13 @@ func TestQueryExpansion(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return getTargetLabels(t, value.Message.TargetLabels), nil
+		return getTargetLabels(t, value.Message.GetTargetLabels()), nil
 	}
 
 	expectPackage := func(e *MockQueryExpansionEnvironmentForTesting, canonicalPackage string, targets ...*model_starlark_pb.Target) {
 		value := &model_analysis_pb.PackageTargets_Value{}
 		for _, target := range targets {
-			value.Targets = append(value.Targets, &model_analysis_pb.Package_Value_Target{
+			value.Targets = append(value.GetTargets(), &model_analysis_pb.Package_Value_Target{
 				Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: target},
 			})
 		}
@@ -161,27 +155,23 @@ func TestQueryExpansion(t *testing.T) {
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](value)).AnyTimes()
 	}
 	ruleTarget := func(name string, tags ...string) *model_starlark_pb.Target {
-		return &model_starlark_pb.Target{
+		return model_starlark_pb.Target_builder{
 			Name: name,
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-						Tags:           tags,
-					},
-				},
-			},
-		}
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+					Tags:           tags,
+				}.Build(),
+			}.Build(),
+		}.Build()
 	}
 	sourceFileTarget := func(name string) *model_starlark_pb.Target {
-		return &model_starlark_pb.Target{
+		return model_starlark_pb.Target_builder{
 			Name: name,
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-					SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-				},
-			},
-		}
+			Definition: model_starlark_pb.Target_Definition_builder{
+				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+			}.Build(),
+		}.Build()
 	}
 
 	t.Run("SinglePackageTargetPattern", func(t *testing.T) {
@@ -199,7 +189,7 @@ func TestQueryExpansion(t *testing.T) {
 				Query: "@@main+//foo:all",
 			}, e)
 			require.NoError(t, err)
-			require.Equal(t, []string{"@@main+//foo:a", "@@main+//foo:b", "@@main+//foo"}, getTargetLabels(t, value.Message.TargetLabels))
+			require.Equal(t, []string{"@@main+//foo:a", "@@main+//foo:b", "@@main+//foo"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		})
 
 		t.Run("IncludeFileTargets", func(t *testing.T) {
@@ -207,7 +197,7 @@ func TestQueryExpansion(t *testing.T) {
 				Query: "@@main+//foo:*",
 			}, e)
 			require.NoError(t, err)
-			require.Equal(t, []string{"@@main+//foo:a", "@@main+//foo:b", "@@main+//foo:c.txt", "@@main+//foo"}, getTargetLabels(t, value.Message.TargetLabels))
+			require.Equal(t, []string{"@@main+//foo:a", "@@main+//foo:b", "@@main+//foo:c.txt", "@@main+//foo"}, getTargetLabels(t, value.Message.GetTargetLabels()))
 		})
 	})
 
@@ -226,18 +216,18 @@ func TestQueryExpansion(t *testing.T) {
 		getLabels = func(list model_core.Message[[]*model_analysis_pb.TargetLabel, model_core.CreatedObjectTree]) []string {
 			var labels []string
 			for _, targetLabel := range list.Message {
-				switch level := targetLabel.Level.(type) {
+				switch targetLabel.GetLevel().(type) {
 				case *model_analysis_pb.TargetLabel_Leaf:
-					labels = append(labels, level.Leaf)
+					labels = append(labels, targetLabel.GetLeaf())
 				case *model_analysis_pb.TargetLabel_Parent_:
-					reference, err := model_core.FlattenDecodableReference(model_core.Nested(list, level.Parent.Reference))
+					reference, err := model_core.FlattenDecodableReference(model_core.Nested(list, targetLabel.GetParent().GetReference()))
 					require.NoError(t, err)
 					children, err := targetLabelReader.ReadObject(ctx, reference)
 					require.NoError(t, err)
 					childLabels := getLabels(children)
 					require.NotEmpty(t, childLabels)
-					require.Equal(t, childLabels[0], level.Parent.FirstLabel)
-					require.Equal(t, childLabels[len(childLabels)-1], level.Parent.LastLabel)
+					require.Equal(t, childLabels[0], targetLabel.GetParent().GetFirstLabel())
+					require.Equal(t, childLabels[len(childLabels)-1], targetLabel.GetParent().GetLastLabel())
 					labels = append(labels, childLabels...)
 					parentsSeen++
 				default:
@@ -248,7 +238,7 @@ func TestQueryExpansion(t *testing.T) {
 		}
 		sortedValue, metadata := value.SortAndSetReferences()
 		labels := getLabels(model_core.NewMessage(
-			sortedValue.Message.TargetLabels,
+			sortedValue.Message.GetTargetLabels(),
 			object.OutgoingReferencesList[model_core.CreatedObjectTree](metadata),
 		))
 		return labels, parentsSeen
@@ -269,15 +259,13 @@ func TestQueryExpansion(t *testing.T) {
 	// labels, referencing an object containing the provided labels.
 	newTargetLabelsParent := func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree], firstLabel, lastLabel string, labels ...string) *model_analysis_pb.TargetLabel {
 		return &model_analysis_pb.TargetLabel{
-			Level: &model_analysis_pb.TargetLabel_Parent_{
-				Parent: &model_analysis_pb.TargetLabel_Parent{
-					Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-						return model_format.NewProtoList[model_analysis_pb.TargetLabel]().NewMarshaler(newTargetLabels(labels...))
-					})),
-					FirstLabel: firstLabel,
-					LastLabel:  lastLabel,
-				},
-			},
+			Level: &model_analysis_pb.TargetLabel_Parent_{Parent: &model_analysis_pb.TargetLabel_Parent{
+				Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+					return model_format.NewProtoList[model_analysis_pb.TargetLabel]().NewMarshaler(newTargetLabels(labels...))
+				})),
+				FirstLabel: firstLabel,
+				LastLabel:  lastLabel,
+			}},
 		}
 	}
 
@@ -501,9 +489,9 @@ func TestQueryExpansion(t *testing.T) {
 		// subexpressions.
 		expectTarget := func(e *MockQueryExpansionEnvironmentForTesting, target *model_starlark_pb.Target) {
 			e.EXPECT().GetTargetValue(
-				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:" + target.Name}),
+				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//foo:" + target.GetName()}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-				Definition: target.Definition,
+				Definition: target.GetDefinition(),
 			})).AnyTimes()
 		}
 
@@ -548,7 +536,7 @@ func TestQueryExpansion(t *testing.T) {
 			e.EXPECT().GetStarlarkValueEncodersObject(gomock.Any()).Return(bct.newStarlarkValueEncoders(), true).AnyTimes()
 			e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 			x, y := ruleTarget("x"), sourceFileTarget("y")
-			x.Definition.GetRuleTarget().Test = &model_starlark_pb.RuleTarget_Test{}
+			x.GetDefinition().GetRuleTarget().SetTest(&model_starlark_pb.RuleTarget_Test{})
 			expectQueryExpansion(e, "siblings(@@main+//foo:*)", newQueryExpansionValue("@@main+//foo:x", "@@main+//foo:y"))
 			expectTarget(e, x)
 			expectTarget(e, y)
@@ -654,17 +642,17 @@ func TestQueryExpansion(t *testing.T) {
 				Definition: definition,
 			}))
 		}
-		expectTarget("@@main+//:a", ruleTarget("a").Definition)
-		expectTarget("@@main+//:b", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{}},
-		})
-		expectTarget("@@main+//:c", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_LabelSetting{LabelSetting: &model_starlark_pb.LabelSetting{}},
-		})
-		expectTarget("@@main+//:d", sourceFileTarget("d").Definition)
-		expectTarget("@@main+//:e", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_PackageGroup{PackageGroup: &model_starlark_pb.PackageGroup{}},
-		})
+		expectTarget("@@main+//:a", ruleTarget("a").GetDefinition())
+		expectTarget("@@main+//:b", model_starlark_pb.Target_Definition_builder{
+			Alias: &model_starlark_pb.Alias{},
+		}.Build())
+		expectTarget("@@main+//:c", model_starlark_pb.Target_Definition_builder{
+			LabelSetting: &model_starlark_pb.LabelSetting{},
+		}.Build())
+		expectTarget("@@main+//:d", sourceFileTarget("d").GetDefinition())
+		expectTarget("@@main+//:e", model_starlark_pb.Target_Definition_builder{
+			PackageGroup: &model_starlark_pb.PackageGroup{},
+		}.Build())
 
 		labels, err := computeQueryExpansion(e, "rules(@@main+//:*)")
 		require.NoError(t, err)
@@ -687,18 +675,16 @@ func TestQueryExpansion(t *testing.T) {
 				Definition: definition,
 			}))
 		}
-		expectTarget("@@main+//:a", ruleTarget("a").Definition)
-		expectTarget("@@main+//:b", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: "@@rules+//:defs.bzl%other_rule",
-				},
-			},
-		})
-		expectTarget("@@main+//:c", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{}},
-		})
-		expectTarget("@@main+//:d", sourceFileTarget("d").Definition)
+		expectTarget("@@main+//:a", ruleTarget("a").GetDefinition())
+		expectTarget("@@main+//:b", model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: "@@rules+//:defs.bzl%other_rule",
+			}.Build(),
+		}.Build())
+		expectTarget("@@main+//:c", model_starlark_pb.Target_Definition_builder{
+			Alias: &model_starlark_pb.Alias{},
+		}.Build())
+		expectTarget("@@main+//:d", sourceFileTarget("d").GetDefinition())
 
 		labels, err := computeQueryExpansion(e, "rules(@@main+//:*, @@rules+//:defs.bzl%my_rule)")
 		require.NoError(t, err)
@@ -1377,13 +1363,11 @@ func TestQueryExpansion(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:b"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier: "@@rules_cc+//cc:defs.bzl%cc_library",
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: "@@rules_cc+//cc:defs.bzl%cc_library",
+				}.Build(),
+			}.Build(),
 		}))
 
 		labels, err := computeQueryExpansion(e, "kind('cc_.* rule', @@main+//:*)")
@@ -1401,50 +1385,42 @@ func TestQueryExpansion(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-						PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{{
-							ValueParts: []*model_starlark_pb.Select_Group{
-								valueSelectGroup(&model_starlark_pb.Value{
-									Kind: &model_starlark_pb.Value_Dict{
-										Dict: &model_starlark_pb.Dict{
-											Entries: []*model_starlark_pb.Dict_Entry{
-												{
-													Level: &model_starlark_pb.Dict_Entry_Leaf_{
-														Leaf: &model_starlark_pb.Dict_Entry_Leaf{
-															Key:   stringValue("A"),
-															Value: stringValue("1"),
-														},
-													},
-												},
-												{
-													Level: &model_starlark_pb.Dict_Entry_Leaf_{
-														Leaf: &model_starlark_pb.Dict_Entry_Leaf{
-															Key:   stringValue("B"),
-															Value: stringValue("2"),
-														},
-													},
-												},
-											},
-										},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+					PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+						ValueParts: []*model_starlark_pb.Select_Group{
+							valueSelectGroup(model_starlark_pb.Value_builder{
+								Dict: model_starlark_pb.Dict_builder{
+									Entries: []*model_starlark_pb.Dict_Entry{
+										model_starlark_pb.Dict_Entry_builder{
+											Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
+												Key:   stringValue("A"),
+												Value: stringValue("1"),
+											}.Build(),
+										}.Build(),
+										model_starlark_pb.Dict_Entry_builder{
+											Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{
+												Key:   stringValue("B"),
+												Value: stringValue("2"),
+											}.Build(),
+										}.Build(),
 									},
-								}),
-							},
-						}},
-					},
-				},
-			},
+								}.Build(),
+							}.Build()),
+						},
+					}.Build()},
+				}.Build(),
+			}.Build(),
 		})).Times(2)
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, &model_starlark_pb.NamedAttr{
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, model_starlark_pb.NamedAttr_builder{
 			Name: "env",
-			Attr: &model_starlark_pb.Attr{
-				Type: &model_starlark_pb.Attr_StringDict{StringDict: &model_starlark_pb.Attr_StringDictType{}},
-			},
-		})).Times(2)
+			Attr: model_starlark_pb.Attr_builder{
+				StringDict: &model_starlark_pb.Attr_StringDictType{},
+			}.Build(),
+		}.Build())).Times(2)
 
 		labels, err := computeQueryExpansion(e, "attr(env, '[{ ]B=2[,}]', @@main+//:t)")
 		require.NoError(t, err)
@@ -1459,23 +1435,21 @@ func TestQueryExpansion(t *testing.T) {
 		// Attributes that are common to all tests should be
 		// matchable. shard_count and args are configurable.
 		intValue := func(i int64) *model_starlark_pb.Value {
-			return &model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_Int{Int: model_starlark.EncodeInt(big.NewInt(i))},
-			}
+			return model_starlark_pb.Value_builder{
+				Int: proto.ValueOrDefaultBytes(model_starlark.EncodeInt(big.NewInt(i))),
+			}.Build()
 		}
 		newTestTarget := func(test *model_starlark_pb.RuleTarget_Test) model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree] {
-			test.Args = []*model_starlark_pb.Select_Group{valueSelectGroup(&model_starlark_pb.Value{
-				Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{}},
-			})}
+			test.SetArgs([]*model_starlark_pb.Select_Group{valueSelectGroup(model_starlark_pb.Value_builder{
+				List: &model_starlark_pb.List{},
+			}.Build())})
 			return model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-						RuleTarget: &model_starlark_pb.RuleTarget{
-							RuleIdentifier: "@@rules+//:defs.bzl%my_test",
-							Test:           test,
-						},
-					},
-				},
+				Definition: model_starlark_pb.Target_Definition_builder{
+					RuleTarget: model_starlark_pb.RuleTarget_builder{
+						RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+						Test:           test,
+					}.Build(),
+				}.Build(),
 			})
 		}
 		e := NewMockQueryExpansionEnvironmentForTesting(ctrl)
@@ -1485,25 +1459,25 @@ func TestQueryExpansion(t *testing.T) {
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b")).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:a"}),
-		).Return(newTestTarget(&model_starlark_pb.RuleTarget_Test{
+		).Return(newTestTarget(model_starlark_pb.RuleTarget_Test_builder{
 			Size:    model_starlark_pb.TestSize_SMALL,
 			Timeout: model_starlark_pb.TestTimeout_SHORT,
-			ShardCount: []*model_starlark_pb.Select_Group{{
-				Conditions: []*model_starlark_pb.Select_Condition{{
+			ShardCount: []*model_starlark_pb.Select_Group{model_starlark_pb.Select_Group_builder{
+				Conditions: []*model_starlark_pb.Select_Condition{model_starlark_pb.Select_Condition_builder{
 					ConditionIdentifier: "@@main+//:cond",
 					Value:               intValue(4),
-				}},
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{NoMatchValue: intValue(2)},
-			}},
-		})).AnyTimes()
+				}.Build()},
+				NoMatchValue: proto.ValueOrDefault(intValue(2)),
+			}.Build()},
+		}.Build())).AnyTimes()
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:b"}),
-		).Return(newTestTarget(&model_starlark_pb.RuleTarget_Test{
+		).Return(newTestTarget(model_starlark_pb.RuleTarget_Test_builder{
 			Size:       model_starlark_pb.TestSize_MEDIUM,
 			Timeout:    model_starlark_pb.TestTimeout_MODERATE,
 			Flaky:      true,
 			ShardCount: []*model_starlark_pb.Select_Group{valueSelectGroup(intValue(1))},
-		})).AnyTimes()
+		}.Build())).AnyTimes()
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_test"}),
 		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_TEST)).AnyTimes()
@@ -1533,45 +1507,41 @@ func TestQueryExpansion(t *testing.T) {
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:t", newQueryExpansionValue("@@main+//:t"))
 		newSelectGroup := func(prefix string) *model_starlark_pb.Select_Group {
-			group := &model_starlark_pb.Select_Group{
-				NoMatch: &model_starlark_pb.Select_Group_NoMatchValue{
-					NoMatchValue: stringValue(prefix),
-				},
-			}
+			group := model_starlark_pb.Select_Group_builder{
+				NoMatchValue: proto.ValueOrDefault(stringValue(prefix)),
+			}.Build()
 			for i := range 31 {
-				group.Conditions = append(group.Conditions, &model_starlark_pb.Select_Condition{
+				group.SetConditions(append(group.GetConditions(), model_starlark_pb.Select_Condition_builder{
 					ConditionIdentifier: fmt.Sprintf("@@main+//:condition_%02d", i),
 					Value:               stringValue(fmt.Sprintf("%s%d", prefix, i)),
-				})
+				}.Build()))
 			}
 			return group
 		}
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:t"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
-						PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{{
-							// 32 * 32 = 1024 possible values.
-							ValueParts: []*model_starlark_pb.Select_Group{
-								newSelectGroup("a"),
-								newSelectGroup("b"),
-							},
-						}},
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: "@@rules+//:defs.bzl%my_rule",
+					PublicAttrValues: []*model_starlark_pb.RuleTarget_PublicAttrValue{model_starlark_pb.RuleTarget_PublicAttrValue_builder{
+						// 32 * 32 = 1024 possible values.
+						ValueParts: []*model_starlark_pb.Select_Group{
+							newSelectGroup("a"),
+							newSelectGroup("b"),
+						},
+					}.Build()},
+				}.Build(),
+			}.Build(),
 		}))
 		e.EXPECT().GetCompiledBzlFileGlobalValue(
 			testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: "@@rules+//:defs.bzl%my_rule"}),
-		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, &model_starlark_pb.NamedAttr{
+		).Return(newRuleDefinitionValue(model_starlark_pb.Rule_Definition_NON_EXECUTABLE, model_starlark_pb.NamedAttr_builder{
 			Name: "copts",
-			Attr: &model_starlark_pb.Attr{
-				Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-			},
-		}))
+			Attr: model_starlark_pb.Attr_builder{
+				String: &model_starlark_pb.Attr_StringType{},
+			}.Build(),
+		}.Build()))
 
 		_, err := computeQueryExpansion(e, "attr(copts, x, @@main+//:t)")
 		require.EqualError(t, err, "attr \"copts\" of target \"@@main+//:t\": more than 1000 possible values exist, due to concatenated select() expressions")
@@ -1594,23 +1564,19 @@ func TestQueryExpansion(t *testing.T) {
 				Definition: definition,
 			}))
 		}
-		expectTarget("@@main+//:a", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-				RuleTarget: &model_starlark_pb.RuleTarget{
-					RuleIdentifier: "@@rules+//:defs.bzl%my_test",
-					Test:           &model_starlark_pb.RuleTarget_Test{},
-				},
-			},
-		})
-		expectTarget("@@main+//:b", ruleTarget("b").Definition)
-		expectTarget("@@main+//:c", sourceFileTarget("c").Definition)
-		expectTarget("@@main+//:d", &model_starlark_pb.Target_Definition{
-			Kind: &model_starlark_pb.Target_Definition_TestSuite{
-				TestSuite: &model_starlark_pb.TestSuite{
-					Tests: newTestSuiteTests("@@main+//:a", "@@other+//:x"),
-				},
-			},
-		})
+		expectTarget("@@main+//:a", model_starlark_pb.Target_Definition_builder{
+			RuleTarget: model_starlark_pb.RuleTarget_builder{
+				RuleIdentifier: "@@rules+//:defs.bzl%my_test",
+				Test:           &model_starlark_pb.RuleTarget_Test{},
+			}.Build(),
+		}.Build())
+		expectTarget("@@main+//:b", ruleTarget("b").GetDefinition())
+		expectTarget("@@main+//:c", sourceFileTarget("c").GetDefinition())
+		expectTarget("@@main+//:d", model_starlark_pb.Target_Definition_builder{
+			TestSuite: model_starlark_pb.TestSuite_builder{
+				Tests: newTestSuiteTests("@@main+//:a", "@@other+//:x"),
+			}.Build(),
+		}.Build())
 		e.EXPECT().GetTestSuiteTestsValue(
 			testutil.EqProto(t, &model_analysis_pb.TestSuiteTests_Key{Label: "@@main+//:d"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.TestSuiteTests_Value{
@@ -1634,17 +1600,15 @@ func TestQueryExpansion(t *testing.T) {
 		e.EXPECT().GetTargetValue(
 			testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: "@@main+//:suite"}),
 		).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.Target_Value{
-			Definition: &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_TestSuite{
-					TestSuite: &model_starlark_pb.TestSuite{
-						Tests:        newTestSuiteTests("@@main+//:a"),
-						PositiveTags: []string{"integration"},
-						NegativeTags: []string{"flaky"},
-						Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
-						Manual:       true,
-					},
-				},
-			},
+			Definition: model_starlark_pb.Target_Definition_builder{
+				TestSuite: model_starlark_pb.TestSuite_builder{
+					Tests:        newTestSuiteTests("@@main+//:a"),
+					PositiveTags: []string{"integration"},
+					NegativeTags: []string{"flaky"},
+					Sizes:        []model_starlark_pb.TestSize{model_starlark_pb.TestSize_SMALL},
+					Manual:       true,
+				}.Build(),
+			}.Build(),
 		})).AnyTimes()
 
 		for query, expected := range map[string][]string{
@@ -1668,52 +1632,46 @@ func TestQueryExpansion(t *testing.T) {
 		visibleTo := func(packages ...string) *model_starlark_pb.PackageGroup {
 			var overrides []*model_starlark_pb.PackageGroup_Package
 			for _, p := range packages {
-				overrides = append(overrides, &model_starlark_pb.PackageGroup_Package{
+				overrides = append(overrides, model_starlark_pb.PackageGroup_Package_builder{
 					Component:      p,
 					IncludePackage: true,
 					Subpackages:    &model_starlark_pb.PackageGroup_Subpackages{},
-				})
+				}.Build())
 			}
-			return &model_starlark_pb.PackageGroup{
-				Tree: &model_starlark_pb.PackageGroup_Subpackages{
-					Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-						OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-							Packages: []*model_starlark_pb.PackageGroup_Package{{
-								Component: "main+",
-								Subpackages: &model_starlark_pb.PackageGroup_Subpackages{
-									Overrides: &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-										OverridesInline: &model_starlark_pb.PackageGroup_Subpackages_Overrides{
-											Packages: overrides,
-										},
-									},
-								},
-							}},
-						},
-					},
-				},
-			}
+			return model_starlark_pb.PackageGroup_builder{
+				Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
+					OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+						Packages: []*model_starlark_pb.PackageGroup_Package{model_starlark_pb.PackageGroup_Package_builder{
+							Component: "main+",
+							Subpackages: model_starlark_pb.PackageGroup_Subpackages_builder{
+								OverridesInline: model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+									Packages: overrides,
+								}.Build(),
+							}.Build(),
+						}.Build()},
+					}.Build(),
+				}.Build(),
+			}.Build()
 		}
 		ruleTargetVisibleTo := func(packages ...string) *model_starlark_pb.Target_Definition {
-			return &model_starlark_pb.Target_Definition{
-				Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-					RuleTarget: &model_starlark_pb.RuleTarget{
-						RuleIdentifier:   "@@rules+//:defs.bzl%my_rule",
-						InheritableAttrs: &model_starlark_pb.InheritableAttrs{Visibility: visibleTo(packages...)},
-					},
-				},
-			}
+			return model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier:   "@@rules+//:defs.bzl%my_rule",
+					InheritableAttrs: model_starlark_pb.InheritableAttrs_builder{Visibility: visibleTo(packages...)}.Build(),
+				}.Build(),
+			}.Build()
 		}
 		// All targets in the input are part of the root package.
 		definitions := map[string]*model_starlark_pb.Target_Definition{
 			"@@main+//:p":      ruleTargetVisibleTo("p"),
 			"@@main+//:pq":     ruleTargetVisibleTo("p", "q"),
 			"@@main+//:none":   ruleTargetVisibleTo(),
-			"@@main+//:source": {Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{SourceFileTarget: &model_starlark_pb.SourceFileTarget{Visibility: visibleTo("q")}}},
-			"@@main+//:group":  {Kind: &model_starlark_pb.Target_Definition_PackageGroup{PackageGroup: visibleTo()}},
-			"@@main+//:output": {Kind: &model_starlark_pb.Target_Definition_PredeclaredOutputFileTarget{PredeclaredOutputFileTarget: &model_starlark_pb.PredeclaredOutputFileTarget{OwnerTargetName: "p"}}},
+			"@@main+//:source": model_starlark_pb.Target_Definition_builder{SourceFileTarget: model_starlark_pb.SourceFileTarget_builder{Visibility: visibleTo("q")}.Build()}.Build(),
+			"@@main+//:group":  model_starlark_pb.Target_Definition_builder{PackageGroup: proto.ValueOrDefault(visibleTo())}.Build(),
+			"@@main+//:output": model_starlark_pb.Target_Definition_builder{PredeclaredOutputFileTarget: model_starlark_pb.PredeclaredOutputFileTarget_builder{OwnerTargetName: "p"}.Build()}.Build(),
 			// Aliases should not be followed, meaning only
 			// the visibility of the alias itself is considered.
-			"@@main+//:alias": {Kind: &model_starlark_pb.Target_Definition_Alias{Alias: &model_starlark_pb.Alias{Visibility: visibleTo("q")}}},
+			"@@main+//:alias": model_starlark_pb.Target_Definition_builder{Alias: model_starlark_pb.Alias_builder{Visibility: visibleTo("q")}.Build()}.Build(),
 		}
 		inputLabels := slices.Sorted(maps.Keys(definitions))
 		computeVisible := func(t *testing.T, predicate string, predicatePackages ...string) []string {
@@ -1774,13 +1732,11 @@ func TestQueryExpansion(t *testing.T) {
 		e.EXPECT().GetFileAccessParametersObject(gomock.Any()).Return(nil, true).AnyTimes()
 		expectQueryExpansion(e, "@@main+//:*", newQueryExpansionValue("@@main+//:a", "@@main+//:b", "@@main+//:c", "@@main+//:d"))
 		expectTarget := func(l, ruleIdentifier string) {
-			definition := sourceFileTarget("").Definition
+			definition := sourceFileTarget("").GetDefinition()
 			if ruleIdentifier != "" {
-				definition = &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-						RuleTarget: &model_starlark_pb.RuleTarget{RuleIdentifier: ruleIdentifier},
-					},
-				}
+				definition = model_starlark_pb.Target_Definition_builder{
+					RuleTarget: model_starlark_pb.RuleTarget_builder{RuleIdentifier: ruleIdentifier}.Build(),
+				}.Build()
 			}
 			e.EXPECT().GetTargetValue(
 				testutil.EqProto(t, &model_analysis_pb.Target_Key{Label: l}),
@@ -1792,22 +1748,20 @@ func TestQueryExpansion(t *testing.T) {
 			e.EXPECT().GetCompiledBzlFileGlobalValue(
 				testutil.EqProto(t, &model_analysis_pb.CompiledBzlFileGlobal_Key{Identifier: ruleIdentifier}),
 			).Return(model_core.NewSimpleMessage[model_core.CreatedObjectTree](&model_analysis_pb.CompiledBzlFileGlobal_Value{
-				Global: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_Rule{
-						Rule: &model_starlark_pb.Rule{
-							Kind: &model_starlark_pb.Rule_Definition_{Definition: definition},
-						},
-					},
-				},
+				Global: model_starlark_pb.Value_builder{
+					Rule: model_starlark_pb.Rule_builder{
+						Definition: proto.ValueOrDefault(definition),
+					}.Build(),
+				}.Build(),
 			}))
 		}
 		expectTarget("@@main+//:a", "@@rules+//:defs.bzl%my_binary")
 		expectTarget("@@main+//:b", "@@rules+//:defs.bzl%my_test")
 		expectTarget("@@main+//:c", "@@rules+//:defs.bzl%my_library")
 		expectTarget("@@main+//:d", "")
-		expectRuleDefinition("@@rules+//:defs.bzl%my_binary", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_EXECUTABLE})
-		expectRuleDefinition("@@rules+//:defs.bzl%my_test", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_TEST})
-		expectRuleDefinition("@@rules+//:defs.bzl%my_library", &model_starlark_pb.Rule_Definition{Type: model_starlark_pb.Rule_Definition_NON_EXECUTABLE})
+		expectRuleDefinition("@@rules+//:defs.bzl%my_binary", model_starlark_pb.Rule_Definition_builder{Type: model_starlark_pb.Rule_Definition_EXECUTABLE}.Build())
+		expectRuleDefinition("@@rules+//:defs.bzl%my_test", model_starlark_pb.Rule_Definition_builder{Type: model_starlark_pb.Rule_Definition_TEST}.Build())
+		expectRuleDefinition("@@rules+//:defs.bzl%my_library", model_starlark_pb.Rule_Definition_builder{Type: model_starlark_pb.Rule_Definition_NON_EXECUTABLE}.Build())
 
 		labels, err := computeQueryExpansion(e, "executables(@@main+//:*)")
 		require.NoError(t, err)
@@ -1829,9 +1783,9 @@ func TestQueryExpansion(t *testing.T) {
 				Definition: definition,
 			})).Times(2)
 		}
-		expectTarget("@@main+//:a", ruleTarget("a", "manual", "x").Definition)
-		expectTarget("@@main+//:b", ruleTarget("b", "manually").Definition)
-		expectTarget("@@main+//:c", sourceFileTarget("c").Definition)
+		expectTarget("@@main+//:a", ruleTarget("a", "manual", "x").GetDefinition())
+		expectTarget("@@main+//:b", ruleTarget("b", "manually").GetDefinition())
+		expectTarget("@@main+//:c", sourceFileTarget("c").GetDefinition())
 
 		labels, err := computeQueryExpansion(e, "tag(manual, @@main+//:*)")
 		require.NoError(t, err)
@@ -1952,8 +1906,8 @@ func TestQueryExpansion(t *testing.T) {
 			requested := map[string]bool{}
 			e.EXPECT().GetTargetValue(gomock.Any()).
 				DoAndReturn(func(key *model_analysis_pb.Target_Key) model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree] {
-					requested[key.Label] = true
-					if key.Label == operandLabels[0] {
+					requested[key.GetLabel()] = true
+					if key.GetLabel() == operandLabels[0] {
 						return model_core.Message[*model_analysis_pb.Target_Value, model_core.CreatedObjectTree]{}
 					}
 					return newSourceFileTargetValue()
@@ -1980,7 +1934,7 @@ func TestQueryExpansion(t *testing.T) {
 			} {
 				value := &model_analysis_pb.PackageTargets_Value{}
 				for _, target := range targets {
-					value.Targets = append(value.Targets, &model_analysis_pb.Package_Value_Target{
+					value.Targets = append(value.GetTargets(), &model_analysis_pb.Package_Value_Target{
 						Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: target},
 					})
 				}
@@ -2051,7 +2005,7 @@ func newStringValue(s string) *model_starlark_pb.Value {
 	if s != "" {
 		contents.SetContentsInline([]byte(s))
 	}
-	return &model_starlark_pb.Value{
-		Kind: &model_starlark_pb.Value_Str{Str: contents},
-	}
+	return model_starlark_pb.Value_builder{
+		Str: proto.ValueOrDefault(contents),
+	}.Build()
 }

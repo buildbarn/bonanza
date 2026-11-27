@@ -15,16 +15,14 @@ func TestAllDictLeafEntries(t *testing.T) {
 	strValue := func(s string) *model_starlark_pb.Value {
 		return newStringValue(s)
 	}
-	rootDict := model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Dict{
+	rootDict := model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Dict_builder{
 		Entries: []*model_starlark_pb.Dict_Entry{
-			{
-				Level: &model_starlark_pb.Dict_Entry_Leaf_{
-					Leaf: &model_starlark_pb.Dict_Entry_Leaf{Key: strValue("a"), Value: strValue("1")},
-				},
-			},
+			model_starlark_pb.Dict_Entry_builder{
+				Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{Key: strValue("a"), Value: strValue("1")}.Build(),
+			}.Build(),
 			{},
 		},
-	})
+	}.Build())
 
 	t.Run("InvalidEntry", func(t *testing.T) {
 		// Errors raised while processing entries should be

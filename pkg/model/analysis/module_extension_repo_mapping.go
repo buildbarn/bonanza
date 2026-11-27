@@ -15,14 +15,14 @@ import (
 )
 
 func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingValue(ctx context.Context, key *model_analysis_pb.ModuleExtensionRepoMapping_Key, e ModuleExtensionRepoMappingEnvironment[TReference, TMetadata]) (PatchedModuleExtensionRepoMappingValue[TMetadata], error) {
-	moduleExtension, err := label.NewModuleExtension(key.ModuleExtension)
+	moduleExtension, err := label.NewModuleExtension(key.GetModuleExtension())
 	if err != nil {
-		return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, fmt.Errorf("invalid module extension %#v: %w", key.ModuleExtension, err)
+		return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, fmt.Errorf("invalid module extension %#v: %w", key.GetModuleExtension(), err)
 	}
 
 	analysisEncoders, gotAnalysisEncoders := getAnalysisEncoders(e)
 	moduleExtensionReposValue := e.GetModuleExtensionReposValue(&model_analysis_pb.ModuleExtensionRepos_Key{
-		ModuleExtension: key.ModuleExtension,
+		ModuleExtension: key.GetModuleExtension(),
 	})
 
 	// The root module may override repos declared by the module
@@ -33,11 +33,11 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	gotOverrides := true
 	if !moduleExtension.IsRepoRules() {
 		moduleExtensionRepoOverridesValue := e.GetModuleExtensionRepoOverridesValue(&model_analysis_pb.ModuleExtensionRepoOverrides_Key{
-			ModuleExtension: key.ModuleExtension,
+			ModuleExtension: key.GetModuleExtension(),
 		})
 		gotOverrides = moduleExtensionRepoOverridesValue.IsSet()
 		if gotOverrides {
-			overrides = moduleExtensionRepoOverridesValue.Message.Overrides
+			overrides = moduleExtensionRepoOverridesValue.Message.GetOverrides()
 		}
 	}
 
@@ -50,17 +50,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 	for entry := range btree.AllLeaves(
 		ctx,
 		analysisEncoders.Readers.ModuleExtensionReposValueRepo,
-		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.Repos),
+		model_core.Nested(moduleExtensionReposValue, moduleExtensionReposValue.Message.GetRepos()),
 		func(entry model_core.Message[*model_analysis_pb.ModuleExtensionRepos_Value_Repo, TReference]) (*model_core_pb.DecodableReference, error) {
 			return entry.Message.GetParent().GetReference(), nil
 		},
 		&errIter,
 	) {
-		leaf, ok := entry.Message.Level.(*model_analysis_pb.ModuleExtensionRepos_Value_Repo_Leaf)
-		if !ok {
+		leaf := entry.Message.GetLeaf()
+		if leaf == nil {
 			return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, errors.New("not a valid leaf entry")
 		}
-		repoNames = append(repoNames, leaf.Leaf.Name)
+		repoNames = append(repoNames, leaf.GetName())
 	}
 	if errIter != nil {
 		return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, errIter
@@ -85,33 +85,27 @@ func (c *baseComputer[TReference, TMetadata]) ComputeModuleExtensionRepoMappingV
 			c.referenceFormat,
 			/* parentNodeComputer = */ btree.Capturing(ctx, e, func(createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping, object.LocalReference]) model_core.PatchedMessage[*model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping, TMetadata] {
 				var firstFromApparentRepo string
-				switch firstElement := childNodes.Message[0].Level.(type) {
+				switch childNodes.Message[0].GetLevel().(type) {
 				case *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf:
-					firstFromApparentRepo = firstElement.Leaf.FromApparentRepo
+					firstFromApparentRepo = childNodes.Message[0].GetLeaf().GetFromApparentRepo()
 				case *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_:
-					firstFromApparentRepo = firstElement.Parent.FirstFromApparentRepo
+					firstFromApparentRepo = childNodes.Message[0].GetParent().GetFirstFromApparentRepo()
 				}
 				return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping {
 					return &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping{
-						Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_{
-							Parent: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent{
-								Reference:             patcher.AddDecodableReference(createdObject),
-								FirstFromApparentRepo: firstFromApparentRepo,
-							},
-						},
+						Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent_{Parent: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Parent{
+							Reference:             patcher.AddDecodableReference(createdObject),
+							FirstFromApparentRepo: firstFromApparentRepo,
+						}},
 					}
 				})
 			}),
 		),
 	)
 	for _, mapping := range mappings {
-		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](
-			&model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping{
-				Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf{
-					Leaf: mapping,
-				},
-			},
-		)); err != nil {
+		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](&model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping{
+			Level: &model_analysis_pb.ModuleExtensionRepoMapping_Value_Mapping_Leaf{Leaf: mapping},
+		})); err != nil {
 			return PatchedModuleExtensionRepoMappingValue[TMetadata]{}, err
 		}
 	}

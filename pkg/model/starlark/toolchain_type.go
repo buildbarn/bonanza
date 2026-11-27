@@ -10,6 +10,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // ToolchainType corresponds to a Starlark toolchain type object, as
@@ -83,10 +85,10 @@ func (ToolchainType[TReference, TMetadata]) AttrNames(*eval.Thread) ([]string, e
 // Encode the properties of a Starlark toolchain type value in the form
 // of a Protobuf message, so that it can be written to storage.
 func (tt *ToolchainType[TReference, TMetadata]) Encode() *model_starlark_pb.ToolchainType {
-	return &model_starlark_pb.ToolchainType{
+	return model_starlark_pb.ToolchainType_builder{
 		ToolchainType: tt.toolchainType.String(),
 		Mandatory:     tt.mandatory,
-	}
+	}.Build()
 }
 
 // Merge two toolchain type objects together that have the same
@@ -105,13 +107,9 @@ func (tt *ToolchainType[TReference, TMetadata]) Merge(other *ToolchainType[TRefe
 // information, the resulting message never contains any outgoing
 // references.
 func (tt *ToolchainType[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []eval.Value, currentIdentifier *pg_label.CanonicalStarlarkIdentifier, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata], error) {
-	return model_core.NewSimplePatchedMessage[TMetadata](
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_ToolchainType{
-				ToolchainType: tt.Encode(),
-			},
-		},
-	), nil
+	return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+		ToolchainType: proto.ValueOrDefault(tt.Encode()),
+	}.Build()), nil
 }
 
 type toolchainTypeUnpackerInto[TReference any, TMetadata model_core.ReferenceMetadata] struct{}
@@ -161,9 +159,9 @@ func (toolchainTypeUnpackerInto[TReference, TMetadata]) GetConcatenationOperator
 }
 
 func decodeToolchainType[TReference any, TMetadata model_core.ReferenceMetadata](toolchainType *model_starlark_pb.ToolchainType) (*ToolchainType[TReference, TMetadata], error) {
-	toolchainTypeLabel, err := pg_label.NewResolvedLabel(toolchainType.ToolchainType)
+	toolchainTypeLabel, err := pg_label.NewResolvedLabel(toolchainType.GetToolchainType())
 	if err != nil {
 		return nil, err
 	}
-	return NewToolchainType[TReference, TMetadata](toolchainTypeLabel, toolchainType.Mandatory), nil
+	return NewToolchainType[TReference, TMetadata](toolchainTypeLabel, toolchainType.GetMandatory()), nil
 }

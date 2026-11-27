@@ -16,6 +16,7 @@ import (
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -107,21 +108,21 @@ func (Attr[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 // storage.
 func (a *Attr[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata]) (model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata], error) {
 	attr, err := model_core.BuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) (*model_starlark_pb.Attr, error) {
-		attr := model_starlark_pb.Attr{
+		attr := model_starlark_pb.Attr_builder{
 			Configurable: a.configurable,
-		}
+		}.Build()
 		if a.defaultValue != nil {
 			defaultValue, err := EncodeValue[TReference, TMetadata](thread, a.defaultValue, path, nil, options)
 			if err != nil {
 				return nil, err
 			}
-			attr.Default = defaultValue.Merge(patcher)
+			attr.SetDefault(defaultValue.Merge(patcher))
 		}
 
-		if err := a.attrType.Encode(thread, path, options, model_core.NewPatchedMessage(&attr, patcher)); err != nil {
+		if err := a.attrType.Encode(thread, path, options, model_core.NewPatchedMessage(attr, patcher)); err != nil {
 			return nil, err
 		}
-		return &attr, nil
+		return attr, nil
 	})
 	return attr, err
 }
@@ -136,11 +137,9 @@ func (a *Attr[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []ev
 			return nil, err
 		}
 
-		return &model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Attr{
-				Attr: attr.Merge(patcher),
-			},
-		}, nil
+		return model_starlark_pb.Value_builder{
+			Attr: proto.ValueOrDefault(attr.Merge(patcher)),
+		}.Build(), nil
 	})
 	return value, err
 }
@@ -200,9 +199,7 @@ func (boolAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (boolAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_Bool{
-		Bool: &emptypb.Empty{},
-	}
+	out.Message.SetBool(&emptypb.Empty{})
 	return nil
 }
 
@@ -231,11 +228,9 @@ func (intAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *intAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_Int{
-		Int: &model_starlark_pb.Attr_IntType{
-			Values: at.values,
-		},
-	}
+	out.Message.SetInt(model_starlark_pb.Attr_IntType_builder{
+		Values: at.values,
+	}.Build())
 	return nil
 }
 
@@ -265,11 +260,9 @@ func (intListAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *intListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_IntList{
-		IntList: &model_starlark_pb.Attr_IntListType{
-			ListOptions: newCompositeOptions(at.allowEmpty),
-		},
-	}
+	out.Message.SetIntList(model_starlark_pb.Attr_IntListType_builder{
+		ListOptions: newCompositeOptions(at.allowEmpty),
+	}.Build())
 	return nil
 }
 
@@ -284,32 +277,32 @@ func (intListAttrType[TReference, TMetadata]) IsOutput() (string, bool) {
 // newCompositeOptions creates the options that apply to all attribute
 // types containing dicts or lists.
 func newCompositeOptions(allowEmpty bool) *model_starlark_pb.Attr_CompositeOptions {
-	return &model_starlark_pb.Attr_CompositeOptions{
+	return model_starlark_pb.Attr_CompositeOptions_builder{
 		AllowEmpty: allowEmpty,
-	}
+	}.Build()
 }
 
 // GetAttrCompositeOptions returns the options of an attribute type
 // containing a dict or list. If the attribute type does not contain a
 // dict or list, false is returned.
 func GetAttrCompositeOptions(attr *model_starlark_pb.Attr) (*model_starlark_pb.Attr_CompositeOptions, bool) {
-	switch attrType := attr.GetType().(type) {
-	case *model_starlark_pb.Attr_IntList:
-		return attrType.IntList.GetListOptions(), true
-	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		return attrType.LabelKeyedStringDict.GetDictOptions(), true
-	case *model_starlark_pb.Attr_LabelList:
-		return attrType.LabelList.GetListOptions(), true
-	case *model_starlark_pb.Attr_OutputList:
-		return attrType.OutputList.GetListOptions(), true
-	case *model_starlark_pb.Attr_StringDict:
-		return attrType.StringDict.GetDictOptions(), true
-	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		return attrType.StringKeyedLabelDict.GetDictOptions(), true
-	case *model_starlark_pb.Attr_StringList:
-		return attrType.StringList.GetListOptions(), true
-	case *model_starlark_pb.Attr_StringListDict:
-		return attrType.StringListDict.GetDictOptions(), true
+	switch attr.WhichType() {
+	case model_starlark_pb.Attr_IntList_case:
+		return attr.GetIntList().GetListOptions(), true
+	case model_starlark_pb.Attr_LabelKeyedStringDict_case:
+		return attr.GetLabelKeyedStringDict().GetDictOptions(), true
+	case model_starlark_pb.Attr_LabelList_case:
+		return attr.GetLabelList().GetListOptions(), true
+	case model_starlark_pb.Attr_OutputList_case:
+		return attr.GetOutputList().GetListOptions(), true
+	case model_starlark_pb.Attr_StringDict_case:
+		return attr.GetStringDict().GetDictOptions(), true
+	case model_starlark_pb.Attr_StringKeyedLabelDict_case:
+		return attr.GetStringKeyedLabelDict().GetDictOptions(), true
+	case model_starlark_pb.Attr_StringList_case:
+		return attr.GetStringList().GetListOptions(), true
+	case model_starlark_pb.Attr_StringListDict_case:
+		return attr.GetStringListDict().GetDictOptions(), true
 	default:
 		return nil, false
 	}
@@ -340,16 +333,17 @@ type LabelOptions[TReference any, TMetadata model_core.ReferenceMetadata] struct
 // DecodeLabelOptions converts the options of an attribute type
 // containing labels from its Protobuf message.
 func DecodeLabelOptions[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](labelOptions model_core.Message[*model_starlark_pb.Attr_LabelOptions, TReference]) (LabelOptions[TReference, TMetadata], error) {
-	if labelOptions.Message == nil || labelOptions.Message.Cfg == nil {
+	cfg := labelOptions.Message.GetCfg()
+	if cfg == nil {
 		return LabelOptions[TReference, TMetadata]{}, errors.New("missing label options")
 	}
 	return LabelOptions[TReference, TMetadata]{
-		AllowFiles: labelOptions.Message.AllowFiles,
-		Aspects:    labelOptions.Message.Aspects,
+		AllowFiles: labelOptions.Message.GetAllowFiles(),
+		Aspects:    labelOptions.Message.GetAspects(),
 		Cfg: NewProtoTransitionDefinition[TReference, TMetadata](
-			model_core.Nested(labelOptions, labelOptions.Message.Cfg),
+			model_core.Nested(labelOptions, cfg),
 		),
-		Providers: labelOptions.Message.Providers,
+		Providers: labelOptions.Message.GetProviders(),
 	}, nil
 }
 
@@ -359,12 +353,12 @@ func (lo *LabelOptions[TReference, TMetadata]) encode(thread *eval.Thread, path 
 		return model_core.PatchedMessage[*model_starlark_pb.Attr_LabelOptions, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Attr_LabelOptions{
+		model_starlark_pb.Attr_LabelOptions_builder{
 			AllowFiles: lo.AllowFiles,
 			Aspects:    lo.Aspects,
 			Cfg:        cfg.Message,
 			Providers:  lo.Providers,
-		},
+		}.Build(),
 		cfg.Patcher,
 	), nil
 }
@@ -413,14 +407,12 @@ func (at *labelAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path
 	if err != nil {
 		return err
 	}
-	out.Message.Type = &model_starlark_pb.Attr_Label{
-		Label: &model_starlark_pb.Attr_LabelType{
-			AllowNone:       at.allowNone,
-			AllowSingleFile: at.allowSingleFile,
-			Executable:      at.executable,
-			ValueOptions:    valueOptions.Merge(out.Patcher),
-		},
-	}
+	out.Message.SetLabel(model_starlark_pb.Attr_LabelType_builder{
+		AllowNone:       at.allowNone,
+		AllowSingleFile: at.allowSingleFile,
+		Executable:      at.executable,
+		ValueOptions:    valueOptions.Merge(out.Patcher),
+	}.Build())
 	return nil
 }
 
@@ -460,12 +452,10 @@ func (at *labelKeyedStringDictAttrType[TReference, TMetadata]) Encode(thread *ev
 	if err != nil {
 		return err
 	}
-	out.Message.Type = &model_starlark_pb.Attr_LabelKeyedStringDict{
-		LabelKeyedStringDict: &model_starlark_pb.Attr_LabelKeyedStringDictType{
-			DictOptions:    newCompositeOptions(at.allowEmpty),
-			DictKeyOptions: dictKeyOptions.Merge(out.Patcher),
-		},
-	}
+	out.Message.SetLabelKeyedStringDict(model_starlark_pb.Attr_LabelKeyedStringDictType_builder{
+		DictOptions:    newCompositeOptions(at.allowEmpty),
+		DictKeyOptions: dictKeyOptions.Merge(out.Patcher),
+	}.Build())
 	return nil
 }
 
@@ -501,12 +491,10 @@ func (at *labelListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, 
 	if err != nil {
 		return err
 	}
-	out.Message.Type = &model_starlark_pb.Attr_LabelList{
-		LabelList: &model_starlark_pb.Attr_LabelListType{
-			ListOptions:      newCompositeOptions(at.allowEmpty),
-			ListValueOptions: listValueOptions.Merge(out.Patcher),
-		},
-	}
+	out.Message.SetLabelList(model_starlark_pb.Attr_LabelListType_builder{
+		ListOptions:      newCompositeOptions(at.allowEmpty),
+		ListValueOptions: listValueOptions.Merge(out.Patcher),
+	}.Build())
 	return nil
 }
 
@@ -535,11 +523,9 @@ func (outputAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *outputAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_Output{
-		Output: &model_starlark_pb.Attr_OutputType{
-			FilenameTemplate: at.filenameTemplate,
-		},
-	}
+	out.Message.SetOutput(model_starlark_pb.Attr_OutputType_builder{
+		FilenameTemplate: at.filenameTemplate,
+	}.Build())
 	return nil
 }
 
@@ -569,11 +555,9 @@ func (outputListAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *outputListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_OutputList{
-		OutputList: &model_starlark_pb.Attr_OutputListType{
-			ListOptions: newCompositeOptions(at.allowEmpty),
-		},
-	}
+	out.Message.SetOutputList(model_starlark_pb.Attr_OutputListType_builder{
+		ListOptions: newCompositeOptions(at.allowEmpty),
+	}.Build())
 	return nil
 }
 
@@ -602,11 +586,9 @@ func (stringAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *stringAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_String_{
-		String_: &model_starlark_pb.Attr_StringType{
-			Values: at.values,
-		},
-	}
+	out.Message.SetString(model_starlark_pb.Attr_StringType_builder{
+		Values: at.values,
+	}.Build())
 	return nil
 }
 
@@ -636,11 +618,9 @@ func (stringDictAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *stringDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_StringDict{
-		StringDict: &model_starlark_pb.Attr_StringDictType{
-			DictOptions: newCompositeOptions(at.allowEmpty),
-		},
-	}
+	out.Message.SetStringDict(model_starlark_pb.Attr_StringDictType_builder{
+		DictOptions: newCompositeOptions(at.allowEmpty),
+	}.Build())
 	return nil
 }
 
@@ -670,11 +650,9 @@ func (stringListAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *stringListAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_StringList{
-		StringList: &model_starlark_pb.Attr_StringListType{
-			ListOptions: newCompositeOptions(at.allowEmpty),
-		},
-	}
+	out.Message.SetStringList(model_starlark_pb.Attr_StringListType_builder{
+		ListOptions: newCompositeOptions(at.allowEmpty),
+	}.Build())
 	return nil
 }
 
@@ -710,12 +688,10 @@ func (at *stringKeyedLabelDictAttrType[TReference, TMetadata]) Encode(thread *ev
 	if err != nil {
 		return err
 	}
-	out.Message.Type = &model_starlark_pb.Attr_StringKeyedLabelDict{
-		StringKeyedLabelDict: &model_starlark_pb.Attr_StringKeyedLabelDictType{
-			DictOptions:      newCompositeOptions(at.allowEmpty),
-			DictValueOptions: dictValueOptions.Merge(out.Patcher),
-		},
-	}
+	out.Message.SetStringKeyedLabelDict(model_starlark_pb.Attr_StringKeyedLabelDictType_builder{
+		DictOptions:      newCompositeOptions(at.allowEmpty),
+		DictValueOptions: dictValueOptions.Merge(out.Patcher),
+	}.Build())
 	return nil
 }
 
@@ -745,11 +721,9 @@ func (stringListDictAttrType[TReference, TMetadata]) Type() string {
 }
 
 func (at *stringListDictAttrType[TReference, TMetadata]) Encode(thread *eval.Thread, path []eval.Value, options *ValueEncodingOptions[TReference, TMetadata], out model_core.PatchedMessage[*model_starlark_pb.Attr, TMetadata]) error {
-	out.Message.Type = &model_starlark_pb.Attr_StringListDict{
-		StringListDict: &model_starlark_pb.Attr_StringListDictType{
-			DictOptions: newCompositeOptions(at.allowEmpty),
-		},
-	}
+	out.Message.SetStringListDict(model_starlark_pb.Attr_StringListDictType_builder{
+		DictOptions: newCompositeOptions(at.allowEmpty),
+	}.Build())
 	return nil
 }
 
@@ -773,10 +747,10 @@ func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](th
 			patcher.Discard()
 			return model_core.PatchedMessage[[]*model_starlark_pb.NamedAttr, TMetadata]{}, fmt.Errorf("attr %#v: %w", name, err)
 		}
-		encodedAttrs = append(encodedAttrs, &model_starlark_pb.NamedAttr{
+		encodedAttrs = append(encodedAttrs, model_starlark_pb.NamedAttr_builder{
 			Name: name.String(),
 			Attr: attr.Merge(patcher),
-		})
+		}.Build())
 	}
 	return model_core.NewPatchedMessage(encodedAttrs, patcher), nil
 }
@@ -789,24 +763,24 @@ func encodeNamedAttrs[TReference any, TMetadata model_core.ReferenceMetadata](th
 // computed default values of attributes) are ignored, as they cannot
 // be evaluated without a configuration.
 func VisitAttrValueLabels[TReference object.BasicReference](ctx context.Context, readers *ValueReaders[TReference], value model_core.Message[*model_starlark_pb.Value, TReference], visitor LabelVisitor) error {
-	switch kind := value.Message.GetKind().(type) {
-	case *model_starlark_pb.Value_Label:
-		resolvedLabel, err := pg_label.NewResolvedLabel(kind.Label)
+	switch value.Message.WhichKind() {
+	case model_starlark_pb.Value_Label_case:
+		resolvedLabel, err := pg_label.NewResolvedLabel(value.Message.GetLabel())
 		if err != nil {
-			return fmt.Errorf("invalid label %#v: %w", kind.Label, err)
+			return fmt.Errorf("invalid label %#v: %w", value.Message.GetLabel(), err)
 		}
 		return visitor(resolvedLabel)
-	case *model_starlark_pb.Value_List:
+	case model_starlark_pb.Value_List_case:
 		var errIter error
-		for element := range AllListLeafElements(ctx, readers.List, model_core.Nested(value, kind.List.Elements), &errIter) {
+		for element := range AllListLeafElements(ctx, readers.List, model_core.Nested(value, value.Message.GetList().GetElements()), &errIter) {
 			if err := VisitAttrValueLabels(ctx, readers, element, visitor); err != nil {
 				return err
 			}
 		}
 		return errIter
-	case *model_starlark_pb.Value_Dict:
+	case model_starlark_pb.Value_Dict_case:
 		var errIter error
-		for key, value := range AllDictLeafEntries(ctx, readers.Dict, model_core.Nested(value, kind.Dict), &errIter) {
+		for key, value := range AllDictLeafEntries(ctx, readers.Dict, model_core.Nested(value, value.Message.GetDict()), &errIter) {
 			if err := VisitAttrValueLabels(ctx, readers, key, visitor); err != nil {
 				return err
 			}

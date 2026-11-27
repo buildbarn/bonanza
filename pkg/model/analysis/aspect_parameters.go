@@ -31,7 +31,7 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 	getValue func(publicAttr *model_starlark_pb.NamedAttr) (eval.Value, error),
 ) (*model_core.Decodable[model_core.CreatedObject[TMetadata]], error) {
 	parameters := map[string]any{}
-	for _, publicAttr := range aspect.Message.PublicAttrs {
+	for _, publicAttr := range aspect.Message.GetPublicAttrs() {
 		value, err := getValue(publicAttr)
 		if err != nil {
 			return nil, err
@@ -42,37 +42,37 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 
 		// Validate that the value is permitted by the aspect's
 		// attr.
-		switch attrType := publicAttr.Attr.GetType().(type) {
-		case *model_starlark_pb.Attr_Bool:
+		switch publicAttr.GetAttr().WhichType() {
+		case model_starlark_pb.Attr_Bool_case:
 			var v bool
 			if err := unpack.Bool.UnpackInto(thread, value, &v); err != nil {
-				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.GetName(), aspect.Message.GetIdentifier(), err)
 			}
-		case *model_starlark_pb.Attr_Int:
+		case model_starlark_pb.Attr_Int_case:
 			var v int32
 			if err := unpack.Int[int32]().UnpackInto(thread, value, &v); err != nil {
-				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.GetName(), aspect.Message.GetIdentifier(), err)
 			}
-			if values := attrType.Int.Values; len(values) > 0 && !slices.Contains(values, v) {
-				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %d", publicAttr.Name, aspect.Message.Identifier, v)
+			if values := publicAttr.GetAttr().GetInt().GetValues(); len(values) > 0 && !slices.Contains(values, v) {
+				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %d", publicAttr.GetName(), aspect.Message.GetIdentifier(), v)
 			}
-		case *model_starlark_pb.Attr_String_:
+		case model_starlark_pb.Attr_String__case:
 			var v string
 			if err := unpack.String.UnpackInto(thread, value, &v); err != nil {
-				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+				return nil, fmt.Errorf("attr %#v of aspect %#v: %w", publicAttr.GetName(), aspect.Message.GetIdentifier(), err)
 			}
-			if values := attrType.String_.Values; len(values) > 0 && !slices.Contains(values, v) {
-				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %#v", publicAttr.Name, aspect.Message.Identifier, v)
+			if values := publicAttr.GetAttr().GetString().GetValues(); len(values) > 0 && !slices.Contains(values, v) {
+				return nil, fmt.Errorf("attr %#v of aspect %#v does not permit value %#v", publicAttr.GetName(), aspect.Message.GetIdentifier(), v)
 			}
 		default:
-			return nil, fmt.Errorf("attr %#v of aspect %#v is not of type bool, int or string", publicAttr.Name, aspect.Message.Identifier)
+			return nil, fmt.Errorf("attr %#v of aspect %#v is not of type bool, int or string", publicAttr.GetName(), aspect.Message.GetIdentifier())
 		}
 
 		// Omit values that are equal to the default value.
-		if defaultValue := publicAttr.Attr.GetDefault(); defaultValue != nil {
+		if defaultValue := publicAttr.GetAttr().GetDefault(); defaultValue != nil {
 			decodedDefaultValue, err := model_starlark.DecodeValue[TReference, TMetadata](thread, model_core.Nested(aspect, defaultValue), nil)
 			if err != nil {
-				return nil, fmt.Errorf("default value of attr %#v of aspect %#v: %w", publicAttr.Name, aspect.Message.Identifier, err)
+				return nil, fmt.Errorf("default value of attr %#v of aspect %#v: %w", publicAttr.GetName(), aspect.Message.GetIdentifier(), err)
 			}
 			equal, err := eval.Equal(thread, value, decodedDefaultValue)
 			if err != nil {
@@ -82,7 +82,7 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 				continue
 			}
 		}
-		parameters[publicAttr.Name] = value
+		parameters[publicAttr.GetName()] = value
 	}
 	if len(parameters) == 0 {
 		return nil, nil
@@ -93,7 +93,7 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 	fields, err := model_starlark.NewStructFromDict[TReference, TMetadata](nil, parameters).
 		EncodeStructFields(thread, nil, valueEncodingOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode parameters of aspect %#v: %w", aspect.Message.Identifier, err)
+		return nil, fmt.Errorf("failed to encode parameters of aspect %#v: %w", aspect.Message.GetIdentifier(), err)
 	}
 	createdObject, err := model_core.MarshalAndEncodeDeterministic(
 		fields.ToMarshaler(model_format.NewProto[model_starlark_pb.Struct_Fields]()),
@@ -101,7 +101,7 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 		analysisEncoder,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create parameters of aspect %#v: %w", aspect.Message.Identifier, err)
+		return nil, fmt.Errorf("failed to create parameters of aspect %#v: %w", aspect.Message.GetIdentifier(), err)
 	}
 	return &createdObject, nil
 }
@@ -110,25 +110,25 @@ func encodeAspectParameters[TReference object.BasicReference, TMetadata model_co
 // that is provided on the command line through --aspects_parameters to
 // a Starlark value, based on the type of the aspect's public attr.
 func parseAspectParameterValue(publicAttr *model_starlark_pb.NamedAttr, value string) (eval.Value, error) {
-	switch publicAttr.Attr.GetType().(type) {
-	case *model_starlark_pb.Attr_Bool:
+	switch publicAttr.GetAttr().WhichType() {
+	case model_starlark_pb.Attr_Bool_case:
 		switch value {
 		case "true", "True", "1":
 			return eval.True, nil
 		case "false", "False", "0":
 			return eval.False, nil
 		default:
-			return nil, fmt.Errorf("value %#v of parameter %#v is not a valid boolean value", value, publicAttr.Name)
+			return nil, fmt.Errorf("value %#v of parameter %#v is not a valid boolean value", value, publicAttr.GetName())
 		}
-	case *model_starlark_pb.Attr_Int:
+	case model_starlark_pb.Attr_Int_case:
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("value %#v of parameter %#v is not a valid integer value", value, publicAttr.Name)
+			return nil, fmt.Errorf("value %#v of parameter %#v is not a valid integer value", value, publicAttr.GetName())
 		}
 		return eval.MakeInt(int(v)), nil
-	case *model_starlark_pb.Attr_String_:
+	case model_starlark_pb.Attr_String__case:
 		return eval.String(value), nil
 	default:
-		return nil, fmt.Errorf("parameter %#v is not of type bool, int or string", publicAttr.Name)
+		return nil, fmt.Errorf("parameter %#v is not of type bool, int or string", publicAttr.GetName())
 	}
 }

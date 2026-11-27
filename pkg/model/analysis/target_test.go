@@ -21,18 +21,14 @@ import (
 // and macro instances of a package that corresponds to a rule target.
 func newRuleTargetDeclaration(name, ruleIdentifier string) *model_analysis_pb.Package_Value_Target {
 	return &model_analysis_pb.Package_Value_Target{
-		Level: &model_analysis_pb.Package_Value_Target_Leaf{
-			Leaf: &model_starlark_pb.Target{
-				Name: name,
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_RuleTarget{
-						RuleTarget: &model_starlark_pb.RuleTarget{
-							RuleIdentifier: ruleIdentifier,
-						},
-					},
-				},
-			},
-		},
+		Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+			Name: name,
+			Definition: model_starlark_pb.Target_Definition_builder{
+				RuleTarget: model_starlark_pb.RuleTarget_builder{
+					RuleIdentifier: ruleIdentifier,
+				}.Build(),
+			}.Build(),
+		}.Build()},
 	}
 }
 
@@ -41,16 +37,12 @@ func newRuleTargetDeclaration(name, ruleIdentifier string) *model_analysis_pb.Pa
 // source file target.
 func newSourceFileTargetDeclaration(name string) *model_analysis_pb.Package_Value_Target {
 	return &model_analysis_pb.Package_Value_Target{
-		Level: &model_analysis_pb.Package_Value_Target_Leaf{
-			Leaf: &model_starlark_pb.Target{
-				Name: name,
-				Definition: &model_starlark_pb.Target_Definition{
-					Kind: &model_starlark_pb.Target_Definition_SourceFileTarget{
-						SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
-					},
-				},
-			},
-		},
+		Level: &model_analysis_pb.Package_Value_Target_Leaf{Leaf: model_starlark_pb.Target_builder{
+			Name: name,
+			Definition: model_starlark_pb.Target_Definition_builder{
+				SourceFileTarget: &model_starlark_pb.SourceFileTarget{},
+			}.Build(),
+		}.Build()},
 	}
 }
 
@@ -59,18 +51,16 @@ func newSourceFileTargetDeclaration(name string) *model_analysis_pb.Package_Valu
 // instances declared by other macro instances, the name suffix is
 // relative to the name of the declaring macro instance.
 func newMacroExpansionContextDeclaration(nameSuffix string) *model_starlark_pb.MacroExpansionContext_Entry {
-	return &model_starlark_pb.MacroExpansionContext_Entry{
-		Level: &model_starlark_pb.MacroExpansionContext_Entry_Leaf{
-			Leaf: &model_starlark_pb.MacroExpansionContext{
-				NameSuffix: nameSuffix,
-				Definition: &model_starlark_pb.MacroExpansionContext_Definition{
-					RootMacroInstanceDefinition: &model_starlark_pb.MacroInstance_Definition{
-						MacroIdentifier: "@@rules+//:defs.bzl%my_macro",
-					},
-				},
-			},
-		},
-	}
+	return model_starlark_pb.MacroExpansionContext_Entry_builder{
+		Leaf: model_starlark_pb.MacroExpansionContext_builder{
+			NameSuffix: nameSuffix,
+			Definition: model_starlark_pb.MacroExpansionContext_Definition_builder{
+				RootMacroInstanceDefinition: model_starlark_pb.MacroInstance_Definition_builder{
+					MacroIdentifier: "@@rules+//:defs.bzl%my_macro",
+				}.Build(),
+			}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // declarations is a helper type for constructing the targets and macro
@@ -118,12 +108,13 @@ func TestTarget(t *testing.T) {
 		if err != nil {
 			return "", err
 		}
-		if value.Message.Definition == nil {
+		definition := value.Message.GetDefinition()
+		if definition == nil {
 			return "", errors.New("target does not exist")
 		}
-		ruleTarget := value.Message.Definition.GetRuleTarget()
+		ruleTarget := definition.GetRuleTarget()
 		require.NotNil(t, ruleTarget)
-		return ruleTarget.RuleIdentifier, nil
+		return ruleTarget.GetRuleIdentifier(), nil
 	}
 
 	t.Run("TopLevel", func(t *testing.T) {
@@ -321,32 +312,28 @@ func newMacroExpansionContextsParent(patcher *model_core.ReferenceMessagePatcher
 	for _, nameSuffix := range nameSuffixes {
 		children = append(children, newMacroExpansionContextDeclaration(nameSuffix))
 	}
-	return &model_starlark_pb.MacroExpansionContext_Entry{
-		Level: &model_starlark_pb.MacroExpansionContext_Entry_Parent_{
-			Parent: &model_starlark_pb.MacroExpansionContext_Entry_Parent{
-				Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-					return model_format.NewProtoList[model_starlark_pb.MacroExpansionContext_Entry]().NewMarshaler(children)
-				})),
-				FirstNameSuffix: nameSuffixes[0],
-			},
-		},
-	}
+	return model_starlark_pb.MacroExpansionContext_Entry_builder{
+		Parent: model_starlark_pb.MacroExpansionContext_Entry_Parent_builder{
+			Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+				return model_format.NewProtoList[model_starlark_pb.MacroExpansionContext_Entry]().NewMarshaler(children)
+			})),
+			FirstNameSuffix: nameSuffixes[0],
+		}.Build(),
+	}.Build()
 }
 
 // newMacroInstanceEntry creates an entry in a list of macro instances
 // of macro "@@rules+//:defs.bzl%my_macro", as stored in macro
 // expansion contexts.
 func newMacroInstanceEntry(nameSuffix string) *model_starlark_pb.MacroInstance_Entry {
-	return &model_starlark_pb.MacroInstance_Entry{
-		Level: &model_starlark_pb.MacroInstance_Entry_Leaf{
-			Leaf: &model_starlark_pb.MacroInstance{
-				NameSuffix: nameSuffix,
-				Definition: &model_starlark_pb.MacroInstance_Definition{
-					MacroIdentifier: "@@rules+//:defs.bzl%my_macro",
-				},
-			},
-		},
-	}
+	return model_starlark_pb.MacroInstance_Entry_builder{
+		Leaf: model_starlark_pb.MacroInstance_builder{
+			NameSuffix: nameSuffix,
+			Definition: model_starlark_pb.MacroInstance_Definition_builder{
+				MacroIdentifier: "@@rules+//:defs.bzl%my_macro",
+			}.Build(),
+		}.Build(),
+	}.Build()
 }
 
 // newMacroInstancesParent creates a parent node in a list of macro
@@ -356,13 +343,11 @@ func newMacroInstancesParent(patcher *model_core.ReferenceMessagePatcher[model_c
 	for _, nameSuffix := range nameSuffixes {
 		children = append(children, newMacroInstanceEntry(nameSuffix))
 	}
-	return &model_starlark_pb.MacroInstance_Entry{
-		Level: &model_starlark_pb.MacroInstance_Entry_Parent_{
-			Parent: &model_starlark_pb.MacroInstance_Entry_Parent{
-				Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
-					return model_format.NewProtoList[model_starlark_pb.MacroInstance_Entry]().NewMarshaler(children)
-				})),
-			},
-		},
-	}
+	return model_starlark_pb.MacroInstance_Entry_builder{
+		Parent: model_starlark_pb.MacroInstance_Entry_Parent_builder{
+			Reference: attachObject(patcher, newObject(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) encoding.BinaryMarshaler {
+				return model_format.NewProtoList[model_starlark_pb.MacroInstance_Entry]().NewMarshaler(children)
+			})),
+		}.Build(),
+	}.Build()
 }

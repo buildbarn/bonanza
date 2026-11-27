@@ -30,16 +30,16 @@ func buildFilesInDepset[TReference object.BasicReference, TMetadata model_core.R
 	for element := range model_starlark.AllListLeafElementsSkippingDuplicateParents(
 		ctx,
 		valueReaders.List,
-		model_core.Nested(depset, depset.Message.Elements),
+		model_core.Nested(depset, depset.Message.GetElements()),
 		map[model_core.Decodable[object.LocalReference]]struct{}{},
 		&errIter,
 	) {
-		elementFile, ok := element.Message.Kind.(*model_starlark_pb.Value_File)
-		if !ok {
+		elementFile := element.Message.GetFile()
+		if elementFile == nil {
 			return errors.New("depset contains an element that is not a File")
 		}
 
-		patchedFile := model_core.Patch(e, model_core.Nested(element, elementFile.File))
+		patchedFile := model_core.Patch(e, model_core.Nested(element, elementFile))
 		fileRoot := e.GetFileRootValue(
 			model_core.NewPatchedMessage(
 				&model_analysis_pb.FileRoot_Key{
@@ -65,7 +65,7 @@ func findProviderInstance[TReference any](
 	index, ok := sort.Find(
 		len(providerInstances.Message),
 		func(i int) int {
-			return strings.Compare(providerIdentifier, providerInstances.Message[i].ProviderInstanceProperties.GetProviderIdentifier())
+			return strings.Compare(providerIdentifier, providerInstances.Message[i].GetProviderInstanceProperties().GetProviderIdentifier())
 		},
 	)
 	if !ok {
@@ -94,18 +94,18 @@ func buildSelectedOutputs[TReference object.BasicReference, TMetadata model_core
 		if fields.Message == nil {
 			return false, nil
 		}
-		if _, ok := slices.BinarySearch(fields.Message.Keys, fieldName); !ok {
+		if _, ok := slices.BinarySearch(fields.Message.GetKeys(), fieldName); !ok {
 			return false, nil
 		}
 		value, err := model_starlark.GetStructFieldValue(ctx, valueReaders.List, fields, fieldName)
 		if err != nil {
 			return false, fmt.Errorf("%s: %w", description, err)
 		}
-		depset, ok := value.Message.Kind.(*model_starlark_pb.Value_Depset)
-		if !ok {
+		depset := value.Message.GetDepset()
+		if depset == nil {
 			return false, fmt.Errorf("%s is not a depset", description)
 		}
-		if err := buildFilesInDepset(ctx, e, valueReaders, model_core.Nested(value, depset.Depset), &missingDependencies); err != nil {
+		if err := buildFilesInDepset(ctx, e, valueReaders, model_core.Nested(value, depset), &missingDependencies); err != nil {
 			return false, fmt.Errorf("%s: %w", description, err)
 		}
 		return true, nil
@@ -138,9 +138,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 	// Obtain the fields of the providers of the target, or of the
 	// last aspect applied to it, that are needed to build the
 	// selected outputs.
-	outputs := key.Message.Outputs
+	outputs := key.Message.GetOutputs()
 	var defaultInfoFields, outputGroupInfoFields model_core.Message[*model_starlark_pb.Struct_Fields, TReference]
-	if aspects := key.Message.Variant.GetAspects(); len(aspects) == 0 {
+	if aspects := key.Message.GetVariant().GetAspects(); len(aspects) == 0 {
 		// Only request the providers that are needed, so that
 		// changes to other providers of the target don't cause
 		// this computation to be invalidated.
@@ -149,8 +149,8 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 			targetProvider := e.GetTargetProviderValue(
 				model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetProvider_Key {
 					return &model_analysis_pb.TargetProvider_Key{
-						Label:              key.Message.Label,
-						Variant:            model_core.Patch(e, model_core.Nested(key, key.Message.Variant)).Merge(patcher),
+						Label:              key.Message.GetLabel(),
+						Variant:            model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant())).Merge(patcher),
 						ProviderIdentifier: providerIdentifier,
 					}
 				}),
@@ -159,7 +159,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 				missingDependencies = true
 				return model_core.Message[*model_starlark_pb.Struct_Fields, TReference]{}
 			}
-			return model_core.Nested(targetProvider, targetProvider.Message.Fields)
+			return model_core.Nested(targetProvider, targetProvider.Message.GetFields())
 		}
 		if outputs.GetDefaultInfoFiles() {
 			defaultInfoFields = getProviderFields(defaultInfoProviderIdentifier.String())
@@ -178,8 +178,8 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		incomingEdgeTransition := e.GetTargetIncomingEdgeTransitionValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.TargetIncomingEdgeTransition_Key {
 				return &model_analysis_pb.TargetIncomingEdgeTransition_Key{
-					Label:                  key.Message.Label,
-					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.Variant.GetConfigurationReference())).Merge(patcher),
+					Label:                  key.Message.GetLabel(),
+					ConfigurationReference: model_core.Patch(e, model_core.Nested(key, key.Message.GetVariant().GetConfigurationReference())).Merge(patcher),
 				}
 			}),
 		)
@@ -189,9 +189,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 		configuredTarget := e.GetConfiguredTargetValue(
 			model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_analysis_pb.ConfiguredTarget_Key {
 				return &model_analysis_pb.ConfiguredTarget_Key{
-					Label: key.Message.Label,
+					Label: key.Message.GetLabel(),
 					Variant: newTargetVariant(
-						model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.OutputConfigurationReference)).Merge(patcher),
+						model_core.Patch(e, model_core.Nested(incomingEdgeTransition, incomingEdgeTransition.Message.GetOutputConfigurationReference())).Merge(patcher),
 						model_core.PatchList(e, model_core.Nested(key, aspects)).Merge(patcher),
 					),
 				}
@@ -203,9 +203,9 @@ func (*baseComputer[TReference, TMetadata]) ComputeTargetCompletionValue(ctx con
 
 		// Aspects cannot return DefaultInfo, so only consider
 		// OutputGroupInfo.
-		providerInstances := model_core.Nested(configuredTarget, configuredTarget.Message.ProviderInstances)
+		providerInstances := model_core.Nested(configuredTarget, configuredTarget.Message.GetProviderInstances())
 		if outputGroupInfo, ok := findProviderInstance(providerInstances, outputGroupInfoProviderIdentifier.String()); ok {
-			outputGroupInfoFields = model_core.Nested(outputGroupInfo, outputGroupInfo.Message.Fields)
+			outputGroupInfoFields = model_core.Nested(outputGroupInfo, outputGroupInfo.Message.GetFields())
 		}
 	}
 

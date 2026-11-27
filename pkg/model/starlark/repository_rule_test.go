@@ -15,6 +15,8 @@ import (
 
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestRepositoryRuleReference(t *testing.T) {
@@ -28,11 +30,11 @@ func TestRepositoryRuleReference(t *testing.T) {
 	})
 	repositoryRule, err := model_starlark.DecodeValue[object.LocalReference, model_core.NoopReferenceMetadata](
 		thread,
-		model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_RepositoryRule{RepositoryRule: &model_starlark_pb.RepositoryRule{
-				Kind: &model_starlark_pb.RepositoryRule_Reference{Reference: "@@rules+//:defs.bzl%my_repository_rule"},
-			}},
-		}),
+		model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Value_builder{
+			RepositoryRule: model_starlark_pb.RepositoryRule_builder{
+				Reference: proto.String("@@rules+//:defs.bzl%my_repository_rule"),
+			}.Build(),
+		}.Build()),
 		/* currentIdentifier = */ nil,
 	)
 	require.NoError(t, err)
@@ -40,18 +42,18 @@ func TestRepositoryRuleReference(t *testing.T) {
 	var resolvedIdentifiers []string
 	thread.SetLocal(model_starlark.GlobalResolverKey, model_starlark.GlobalResolver[object.LocalReference](func(identifier label.CanonicalStarlarkIdentifier) (model_core.Message[*model_starlark_pb.Value, object.LocalReference], error) {
 		resolvedIdentifiers = append(resolvedIdentifiers, identifier.String())
-		return model_core.NewSimpleMessage[object.LocalReference](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_RepositoryRule{RepositoryRule: &model_starlark_pb.RepositoryRule{
-				Kind: &model_starlark_pb.RepositoryRule_Definition_{Definition: &model_starlark_pb.RepositoryRule_Definition{
-					Attrs: []*model_starlark_pb.NamedAttr{{
+		return model_core.NewSimpleMessage[object.LocalReference](model_starlark_pb.Value_builder{
+			RepositoryRule: model_starlark_pb.RepositoryRule_builder{
+				Definition: model_starlark_pb.RepositoryRule_Definition_builder{
+					Attrs: []*model_starlark_pb.NamedAttr{model_starlark_pb.NamedAttr_builder{
 						Name: "value",
-						Attr: &model_starlark_pb.Attr{
-							Type: &model_starlark_pb.Attr_String_{String_: &model_starlark_pb.Attr_StringType{}},
-						},
-					}},
-				}},
-			}},
-		}), nil
+						Attr: model_starlark_pb.Attr_builder{
+							String: &model_starlark_pb.Attr_StringType{},
+						}.Build(),
+					}.Build()},
+				}.Build(),
+			}.Build(),
+		}.Build()), nil
 	}))
 	repoRegistrar := model_starlark.NewRepoRegistrar[model_core.NoopReferenceMetadata]()
 	thread.SetLocal(model_starlark.RepoRegistrarKey, repoRegistrar)

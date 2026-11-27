@@ -13,7 +13,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -71,11 +70,6 @@ func (x TestSize) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use TestSize.Descriptor instead.
-func (TestSize) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{0}
-}
-
 type TestTimeout int32
 
 const (
@@ -121,11 +115,6 @@ func (TestTimeout) Type() protoreflect.EnumType {
 
 func (x TestTimeout) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use TestTimeout.Descriptor instead.
-func (TestTimeout) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{1}
 }
 
 type Depset_Order int32
@@ -175,11 +164,6 @@ func (x Depset_Order) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use Depset_Order.Descriptor instead.
-func (Depset_Order) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8, 0}
-}
-
 type File_Owner_Type int32
 
 const (
@@ -222,11 +206,6 @@ func (File_Owner_Type) Type() protoreflect.EnumType {
 
 func (x File_Owner_Type) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use File_Owner_Type.Descriptor instead.
-func (File_Owner_Type) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 0, 0}
 }
 
 type MacroInstance_Finalizer int32
@@ -273,11 +252,6 @@ func (x MacroInstance_Finalizer) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MacroInstance_Finalizer.Descriptor instead.
-func (MacroInstance_Finalizer) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 0}
-}
-
 type Rule_Definition_Type int32
 
 const (
@@ -320,11 +294,6 @@ func (Rule_Definition_Type) Type() protoreflect.EnumType {
 
 func (x Rule_Definition_Type) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Rule_Definition_Type.Descriptor instead.
-func (Rule_Definition_Type) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0, 0}
 }
 
 type Select_ConcatenationOperator int32
@@ -371,18 +340,13 @@ func (x Select_ConcatenationOperator) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use Select_ConcatenationOperator.Descriptor instead.
-func (Select_ConcatenationOperator) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38, 0}
-}
-
 type CompiledProgram struct {
-	state                 protoimpl.MessageState           `protogen:"open.v1"`
-	Globals               *Struct_Fields                   `protobuf:"bytes,1,opt,name=globals,proto3" json:"globals,omitempty"`
-	Functions             []*CompiledProgram_FunctionEntry `protobuf:"bytes,2,rep,name=functions,proto3" json:"functions,omitempty"`
-	TopLevelFunctionLines []uint32                         `protobuf:"varint,3,rep,packed,name=top_level_function_lines,json=topLevelFunctionLines,proto3" json:"top_level_function_lines,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState            `protogen:"opaque.v1"`
+	xxx_hidden_Globals               *Struct_Fields                    `protobuf:"bytes,1,opt,name=globals"`
+	xxx_hidden_Functions             *[]*CompiledProgram_FunctionEntry `protobuf:"bytes,2,rep,name=functions"`
+	xxx_hidden_TopLevelFunctionLines []uint32                          `protobuf:"varint,3,rep,packed,name=top_level_function_lines,json=topLevelFunctionLines"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *CompiledProgram) Reset() {
@@ -410,68 +374,75 @@ func (x *CompiledProgram) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompiledProgram.ProtoReflect.Descriptor instead.
-func (*CompiledProgram) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *CompiledProgram) GetGlobals() *Struct_Fields {
 	if x != nil {
-		return x.Globals
+		return x.xxx_hidden_Globals
 	}
 	return nil
 }
 
 func (x *CompiledProgram) GetFunctions() []*CompiledProgram_FunctionEntry {
 	if x != nil {
-		return x.Functions
+		if x.xxx_hidden_Functions != nil {
+			return *x.xxx_hidden_Functions
+		}
 	}
 	return nil
 }
 
 func (x *CompiledProgram) GetTopLevelFunctionLines() []uint32 {
 	if x != nil {
-		return x.TopLevelFunctionLines
+		return x.xxx_hidden_TopLevelFunctionLines
 	}
 	return nil
 }
 
+func (x *CompiledProgram) SetGlobals(v *Struct_Fields) {
+	x.xxx_hidden_Globals = v
+}
+
+func (x *CompiledProgram) SetFunctions(v []*CompiledProgram_FunctionEntry) {
+	x.xxx_hidden_Functions = &v
+}
+
+func (x *CompiledProgram) SetTopLevelFunctionLines(v []uint32) {
+	x.xxx_hidden_TopLevelFunctionLines = v
+}
+
+func (x *CompiledProgram) HasGlobals() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Globals != nil
+}
+
+func (x *CompiledProgram) ClearGlobals() {
+	x.xxx_hidden_Globals = nil
+}
+
+type CompiledProgram_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Globals               *Struct_Fields
+	Functions             []*CompiledProgram_FunctionEntry
+	TopLevelFunctionLines []uint32
+}
+
+func (b0 CompiledProgram_builder) Build() *CompiledProgram {
+	m0 := &CompiledProgram{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Globals = b.Globals
+	x.xxx_hidden_Functions = &b.Functions
+	x.xxx_hidden_TopLevelFunctionLines = b.TopLevelFunctionLines
+	return m0
+}
+
 type Value struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Value_Aspect
-	//	*Value_Attr
-	//	*Value_Bool
-	//	*Value_Builtin
-	//	*Value_Bytes
-	//	*Value_Depset
-	//	*Value_Dict
-	//	*Value_ExecGroup
-	//	*Value_File
-	//	*Value_Function
-	//	*Value_Int
-	//	*Value_Label
-	//	*Value_List
-	//	*Value_Macro
-	//	*Value_ModuleExtension
-	//	*Value_None
-	//	*Value_Provider
-	//	*Value_RepositoryRule
-	//	*Value_Rule
-	//	*Value_Select
-	//	*Value_Set
-	//	*Value_Str
-	//	*Value_Struct
-	//	*Value_Subrule
-	//	*Value_TagClass
-	//	*Value_TargetReference
-	//	*Value_ToolchainType
-	//	*Value_Transition
-	//	*Value_Tuple
-	Kind          isValue_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isValue_Kind           `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Value) Reset() {
@@ -499,21 +470,9 @@ func (x *Value) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Value.ProtoReflect.Descriptor instead.
-func (*Value) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Value) GetKind() isValue_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Value) GetAspect() *Aspect {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Aspect); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Aspect); ok {
 			return x.Aspect
 		}
 	}
@@ -522,7 +481,7 @@ func (x *Value) GetAspect() *Aspect {
 
 func (x *Value) GetAttr() *Attr {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Attr); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Attr); ok {
 			return x.Attr
 		}
 	}
@@ -531,7 +490,7 @@ func (x *Value) GetAttr() *Attr {
 
 func (x *Value) GetBool() bool {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Bool); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Bool); ok {
 			return x.Bool
 		}
 	}
@@ -540,7 +499,7 @@ func (x *Value) GetBool() bool {
 
 func (x *Value) GetBuiltin() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Builtin); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Builtin); ok {
 			return x.Builtin
 		}
 	}
@@ -549,7 +508,7 @@ func (x *Value) GetBuiltin() string {
 
 func (x *Value) GetBytes() *filesystem.MaybeInlineFileContents {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Bytes); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Bytes); ok {
 			return x.Bytes
 		}
 	}
@@ -558,7 +517,7 @@ func (x *Value) GetBytes() *filesystem.MaybeInlineFileContents {
 
 func (x *Value) GetDepset() *Depset {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Depset); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Depset); ok {
 			return x.Depset
 		}
 	}
@@ -567,7 +526,7 @@ func (x *Value) GetDepset() *Depset {
 
 func (x *Value) GetDict() *Dict {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Dict); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Dict); ok {
 			return x.Dict
 		}
 	}
@@ -576,7 +535,7 @@ func (x *Value) GetDict() *Dict {
 
 func (x *Value) GetExecGroup() *ExecGroup {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_ExecGroup); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_ExecGroup); ok {
 			return x.ExecGroup
 		}
 	}
@@ -585,7 +544,7 @@ func (x *Value) GetExecGroup() *ExecGroup {
 
 func (x *Value) GetFile() *File {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_File); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_File); ok {
 			return x.File
 		}
 	}
@@ -594,7 +553,7 @@ func (x *Value) GetFile() *File {
 
 func (x *Value) GetFunction() *Function {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Function); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Function); ok {
 			return x.Function
 		}
 	}
@@ -603,7 +562,7 @@ func (x *Value) GetFunction() *Function {
 
 func (x *Value) GetInt() []byte {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Int); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Int); ok {
 			return x.Int
 		}
 	}
@@ -612,7 +571,7 @@ func (x *Value) GetInt() []byte {
 
 func (x *Value) GetLabel() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Label); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Label); ok {
 			return x.Label
 		}
 	}
@@ -621,7 +580,7 @@ func (x *Value) GetLabel() string {
 
 func (x *Value) GetList() *List {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_List); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_List); ok {
 			return x.List
 		}
 	}
@@ -630,7 +589,7 @@ func (x *Value) GetList() *List {
 
 func (x *Value) GetMacro() *Macro {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Macro); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Macro); ok {
 			return x.Macro
 		}
 	}
@@ -639,7 +598,7 @@ func (x *Value) GetMacro() *Macro {
 
 func (x *Value) GetModuleExtension() *ModuleExtension {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_ModuleExtension); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_ModuleExtension); ok {
 			return x.ModuleExtension
 		}
 	}
@@ -648,7 +607,7 @@ func (x *Value) GetModuleExtension() *ModuleExtension {
 
 func (x *Value) GetNone() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_None); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_None); ok {
 			return x.None
 		}
 	}
@@ -657,7 +616,7 @@ func (x *Value) GetNone() *emptypb.Empty {
 
 func (x *Value) GetProvider() *Provider {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Provider); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Provider); ok {
 			return x.Provider
 		}
 	}
@@ -666,7 +625,7 @@ func (x *Value) GetProvider() *Provider {
 
 func (x *Value) GetRepositoryRule() *RepositoryRule {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_RepositoryRule); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_RepositoryRule); ok {
 			return x.RepositoryRule
 		}
 	}
@@ -675,7 +634,7 @@ func (x *Value) GetRepositoryRule() *RepositoryRule {
 
 func (x *Value) GetRule() *Rule {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Rule); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Rule); ok {
 			return x.Rule
 		}
 	}
@@ -684,7 +643,7 @@ func (x *Value) GetRule() *Rule {
 
 func (x *Value) GetSelect() *Select {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Select); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Select); ok {
 			return x.Select
 		}
 	}
@@ -693,7 +652,7 @@ func (x *Value) GetSelect() *Select {
 
 func (x *Value) GetSet() *Set {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Set); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Set); ok {
 			return x.Set
 		}
 	}
@@ -702,7 +661,7 @@ func (x *Value) GetSet() *Set {
 
 func (x *Value) GetStr() *filesystem.MaybeInlineFileContents {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Str); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Str); ok {
 			return x.Str
 		}
 	}
@@ -711,7 +670,7 @@ func (x *Value) GetStr() *filesystem.MaybeInlineFileContents {
 
 func (x *Value) GetStruct() *Struct {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Struct); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Struct); ok {
 			return x.Struct
 		}
 	}
@@ -720,7 +679,7 @@ func (x *Value) GetStruct() *Struct {
 
 func (x *Value) GetSubrule() *Subrule {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Subrule); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Subrule); ok {
 			return x.Subrule
 		}
 	}
@@ -729,7 +688,7 @@ func (x *Value) GetSubrule() *Subrule {
 
 func (x *Value) GetTagClass() *TagClass {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_TagClass); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_TagClass); ok {
 			return x.TagClass
 		}
 	}
@@ -738,7 +697,7 @@ func (x *Value) GetTagClass() *TagClass {
 
 func (x *Value) GetTargetReference() *TargetReference {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_TargetReference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_TargetReference); ok {
 			return x.TargetReference
 		}
 	}
@@ -747,7 +706,7 @@ func (x *Value) GetTargetReference() *TargetReference {
 
 func (x *Value) GetToolchainType() *ToolchainType {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_ToolchainType); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_ToolchainType); ok {
 			return x.ToolchainType
 		}
 	}
@@ -756,7 +715,7 @@ func (x *Value) GetToolchainType() *ToolchainType {
 
 func (x *Value) GetTransition() *Transition {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Transition); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Transition); ok {
 			return x.Transition
 		}
 	}
@@ -765,197 +724,1072 @@ func (x *Value) GetTransition() *Transition {
 
 func (x *Value) GetTuple() *Tuple {
 	if x != nil {
-		if x, ok := x.Kind.(*Value_Tuple); ok {
+		if x, ok := x.xxx_hidden_Kind.(*value_Tuple); ok {
 			return x.Tuple
 		}
 	}
 	return nil
 }
 
+func (x *Value) SetAspect(v *Aspect) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Aspect{v}
+}
+
+func (x *Value) SetAttr(v *Attr) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Attr{v}
+}
+
+func (x *Value) SetBool(v bool) {
+	x.xxx_hidden_Kind = &value_Bool{v}
+}
+
+func (x *Value) SetBuiltin(v string) {
+	x.xxx_hidden_Kind = &value_Builtin{v}
+}
+
+func (x *Value) SetBytes(v *filesystem.MaybeInlineFileContents) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Bytes{v}
+}
+
+func (x *Value) SetDepset(v *Depset) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Depset{v}
+}
+
+func (x *Value) SetDict(v *Dict) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Dict{v}
+}
+
+func (x *Value) SetExecGroup(v *ExecGroup) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_ExecGroup{v}
+}
+
+func (x *Value) SetFile(v *File) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_File{v}
+}
+
+func (x *Value) SetFunction(v *Function) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Function{v}
+}
+
+func (x *Value) SetInt(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Kind = &value_Int{v}
+}
+
+func (x *Value) SetLabel(v string) {
+	x.xxx_hidden_Kind = &value_Label{v}
+}
+
+func (x *Value) SetList(v *List) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_List{v}
+}
+
+func (x *Value) SetMacro(v *Macro) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Macro{v}
+}
+
+func (x *Value) SetModuleExtension(v *ModuleExtension) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_ModuleExtension{v}
+}
+
+func (x *Value) SetNone(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_None{v}
+}
+
+func (x *Value) SetProvider(v *Provider) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Provider{v}
+}
+
+func (x *Value) SetRepositoryRule(v *RepositoryRule) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_RepositoryRule{v}
+}
+
+func (x *Value) SetRule(v *Rule) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Rule{v}
+}
+
+func (x *Value) SetSelect(v *Select) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Select{v}
+}
+
+func (x *Value) SetSet(v *Set) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Set{v}
+}
+
+func (x *Value) SetStr(v *filesystem.MaybeInlineFileContents) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Str{v}
+}
+
+func (x *Value) SetStruct(v *Struct) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Struct{v}
+}
+
+func (x *Value) SetSubrule(v *Subrule) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Subrule{v}
+}
+
+func (x *Value) SetTagClass(v *TagClass) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_TagClass{v}
+}
+
+func (x *Value) SetTargetReference(v *TargetReference) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_TargetReference{v}
+}
+
+func (x *Value) SetToolchainType(v *ToolchainType) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_ToolchainType{v}
+}
+
+func (x *Value) SetTransition(v *Transition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Transition{v}
+}
+
+func (x *Value) SetTuple(v *Tuple) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &value_Tuple{v}
+}
+
+func (x *Value) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Value) HasAspect() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Aspect)
+	return ok
+}
+
+func (x *Value) HasAttr() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Attr)
+	return ok
+}
+
+func (x *Value) HasBool() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Bool)
+	return ok
+}
+
+func (x *Value) HasBuiltin() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Builtin)
+	return ok
+}
+
+func (x *Value) HasBytes() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Bytes)
+	return ok
+}
+
+func (x *Value) HasDepset() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Depset)
+	return ok
+}
+
+func (x *Value) HasDict() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Dict)
+	return ok
+}
+
+func (x *Value) HasExecGroup() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_ExecGroup)
+	return ok
+}
+
+func (x *Value) HasFile() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_File)
+	return ok
+}
+
+func (x *Value) HasFunction() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Function)
+	return ok
+}
+
+func (x *Value) HasInt() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Int)
+	return ok
+}
+
+func (x *Value) HasLabel() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Label)
+	return ok
+}
+
+func (x *Value) HasList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_List)
+	return ok
+}
+
+func (x *Value) HasMacro() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Macro)
+	return ok
+}
+
+func (x *Value) HasModuleExtension() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_ModuleExtension)
+	return ok
+}
+
+func (x *Value) HasNone() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_None)
+	return ok
+}
+
+func (x *Value) HasProvider() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Provider)
+	return ok
+}
+
+func (x *Value) HasRepositoryRule() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_RepositoryRule)
+	return ok
+}
+
+func (x *Value) HasRule() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Rule)
+	return ok
+}
+
+func (x *Value) HasSelect() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Select)
+	return ok
+}
+
+func (x *Value) HasSet() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Set)
+	return ok
+}
+
+func (x *Value) HasStr() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Str)
+	return ok
+}
+
+func (x *Value) HasStruct() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Struct)
+	return ok
+}
+
+func (x *Value) HasSubrule() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Subrule)
+	return ok
+}
+
+func (x *Value) HasTagClass() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_TagClass)
+	return ok
+}
+
+func (x *Value) HasTargetReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_TargetReference)
+	return ok
+}
+
+func (x *Value) HasToolchainType() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_ToolchainType)
+	return ok
+}
+
+func (x *Value) HasTransition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Transition)
+	return ok
+}
+
+func (x *Value) HasTuple() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*value_Tuple)
+	return ok
+}
+
+func (x *Value) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Value) ClearAspect() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Aspect); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearAttr() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Attr); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearBool() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Bool); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearBuiltin() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Builtin); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearBytes() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Bytes); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearDepset() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Depset); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearDict() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Dict); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearExecGroup() {
+	if _, ok := x.xxx_hidden_Kind.(*value_ExecGroup); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearFile() {
+	if _, ok := x.xxx_hidden_Kind.(*value_File); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearFunction() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Function); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearInt() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Int); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearLabel() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Label); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearList() {
+	if _, ok := x.xxx_hidden_Kind.(*value_List); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearMacro() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Macro); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearModuleExtension() {
+	if _, ok := x.xxx_hidden_Kind.(*value_ModuleExtension); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearNone() {
+	if _, ok := x.xxx_hidden_Kind.(*value_None); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearProvider() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Provider); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearRepositoryRule() {
+	if _, ok := x.xxx_hidden_Kind.(*value_RepositoryRule); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearRule() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Rule); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearSelect() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Select); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearSet() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Set); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearStr() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Str); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearStruct() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Struct); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearSubrule() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Subrule); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearTagClass() {
+	if _, ok := x.xxx_hidden_Kind.(*value_TagClass); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearTargetReference() {
+	if _, ok := x.xxx_hidden_Kind.(*value_TargetReference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearToolchainType() {
+	if _, ok := x.xxx_hidden_Kind.(*value_ToolchainType); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearTransition() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Transition); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Value) ClearTuple() {
+	if _, ok := x.xxx_hidden_Kind.(*value_Tuple); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Value_Kind_not_set_case case_Value_Kind = 0
+const Value_Aspect_case case_Value_Kind = 1
+const Value_Attr_case case_Value_Kind = 2
+const Value_Bool_case case_Value_Kind = 3
+const Value_Builtin_case case_Value_Kind = 4
+const Value_Bytes_case case_Value_Kind = 5
+const Value_Depset_case case_Value_Kind = 6
+const Value_Dict_case case_Value_Kind = 7
+const Value_ExecGroup_case case_Value_Kind = 8
+const Value_File_case case_Value_Kind = 9
+const Value_Function_case case_Value_Kind = 10
+const Value_Int_case case_Value_Kind = 11
+const Value_Label_case case_Value_Kind = 12
+const Value_List_case case_Value_Kind = 13
+const Value_Macro_case case_Value_Kind = 30
+const Value_ModuleExtension_case case_Value_Kind = 14
+const Value_None_case case_Value_Kind = 15
+const Value_Provider_case case_Value_Kind = 16
+const Value_RepositoryRule_case case_Value_Kind = 17
+const Value_Rule_case case_Value_Kind = 18
+const Value_Select_case case_Value_Kind = 20
+const Value_Set_case case_Value_Kind = 21
+const Value_Str_case case_Value_Kind = 22
+const Value_Struct_case case_Value_Kind = 23
+const Value_Subrule_case case_Value_Kind = 24
+const Value_TagClass_case case_Value_Kind = 25
+const Value_TargetReference_case case_Value_Kind = 26
+const Value_ToolchainType_case case_Value_Kind = 27
+const Value_Transition_case case_Value_Kind = 28
+const Value_Tuple_case case_Value_Kind = 29
+
+func (x *Value) WhichKind() case_Value_Kind {
+	if x == nil {
+		return Value_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *value_Aspect:
+		return Value_Aspect_case
+	case *value_Attr:
+		return Value_Attr_case
+	case *value_Bool:
+		return Value_Bool_case
+	case *value_Builtin:
+		return Value_Builtin_case
+	case *value_Bytes:
+		return Value_Bytes_case
+	case *value_Depset:
+		return Value_Depset_case
+	case *value_Dict:
+		return Value_Dict_case
+	case *value_ExecGroup:
+		return Value_ExecGroup_case
+	case *value_File:
+		return Value_File_case
+	case *value_Function:
+		return Value_Function_case
+	case *value_Int:
+		return Value_Int_case
+	case *value_Label:
+		return Value_Label_case
+	case *value_List:
+		return Value_List_case
+	case *value_Macro:
+		return Value_Macro_case
+	case *value_ModuleExtension:
+		return Value_ModuleExtension_case
+	case *value_None:
+		return Value_None_case
+	case *value_Provider:
+		return Value_Provider_case
+	case *value_RepositoryRule:
+		return Value_RepositoryRule_case
+	case *value_Rule:
+		return Value_Rule_case
+	case *value_Select:
+		return Value_Select_case
+	case *value_Set:
+		return Value_Set_case
+	case *value_Str:
+		return Value_Str_case
+	case *value_Struct:
+		return Value_Struct_case
+	case *value_Subrule:
+		return Value_Subrule_case
+	case *value_TagClass:
+		return Value_TagClass_case
+	case *value_TargetReference:
+		return Value_TargetReference_case
+	case *value_ToolchainType:
+		return Value_ToolchainType_case
+	case *value_Transition:
+		return Value_Transition_case
+	case *value_Tuple:
+		return Value_Tuple_case
+	default:
+		return Value_Kind_not_set_case
+	}
+}
+
+type Value_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Aspect          *Aspect
+	Attr            *Attr
+	Bool            *bool
+	Builtin         *string
+	Bytes           *filesystem.MaybeInlineFileContents
+	Depset          *Depset
+	Dict            *Dict
+	ExecGroup       *ExecGroup
+	File            *File
+	Function        *Function
+	Int             []byte
+	Label           *string
+	List            *List
+	Macro           *Macro
+	ModuleExtension *ModuleExtension
+	None            *emptypb.Empty
+	Provider        *Provider
+	RepositoryRule  *RepositoryRule
+	Rule            *Rule
+	Select          *Select
+	Set             *Set
+	Str             *filesystem.MaybeInlineFileContents
+	Struct          *Struct
+	Subrule         *Subrule
+	TagClass        *TagClass
+	TargetReference *TargetReference
+	ToolchainType   *ToolchainType
+	Transition      *Transition
+	Tuple           *Tuple
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Value_builder) Build() *Value {
+	m0 := &Value{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Aspect != nil {
+		x.xxx_hidden_Kind = &value_Aspect{b.Aspect}
+	}
+	if b.Attr != nil {
+		x.xxx_hidden_Kind = &value_Attr{b.Attr}
+	}
+	if b.Bool != nil {
+		x.xxx_hidden_Kind = &value_Bool{*b.Bool}
+	}
+	if b.Builtin != nil {
+		x.xxx_hidden_Kind = &value_Builtin{*b.Builtin}
+	}
+	if b.Bytes != nil {
+		x.xxx_hidden_Kind = &value_Bytes{b.Bytes}
+	}
+	if b.Depset != nil {
+		x.xxx_hidden_Kind = &value_Depset{b.Depset}
+	}
+	if b.Dict != nil {
+		x.xxx_hidden_Kind = &value_Dict{b.Dict}
+	}
+	if b.ExecGroup != nil {
+		x.xxx_hidden_Kind = &value_ExecGroup{b.ExecGroup}
+	}
+	if b.File != nil {
+		x.xxx_hidden_Kind = &value_File{b.File}
+	}
+	if b.Function != nil {
+		x.xxx_hidden_Kind = &value_Function{b.Function}
+	}
+	if b.Int != nil {
+		x.xxx_hidden_Kind = &value_Int{b.Int}
+	}
+	if b.Label != nil {
+		x.xxx_hidden_Kind = &value_Label{*b.Label}
+	}
+	if b.List != nil {
+		x.xxx_hidden_Kind = &value_List{b.List}
+	}
+	if b.Macro != nil {
+		x.xxx_hidden_Kind = &value_Macro{b.Macro}
+	}
+	if b.ModuleExtension != nil {
+		x.xxx_hidden_Kind = &value_ModuleExtension{b.ModuleExtension}
+	}
+	if b.None != nil {
+		x.xxx_hidden_Kind = &value_None{b.None}
+	}
+	if b.Provider != nil {
+		x.xxx_hidden_Kind = &value_Provider{b.Provider}
+	}
+	if b.RepositoryRule != nil {
+		x.xxx_hidden_Kind = &value_RepositoryRule{b.RepositoryRule}
+	}
+	if b.Rule != nil {
+		x.xxx_hidden_Kind = &value_Rule{b.Rule}
+	}
+	if b.Select != nil {
+		x.xxx_hidden_Kind = &value_Select{b.Select}
+	}
+	if b.Set != nil {
+		x.xxx_hidden_Kind = &value_Set{b.Set}
+	}
+	if b.Str != nil {
+		x.xxx_hidden_Kind = &value_Str{b.Str}
+	}
+	if b.Struct != nil {
+		x.xxx_hidden_Kind = &value_Struct{b.Struct}
+	}
+	if b.Subrule != nil {
+		x.xxx_hidden_Kind = &value_Subrule{b.Subrule}
+	}
+	if b.TagClass != nil {
+		x.xxx_hidden_Kind = &value_TagClass{b.TagClass}
+	}
+	if b.TargetReference != nil {
+		x.xxx_hidden_Kind = &value_TargetReference{b.TargetReference}
+	}
+	if b.ToolchainType != nil {
+		x.xxx_hidden_Kind = &value_ToolchainType{b.ToolchainType}
+	}
+	if b.Transition != nil {
+		x.xxx_hidden_Kind = &value_Transition{b.Transition}
+	}
+	if b.Tuple != nil {
+		x.xxx_hidden_Kind = &value_Tuple{b.Tuple}
+	}
+	return m0
+}
+
+type case_Value_Kind protoreflect.FieldNumber
+
+func (x case_Value_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[1].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isValue_Kind interface {
 	isValue_Kind()
 }
 
-type Value_Aspect struct {
-	Aspect *Aspect `protobuf:"bytes,1,opt,name=aspect,proto3,oneof"`
+type value_Aspect struct {
+	Aspect *Aspect `protobuf:"bytes,1,opt,name=aspect,oneof"`
 }
 
-type Value_Attr struct {
-	Attr *Attr `protobuf:"bytes,2,opt,name=attr,proto3,oneof"`
+type value_Attr struct {
+	Attr *Attr `protobuf:"bytes,2,opt,name=attr,oneof"`
 }
 
-type Value_Bool struct {
-	Bool bool `protobuf:"varint,3,opt,name=bool,proto3,oneof"`
+type value_Bool struct {
+	Bool bool `protobuf:"varint,3,opt,name=bool,oneof"`
 }
 
-type Value_Builtin struct {
-	Builtin string `protobuf:"bytes,4,opt,name=builtin,proto3,oneof"`
+type value_Builtin struct {
+	Builtin string `protobuf:"bytes,4,opt,name=builtin,oneof"`
 }
 
-type Value_Bytes struct {
-	Bytes *filesystem.MaybeInlineFileContents `protobuf:"bytes,5,opt,name=bytes,proto3,oneof"`
+type value_Bytes struct {
+	Bytes *filesystem.MaybeInlineFileContents `protobuf:"bytes,5,opt,name=bytes,oneof"`
 }
 
-type Value_Depset struct {
-	Depset *Depset `protobuf:"bytes,6,opt,name=depset,proto3,oneof"`
+type value_Depset struct {
+	Depset *Depset `protobuf:"bytes,6,opt,name=depset,oneof"`
 }
 
-type Value_Dict struct {
-	Dict *Dict `protobuf:"bytes,7,opt,name=dict,proto3,oneof"`
+type value_Dict struct {
+	Dict *Dict `protobuf:"bytes,7,opt,name=dict,oneof"`
 }
 
-type Value_ExecGroup struct {
-	ExecGroup *ExecGroup `protobuf:"bytes,8,opt,name=exec_group,json=execGroup,proto3,oneof"`
+type value_ExecGroup struct {
+	ExecGroup *ExecGroup `protobuf:"bytes,8,opt,name=exec_group,json=execGroup,oneof"`
 }
 
-type Value_File struct {
-	File *File `protobuf:"bytes,9,opt,name=file,proto3,oneof"`
+type value_File struct {
+	File *File `protobuf:"bytes,9,opt,name=file,oneof"`
 }
 
-type Value_Function struct {
-	Function *Function `protobuf:"bytes,10,opt,name=function,proto3,oneof"`
+type value_Function struct {
+	Function *Function `protobuf:"bytes,10,opt,name=function,oneof"`
 }
 
-type Value_Int struct {
-	Int []byte `protobuf:"bytes,11,opt,name=int,proto3,oneof"`
+type value_Int struct {
+	Int []byte `protobuf:"bytes,11,opt,name=int,oneof"`
 }
 
-type Value_Label struct {
-	Label string `protobuf:"bytes,12,opt,name=label,proto3,oneof"`
+type value_Label struct {
+	Label string `protobuf:"bytes,12,opt,name=label,oneof"`
 }
 
-type Value_List struct {
-	List *List `protobuf:"bytes,13,opt,name=list,proto3,oneof"`
+type value_List struct {
+	List *List `protobuf:"bytes,13,opt,name=list,oneof"`
 }
 
-type Value_Macro struct {
-	Macro *Macro `protobuf:"bytes,30,opt,name=macro,proto3,oneof"`
+type value_Macro struct {
+	Macro *Macro `protobuf:"bytes,30,opt,name=macro,oneof"`
 }
 
-type Value_ModuleExtension struct {
-	ModuleExtension *ModuleExtension `protobuf:"bytes,14,opt,name=module_extension,json=moduleExtension,proto3,oneof"`
+type value_ModuleExtension struct {
+	ModuleExtension *ModuleExtension `protobuf:"bytes,14,opt,name=module_extension,json=moduleExtension,oneof"`
 }
 
-type Value_None struct {
-	None *emptypb.Empty `protobuf:"bytes,15,opt,name=none,proto3,oneof"`
+type value_None struct {
+	None *emptypb.Empty `protobuf:"bytes,15,opt,name=none,oneof"`
 }
 
-type Value_Provider struct {
-	Provider *Provider `protobuf:"bytes,16,opt,name=provider,proto3,oneof"`
+type value_Provider struct {
+	Provider *Provider `protobuf:"bytes,16,opt,name=provider,oneof"`
 }
 
-type Value_RepositoryRule struct {
-	RepositoryRule *RepositoryRule `protobuf:"bytes,17,opt,name=repository_rule,json=repositoryRule,proto3,oneof"`
+type value_RepositoryRule struct {
+	RepositoryRule *RepositoryRule `protobuf:"bytes,17,opt,name=repository_rule,json=repositoryRule,oneof"`
 }
 
-type Value_Rule struct {
-	Rule *Rule `protobuf:"bytes,18,opt,name=rule,proto3,oneof"`
+type value_Rule struct {
+	Rule *Rule `protobuf:"bytes,18,opt,name=rule,oneof"`
 }
 
-type Value_Select struct {
-	Select *Select `protobuf:"bytes,20,opt,name=select,proto3,oneof"`
+type value_Select struct {
+	Select *Select `protobuf:"bytes,20,opt,name=select,oneof"`
 }
 
-type Value_Set struct {
-	Set *Set `protobuf:"bytes,21,opt,name=set,proto3,oneof"`
+type value_Set struct {
+	Set *Set `protobuf:"bytes,21,opt,name=set,oneof"`
 }
 
-type Value_Str struct {
-	Str *filesystem.MaybeInlineFileContents `protobuf:"bytes,22,opt,name=str,proto3,oneof"`
+type value_Str struct {
+	Str *filesystem.MaybeInlineFileContents `protobuf:"bytes,22,opt,name=str,oneof"`
 }
 
-type Value_Struct struct {
-	Struct *Struct `protobuf:"bytes,23,opt,name=struct,proto3,oneof"`
+type value_Struct struct {
+	Struct *Struct `protobuf:"bytes,23,opt,name=struct,oneof"`
 }
 
-type Value_Subrule struct {
-	Subrule *Subrule `protobuf:"bytes,24,opt,name=subrule,proto3,oneof"`
+type value_Subrule struct {
+	Subrule *Subrule `protobuf:"bytes,24,opt,name=subrule,oneof"`
 }
 
-type Value_TagClass struct {
-	TagClass *TagClass `protobuf:"bytes,25,opt,name=tag_class,json=tagClass,proto3,oneof"`
+type value_TagClass struct {
+	TagClass *TagClass `protobuf:"bytes,25,opt,name=tag_class,json=tagClass,oneof"`
 }
 
-type Value_TargetReference struct {
-	TargetReference *TargetReference `protobuf:"bytes,26,opt,name=target_reference,json=targetReference,proto3,oneof"`
+type value_TargetReference struct {
+	TargetReference *TargetReference `protobuf:"bytes,26,opt,name=target_reference,json=targetReference,oneof"`
 }
 
-type Value_ToolchainType struct {
-	ToolchainType *ToolchainType `protobuf:"bytes,27,opt,name=toolchain_type,json=toolchainType,proto3,oneof"`
+type value_ToolchainType struct {
+	ToolchainType *ToolchainType `protobuf:"bytes,27,opt,name=toolchain_type,json=toolchainType,oneof"`
 }
 
-type Value_Transition struct {
-	Transition *Transition `protobuf:"bytes,28,opt,name=transition,proto3,oneof"`
+type value_Transition struct {
+	Transition *Transition `protobuf:"bytes,28,opt,name=transition,oneof"`
 }
 
-type Value_Tuple struct {
-	Tuple *Tuple `protobuf:"bytes,29,opt,name=tuple,proto3,oneof"`
+type value_Tuple struct {
+	Tuple *Tuple `protobuf:"bytes,29,opt,name=tuple,oneof"`
 }
 
-func (*Value_Aspect) isValue_Kind() {}
+func (*value_Aspect) isValue_Kind() {}
 
-func (*Value_Attr) isValue_Kind() {}
+func (*value_Attr) isValue_Kind() {}
 
-func (*Value_Bool) isValue_Kind() {}
+func (*value_Bool) isValue_Kind() {}
 
-func (*Value_Builtin) isValue_Kind() {}
+func (*value_Builtin) isValue_Kind() {}
 
-func (*Value_Bytes) isValue_Kind() {}
+func (*value_Bytes) isValue_Kind() {}
 
-func (*Value_Depset) isValue_Kind() {}
+func (*value_Depset) isValue_Kind() {}
 
-func (*Value_Dict) isValue_Kind() {}
+func (*value_Dict) isValue_Kind() {}
 
-func (*Value_ExecGroup) isValue_Kind() {}
+func (*value_ExecGroup) isValue_Kind() {}
 
-func (*Value_File) isValue_Kind() {}
+func (*value_File) isValue_Kind() {}
 
-func (*Value_Function) isValue_Kind() {}
+func (*value_Function) isValue_Kind() {}
 
-func (*Value_Int) isValue_Kind() {}
+func (*value_Int) isValue_Kind() {}
 
-func (*Value_Label) isValue_Kind() {}
+func (*value_Label) isValue_Kind() {}
 
-func (*Value_List) isValue_Kind() {}
+func (*value_List) isValue_Kind() {}
 
-func (*Value_Macro) isValue_Kind() {}
+func (*value_Macro) isValue_Kind() {}
 
-func (*Value_ModuleExtension) isValue_Kind() {}
+func (*value_ModuleExtension) isValue_Kind() {}
 
-func (*Value_None) isValue_Kind() {}
+func (*value_None) isValue_Kind() {}
 
-func (*Value_Provider) isValue_Kind() {}
+func (*value_Provider) isValue_Kind() {}
 
-func (*Value_RepositoryRule) isValue_Kind() {}
+func (*value_RepositoryRule) isValue_Kind() {}
 
-func (*Value_Rule) isValue_Kind() {}
+func (*value_Rule) isValue_Kind() {}
 
-func (*Value_Select) isValue_Kind() {}
+func (*value_Select) isValue_Kind() {}
 
-func (*Value_Set) isValue_Kind() {}
+func (*value_Set) isValue_Kind() {}
 
-func (*Value_Str) isValue_Kind() {}
+func (*value_Str) isValue_Kind() {}
 
-func (*Value_Struct) isValue_Kind() {}
+func (*value_Struct) isValue_Kind() {}
 
-func (*Value_Subrule) isValue_Kind() {}
+func (*value_Subrule) isValue_Kind() {}
 
-func (*Value_TagClass) isValue_Kind() {}
+func (*value_TagClass) isValue_Kind() {}
 
-func (*Value_TargetReference) isValue_Kind() {}
+func (*value_TargetReference) isValue_Kind() {}
 
-func (*Value_ToolchainType) isValue_Kind() {}
+func (*value_ToolchainType) isValue_Kind() {}
 
-func (*Value_Transition) isValue_Kind() {}
+func (*value_Transition) isValue_Kind() {}
 
-func (*Value_Tuple) isValue_Kind() {}
+func (*value_Tuple) isValue_Kind() {}
 
 type Alias struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Actual        *Select_Group          `protobuf:"bytes,1,opt,name=actual,proto3" json:"actual,omitempty"`
-	Visibility    *PackageGroup          `protobuf:"bytes,2,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Actual     *Select_Group          `protobuf:"bytes,1,opt,name=actual"`
+	xxx_hidden_Visibility *PackageGroup          `protobuf:"bytes,2,opt,name=visibility"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Alias) Reset() {
@@ -983,34 +1817,71 @@ func (x *Alias) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Alias.ProtoReflect.Descriptor instead.
-func (*Alias) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *Alias) GetActual() *Select_Group {
 	if x != nil {
-		return x.Actual
+		return x.xxx_hidden_Actual
 	}
 	return nil
 }
 
 func (x *Alias) GetVisibility() *PackageGroup {
 	if x != nil {
-		return x.Visibility
+		return x.xxx_hidden_Visibility
 	}
 	return nil
 }
 
+func (x *Alias) SetActual(v *Select_Group) {
+	x.xxx_hidden_Actual = v
+}
+
+func (x *Alias) SetVisibility(v *PackageGroup) {
+	x.xxx_hidden_Visibility = v
+}
+
+func (x *Alias) HasActual() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Actual != nil
+}
+
+func (x *Alias) HasVisibility() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Visibility != nil
+}
+
+func (x *Alias) ClearActual() {
+	x.xxx_hidden_Actual = nil
+}
+
+func (x *Alias) ClearVisibility() {
+	x.xxx_hidden_Visibility = nil
+}
+
+type Alias_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Actual     *Select_Group
+	Visibility *PackageGroup
+}
+
+func (b0 Alias_builder) Build() *Alias {
+	m0 := &Alias{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Actual = b.Actual
+	x.xxx_hidden_Visibility = b.Visibility
+	return m0
+}
+
 type Aspect struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Aspect_Reference
-	//	*Aspect_Definition_
-	Kind          isAspect_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isAspect_Kind          `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Aspect) Reset() {
@@ -1038,21 +1909,9 @@ func (x *Aspect) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Aspect.ProtoReflect.Descriptor instead.
-func (*Aspect) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Aspect) GetKind() isAspect_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Aspect) GetReference() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Aspect_Reference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*aspect_Reference); ok {
 			return x.Reference
 		}
 	}
@@ -1061,35 +1920,136 @@ func (x *Aspect) GetReference() string {
 
 func (x *Aspect) GetDefinition() *Aspect_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Aspect_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*aspect_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *Aspect) SetReference(v string) {
+	x.xxx_hidden_Kind = &aspect_Reference{v}
+}
+
+func (x *Aspect) SetDefinition(v *Aspect_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &aspect_Definition_{v}
+}
+
+func (x *Aspect) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Aspect) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*aspect_Reference)
+	return ok
+}
+
+func (x *Aspect) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*aspect_Definition_)
+	return ok
+}
+
+func (x *Aspect) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Aspect) ClearReference() {
+	if _, ok := x.xxx_hidden_Kind.(*aspect_Reference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Aspect) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*aspect_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Aspect_Kind_not_set_case case_Aspect_Kind = 0
+const Aspect_Reference_case case_Aspect_Kind = 1
+const Aspect_Definition_case case_Aspect_Kind = 2
+
+func (x *Aspect) WhichKind() case_Aspect_Kind {
+	if x == nil {
+		return Aspect_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *aspect_Reference:
+		return Aspect_Reference_case
+	case *aspect_Definition_:
+		return Aspect_Definition_case
+	default:
+		return Aspect_Kind_not_set_case
+	}
+}
+
+type Aspect_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Reference  *string
+	Definition *Aspect_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Aspect_builder) Build() *Aspect {
+	m0 := &Aspect{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Reference != nil {
+		x.xxx_hidden_Kind = &aspect_Reference{*b.Reference}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &aspect_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_Aspect_Kind protoreflect.FieldNumber
+
+func (x case_Aspect_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[3].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isAspect_Kind interface {
 	isAspect_Kind()
 }
 
-type Aspect_Reference struct {
-	Reference string `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type aspect_Reference struct {
+	Reference string `protobuf:"bytes,1,opt,name=reference,oneof"`
 }
 
-type Aspect_Definition_ struct {
-	Definition *Aspect_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type aspect_Definition_ struct {
+	Definition *Aspect_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*Aspect_Reference) isAspect_Kind() {}
+func (*aspect_Reference) isAspect_Kind() {}
 
-func (*Aspect_Definition_) isAspect_Kind() {}
+func (*aspect_Definition_) isAspect_Kind() {}
 
 type AppliedAspect struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Identifier    string                   `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	Parameters    *core.DecodableReference `protobuf:"bytes,2,opt,name=parameters,proto3" json:"parameters,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Identifier string                   `protobuf:"bytes,1,opt,name=identifier"`
+	xxx_hidden_Parameters *core.DecodableReference `protobuf:"bytes,2,opt,name=parameters"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *AppliedAspect) Reset() {
@@ -1117,31 +2077,61 @@ func (x *AppliedAspect) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AppliedAspect.ProtoReflect.Descriptor instead.
-func (*AppliedAspect) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *AppliedAspect) GetIdentifier() string {
 	if x != nil {
-		return x.Identifier
+		return x.xxx_hidden_Identifier
 	}
 	return ""
 }
 
 func (x *AppliedAspect) GetParameters() *core.DecodableReference {
 	if x != nil {
-		return x.Parameters
+		return x.xxx_hidden_Parameters
 	}
 	return nil
 }
 
+func (x *AppliedAspect) SetIdentifier(v string) {
+	x.xxx_hidden_Identifier = v
+}
+
+func (x *AppliedAspect) SetParameters(v *core.DecodableReference) {
+	x.xxx_hidden_Parameters = v
+}
+
+func (x *AppliedAspect) HasParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Parameters != nil
+}
+
+func (x *AppliedAspect) ClearParameters() {
+	x.xxx_hidden_Parameters = nil
+}
+
+type AppliedAspect_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Identifier string
+	Parameters *core.DecodableReference
+}
+
+func (b0 AppliedAspect_builder) Build() *AppliedAspect {
+	m0 := &AppliedAspect{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Identifier = b.Identifier
+	x.xxx_hidden_Parameters = b.Parameters
+	return m0
+}
+
 type TargetVariant struct {
-	state                  protoimpl.MessageState   `protogen:"open.v1"`
-	ConfigurationReference *core.DecodableReference `protobuf:"bytes,1,opt,name=configuration_reference,json=configurationReference,proto3" json:"configuration_reference,omitempty"`
-	Aspects                []*AppliedAspect         `protobuf:"bytes,2,rep,name=aspects,proto3" json:"aspects,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_ConfigurationReference *core.DecodableReference `protobuf:"bytes,1,opt,name=configuration_reference,json=configurationReference"`
+	xxx_hidden_Aspects                *[]*AppliedAspect        `protobuf:"bytes,2,rep,name=aspects"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *TargetVariant) Reset() {
@@ -1169,47 +2159,64 @@ func (x *TargetVariant) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TargetVariant.ProtoReflect.Descriptor instead.
-func (*TargetVariant) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *TargetVariant) GetConfigurationReference() *core.DecodableReference {
 	if x != nil {
-		return x.ConfigurationReference
+		return x.xxx_hidden_ConfigurationReference
 	}
 	return nil
 }
 
 func (x *TargetVariant) GetAspects() []*AppliedAspect {
 	if x != nil {
-		return x.Aspects
+		if x.xxx_hidden_Aspects != nil {
+			return *x.xxx_hidden_Aspects
+		}
 	}
 	return nil
 }
 
+func (x *TargetVariant) SetConfigurationReference(v *core.DecodableReference) {
+	x.xxx_hidden_ConfigurationReference = v
+}
+
+func (x *TargetVariant) SetAspects(v []*AppliedAspect) {
+	x.xxx_hidden_Aspects = &v
+}
+
+func (x *TargetVariant) HasConfigurationReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ConfigurationReference != nil
+}
+
+func (x *TargetVariant) ClearConfigurationReference() {
+	x.xxx_hidden_ConfigurationReference = nil
+}
+
+type TargetVariant_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ConfigurationReference *core.DecodableReference
+	Aspects                []*AppliedAspect
+}
+
+func (b0 TargetVariant_builder) Build() *TargetVariant {
+	m0 := &TargetVariant{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ConfigurationReference = b.ConfigurationReference
+	x.xxx_hidden_Aspects = &b.Aspects
+	return m0
+}
+
 type Attr struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	Default      *Value                 `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
-	Configurable bool                   `protobuf:"varint,15,opt,name=configurable,proto3" json:"configurable,omitempty"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*Attr_Bool
-	//	*Attr_Int
-	//	*Attr_IntList
-	//	*Attr_Label
-	//	*Attr_LabelKeyedStringDict
-	//	*Attr_LabelList
-	//	*Attr_Output
-	//	*Attr_OutputList
-	//	*Attr_String_
-	//	*Attr_StringDict
-	//	*Attr_StringList
-	//	*Attr_StringKeyedLabelDict
-	//	*Attr_StringListDict
-	Type          isAttr_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Default      *Value                 `protobuf:"bytes,1,opt,name=default"`
+	xxx_hidden_Configurable bool                   `protobuf:"varint,15,opt,name=configurable"`
+	xxx_hidden_Type         isAttr_Type            `protobuf_oneof:"type"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Attr) Reset() {
@@ -1237,35 +2244,23 @@ func (x *Attr) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr.ProtoReflect.Descriptor instead.
-func (*Attr) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *Attr) GetDefault() *Value {
 	if x != nil {
-		return x.Default
+		return x.xxx_hidden_Default
 	}
 	return nil
 }
 
 func (x *Attr) GetConfigurable() bool {
 	if x != nil {
-		return x.Configurable
+		return x.xxx_hidden_Configurable
 	}
 	return false
 }
 
-func (x *Attr) GetType() isAttr_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *Attr) GetBool() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_Bool); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_Bool); ok {
 			return x.Bool
 		}
 	}
@@ -1274,7 +2269,7 @@ func (x *Attr) GetBool() *emptypb.Empty {
 
 func (x *Attr) GetInt() *Attr_IntType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_Int); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_Int); ok {
 			return x.Int
 		}
 	}
@@ -1283,7 +2278,7 @@ func (x *Attr) GetInt() *Attr_IntType {
 
 func (x *Attr) GetIntList() *Attr_IntListType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_IntList); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_IntList); ok {
 			return x.IntList
 		}
 	}
@@ -1292,7 +2287,7 @@ func (x *Attr) GetIntList() *Attr_IntListType {
 
 func (x *Attr) GetLabel() *Attr_LabelType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_Label); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_Label); ok {
 			return x.Label
 		}
 	}
@@ -1301,7 +2296,7 @@ func (x *Attr) GetLabel() *Attr_LabelType {
 
 func (x *Attr) GetLabelKeyedStringDict() *Attr_LabelKeyedStringDictType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_LabelKeyedStringDict); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_LabelKeyedStringDict); ok {
 			return x.LabelKeyedStringDict
 		}
 	}
@@ -1310,7 +2305,7 @@ func (x *Attr) GetLabelKeyedStringDict() *Attr_LabelKeyedStringDictType {
 
 func (x *Attr) GetLabelList() *Attr_LabelListType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_LabelList); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_LabelList); ok {
 			return x.LabelList
 		}
 	}
@@ -1319,7 +2314,7 @@ func (x *Attr) GetLabelList() *Attr_LabelListType {
 
 func (x *Attr) GetOutput() *Attr_OutputType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_Output); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_Output); ok {
 			return x.Output
 		}
 	}
@@ -1328,16 +2323,16 @@ func (x *Attr) GetOutput() *Attr_OutputType {
 
 func (x *Attr) GetOutputList() *Attr_OutputListType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_OutputList); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_OutputList); ok {
 			return x.OutputList
 		}
 	}
 	return nil
 }
 
-func (x *Attr) GetString_() *Attr_StringType {
+func (x *Attr) GetString() *Attr_StringType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_String_); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_String_); ok {
 			return x.String_
 		}
 	}
@@ -1346,7 +2341,7 @@ func (x *Attr) GetString_() *Attr_StringType {
 
 func (x *Attr) GetStringDict() *Attr_StringDictType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_StringDict); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_StringDict); ok {
 			return x.StringDict
 		}
 	}
@@ -1355,7 +2350,7 @@ func (x *Attr) GetStringDict() *Attr_StringDictType {
 
 func (x *Attr) GetStringList() *Attr_StringListType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_StringList); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_StringList); ok {
 			return x.StringList
 		}
 	}
@@ -1364,7 +2359,7 @@ func (x *Attr) GetStringList() *Attr_StringListType {
 
 func (x *Attr) GetStringKeyedLabelDict() *Attr_StringKeyedLabelDictType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_StringKeyedLabelDict); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_StringKeyedLabelDict); ok {
 			return x.StringKeyedLabelDict
 		}
 	}
@@ -1373,108 +2368,548 @@ func (x *Attr) GetStringKeyedLabelDict() *Attr_StringKeyedLabelDictType {
 
 func (x *Attr) GetStringListDict() *Attr_StringListDictType {
 	if x != nil {
-		if x, ok := x.Type.(*Attr_StringListDict); ok {
+		if x, ok := x.xxx_hidden_Type.(*attr_StringListDict); ok {
 			return x.StringListDict
 		}
 	}
 	return nil
 }
 
+func (x *Attr) SetDefault(v *Value) {
+	x.xxx_hidden_Default = v
+}
+
+func (x *Attr) SetConfigurable(v bool) {
+	x.xxx_hidden_Configurable = v
+}
+
+func (x *Attr) SetBool(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_Bool{v}
+}
+
+func (x *Attr) SetInt(v *Attr_IntType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_Int{v}
+}
+
+func (x *Attr) SetIntList(v *Attr_IntListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_IntList{v}
+}
+
+func (x *Attr) SetLabel(v *Attr_LabelType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_Label{v}
+}
+
+func (x *Attr) SetLabelKeyedStringDict(v *Attr_LabelKeyedStringDictType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_LabelKeyedStringDict{v}
+}
+
+func (x *Attr) SetLabelList(v *Attr_LabelListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_LabelList{v}
+}
+
+func (x *Attr) SetOutput(v *Attr_OutputType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_Output{v}
+}
+
+func (x *Attr) SetOutputList(v *Attr_OutputListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_OutputList{v}
+}
+
+func (x *Attr) SetString(v *Attr_StringType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_String_{v}
+}
+
+func (x *Attr) SetStringDict(v *Attr_StringDictType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_StringDict{v}
+}
+
+func (x *Attr) SetStringList(v *Attr_StringListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_StringList{v}
+}
+
+func (x *Attr) SetStringKeyedLabelDict(v *Attr_StringKeyedLabelDictType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_StringKeyedLabelDict{v}
+}
+
+func (x *Attr) SetStringListDict(v *Attr_StringListDictType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &attr_StringListDict{v}
+}
+
+func (x *Attr) HasDefault() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Default != nil
+}
+
+func (x *Attr) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *Attr) HasBool() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_Bool)
+	return ok
+}
+
+func (x *Attr) HasInt() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_Int)
+	return ok
+}
+
+func (x *Attr) HasIntList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_IntList)
+	return ok
+}
+
+func (x *Attr) HasLabel() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_Label)
+	return ok
+}
+
+func (x *Attr) HasLabelKeyedStringDict() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_LabelKeyedStringDict)
+	return ok
+}
+
+func (x *Attr) HasLabelList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_LabelList)
+	return ok
+}
+
+func (x *Attr) HasOutput() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_Output)
+	return ok
+}
+
+func (x *Attr) HasOutputList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_OutputList)
+	return ok
+}
+
+func (x *Attr) HasString() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_String_)
+	return ok
+}
+
+func (x *Attr) HasStringDict() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_StringDict)
+	return ok
+}
+
+func (x *Attr) HasStringList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_StringList)
+	return ok
+}
+
+func (x *Attr) HasStringKeyedLabelDict() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_StringKeyedLabelDict)
+	return ok
+}
+
+func (x *Attr) HasStringListDict() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*attr_StringListDict)
+	return ok
+}
+
+func (x *Attr) ClearDefault() {
+	x.xxx_hidden_Default = nil
+}
+
+func (x *Attr) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *Attr) ClearBool() {
+	if _, ok := x.xxx_hidden_Type.(*attr_Bool); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearInt() {
+	if _, ok := x.xxx_hidden_Type.(*attr_Int); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearIntList() {
+	if _, ok := x.xxx_hidden_Type.(*attr_IntList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearLabel() {
+	if _, ok := x.xxx_hidden_Type.(*attr_Label); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearLabelKeyedStringDict() {
+	if _, ok := x.xxx_hidden_Type.(*attr_LabelKeyedStringDict); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearLabelList() {
+	if _, ok := x.xxx_hidden_Type.(*attr_LabelList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearOutput() {
+	if _, ok := x.xxx_hidden_Type.(*attr_Output); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearOutputList() {
+	if _, ok := x.xxx_hidden_Type.(*attr_OutputList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearString() {
+	if _, ok := x.xxx_hidden_Type.(*attr_String_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearStringDict() {
+	if _, ok := x.xxx_hidden_Type.(*attr_StringDict); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearStringList() {
+	if _, ok := x.xxx_hidden_Type.(*attr_StringList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearStringKeyedLabelDict() {
+	if _, ok := x.xxx_hidden_Type.(*attr_StringKeyedLabelDict); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *Attr) ClearStringListDict() {
+	if _, ok := x.xxx_hidden_Type.(*attr_StringListDict); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const Attr_Type_not_set_case case_Attr_Type = 0
+const Attr_Bool_case case_Attr_Type = 2
+const Attr_Int_case case_Attr_Type = 3
+const Attr_IntList_case case_Attr_Type = 4
+const Attr_Label_case case_Attr_Type = 5
+const Attr_LabelKeyedStringDict_case case_Attr_Type = 6
+const Attr_LabelList_case case_Attr_Type = 7
+const Attr_Output_case case_Attr_Type = 8
+const Attr_OutputList_case case_Attr_Type = 9
+const Attr_String__case case_Attr_Type = 10
+const Attr_StringDict_case case_Attr_Type = 11
+const Attr_StringList_case case_Attr_Type = 12
+const Attr_StringKeyedLabelDict_case case_Attr_Type = 14
+const Attr_StringListDict_case case_Attr_Type = 13
+
+func (x *Attr) WhichType() case_Attr_Type {
+	if x == nil {
+		return Attr_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *attr_Bool:
+		return Attr_Bool_case
+	case *attr_Int:
+		return Attr_Int_case
+	case *attr_IntList:
+		return Attr_IntList_case
+	case *attr_Label:
+		return Attr_Label_case
+	case *attr_LabelKeyedStringDict:
+		return Attr_LabelKeyedStringDict_case
+	case *attr_LabelList:
+		return Attr_LabelList_case
+	case *attr_Output:
+		return Attr_Output_case
+	case *attr_OutputList:
+		return Attr_OutputList_case
+	case *attr_String_:
+		return Attr_String__case
+	case *attr_StringDict:
+		return Attr_StringDict_case
+	case *attr_StringList:
+		return Attr_StringList_case
+	case *attr_StringKeyedLabelDict:
+		return Attr_StringKeyedLabelDict_case
+	case *attr_StringListDict:
+		return Attr_StringListDict_case
+	default:
+		return Attr_Type_not_set_case
+	}
+}
+
+type Attr_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Default      *Value
+	Configurable bool
+	// Fields of oneof xxx_hidden_Type:
+	Bool                 *emptypb.Empty
+	Int                  *Attr_IntType
+	IntList              *Attr_IntListType
+	Label                *Attr_LabelType
+	LabelKeyedStringDict *Attr_LabelKeyedStringDictType
+	LabelList            *Attr_LabelListType
+	Output               *Attr_OutputType
+	OutputList           *Attr_OutputListType
+	String               *Attr_StringType
+	StringDict           *Attr_StringDictType
+	StringList           *Attr_StringListType
+	StringKeyedLabelDict *Attr_StringKeyedLabelDictType
+	StringListDict       *Attr_StringListDictType
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 Attr_builder) Build() *Attr {
+	m0 := &Attr{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Default = b.Default
+	x.xxx_hidden_Configurable = b.Configurable
+	if b.Bool != nil {
+		x.xxx_hidden_Type = &attr_Bool{b.Bool}
+	}
+	if b.Int != nil {
+		x.xxx_hidden_Type = &attr_Int{b.Int}
+	}
+	if b.IntList != nil {
+		x.xxx_hidden_Type = &attr_IntList{b.IntList}
+	}
+	if b.Label != nil {
+		x.xxx_hidden_Type = &attr_Label{b.Label}
+	}
+	if b.LabelKeyedStringDict != nil {
+		x.xxx_hidden_Type = &attr_LabelKeyedStringDict{b.LabelKeyedStringDict}
+	}
+	if b.LabelList != nil {
+		x.xxx_hidden_Type = &attr_LabelList{b.LabelList}
+	}
+	if b.Output != nil {
+		x.xxx_hidden_Type = &attr_Output{b.Output}
+	}
+	if b.OutputList != nil {
+		x.xxx_hidden_Type = &attr_OutputList{b.OutputList}
+	}
+	if b.String != nil {
+		x.xxx_hidden_Type = &attr_String_{b.String}
+	}
+	if b.StringDict != nil {
+		x.xxx_hidden_Type = &attr_StringDict{b.StringDict}
+	}
+	if b.StringList != nil {
+		x.xxx_hidden_Type = &attr_StringList{b.StringList}
+	}
+	if b.StringKeyedLabelDict != nil {
+		x.xxx_hidden_Type = &attr_StringKeyedLabelDict{b.StringKeyedLabelDict}
+	}
+	if b.StringListDict != nil {
+		x.xxx_hidden_Type = &attr_StringListDict{b.StringListDict}
+	}
+	return m0
+}
+
+type case_Attr_Type protoreflect.FieldNumber
+
+func (x case_Attr_Type) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isAttr_Type interface {
 	isAttr_Type()
 }
 
-type Attr_Bool struct {
-	Bool *emptypb.Empty `protobuf:"bytes,2,opt,name=bool,proto3,oneof"`
+type attr_Bool struct {
+	Bool *emptypb.Empty `protobuf:"bytes,2,opt,name=bool,oneof"`
 }
 
-type Attr_Int struct {
-	Int *Attr_IntType `protobuf:"bytes,3,opt,name=int,proto3,oneof"`
+type attr_Int struct {
+	Int *Attr_IntType `protobuf:"bytes,3,opt,name=int,oneof"`
 }
 
-type Attr_IntList struct {
-	IntList *Attr_IntListType `protobuf:"bytes,4,opt,name=int_list,json=intList,proto3,oneof"`
+type attr_IntList struct {
+	IntList *Attr_IntListType `protobuf:"bytes,4,opt,name=int_list,json=intList,oneof"`
 }
 
-type Attr_Label struct {
-	Label *Attr_LabelType `protobuf:"bytes,5,opt,name=label,proto3,oneof"`
+type attr_Label struct {
+	Label *Attr_LabelType `protobuf:"bytes,5,opt,name=label,oneof"`
 }
 
-type Attr_LabelKeyedStringDict struct {
-	LabelKeyedStringDict *Attr_LabelKeyedStringDictType `protobuf:"bytes,6,opt,name=label_keyed_string_dict,json=labelKeyedStringDict,proto3,oneof"`
+type attr_LabelKeyedStringDict struct {
+	LabelKeyedStringDict *Attr_LabelKeyedStringDictType `protobuf:"bytes,6,opt,name=label_keyed_string_dict,json=labelKeyedStringDict,oneof"`
 }
 
-type Attr_LabelList struct {
-	LabelList *Attr_LabelListType `protobuf:"bytes,7,opt,name=label_list,json=labelList,proto3,oneof"`
+type attr_LabelList struct {
+	LabelList *Attr_LabelListType `protobuf:"bytes,7,opt,name=label_list,json=labelList,oneof"`
 }
 
-type Attr_Output struct {
-	Output *Attr_OutputType `protobuf:"bytes,8,opt,name=output,proto3,oneof"`
+type attr_Output struct {
+	Output *Attr_OutputType `protobuf:"bytes,8,opt,name=output,oneof"`
 }
 
-type Attr_OutputList struct {
-	OutputList *Attr_OutputListType `protobuf:"bytes,9,opt,name=output_list,json=outputList,proto3,oneof"`
+type attr_OutputList struct {
+	OutputList *Attr_OutputListType `protobuf:"bytes,9,opt,name=output_list,json=outputList,oneof"`
 }
 
-type Attr_String_ struct {
-	String_ *Attr_StringType `protobuf:"bytes,10,opt,name=string,proto3,oneof"`
+type attr_String_ struct {
+	String_ *Attr_StringType `protobuf:"bytes,10,opt,name=string,oneof"`
 }
 
-type Attr_StringDict struct {
-	StringDict *Attr_StringDictType `protobuf:"bytes,11,opt,name=string_dict,json=stringDict,proto3,oneof"`
+type attr_StringDict struct {
+	StringDict *Attr_StringDictType `protobuf:"bytes,11,opt,name=string_dict,json=stringDict,oneof"`
 }
 
-type Attr_StringList struct {
-	StringList *Attr_StringListType `protobuf:"bytes,12,opt,name=string_list,json=stringList,proto3,oneof"`
+type attr_StringList struct {
+	StringList *Attr_StringListType `protobuf:"bytes,12,opt,name=string_list,json=stringList,oneof"`
 }
 
-type Attr_StringKeyedLabelDict struct {
-	StringKeyedLabelDict *Attr_StringKeyedLabelDictType `protobuf:"bytes,14,opt,name=string_keyed_label_dict,json=stringKeyedLabelDict,proto3,oneof"`
+type attr_StringKeyedLabelDict struct {
+	StringKeyedLabelDict *Attr_StringKeyedLabelDictType `protobuf:"bytes,14,opt,name=string_keyed_label_dict,json=stringKeyedLabelDict,oneof"`
 }
 
-type Attr_StringListDict struct {
-	StringListDict *Attr_StringListDictType `protobuf:"bytes,13,opt,name=string_list_dict,json=stringListDict,proto3,oneof"`
+type attr_StringListDict struct {
+	StringListDict *Attr_StringListDictType `protobuf:"bytes,13,opt,name=string_list_dict,json=stringListDict,oneof"`
 }
 
-func (*Attr_Bool) isAttr_Type() {}
+func (*attr_Bool) isAttr_Type() {}
 
-func (*Attr_Int) isAttr_Type() {}
+func (*attr_Int) isAttr_Type() {}
 
-func (*Attr_IntList) isAttr_Type() {}
+func (*attr_IntList) isAttr_Type() {}
 
-func (*Attr_Label) isAttr_Type() {}
+func (*attr_Label) isAttr_Type() {}
 
-func (*Attr_LabelKeyedStringDict) isAttr_Type() {}
+func (*attr_LabelKeyedStringDict) isAttr_Type() {}
 
-func (*Attr_LabelList) isAttr_Type() {}
+func (*attr_LabelList) isAttr_Type() {}
 
-func (*Attr_Output) isAttr_Type() {}
+func (*attr_Output) isAttr_Type() {}
 
-func (*Attr_OutputList) isAttr_Type() {}
+func (*attr_OutputList) isAttr_Type() {}
 
-func (*Attr_String_) isAttr_Type() {}
+func (*attr_String_) isAttr_Type() {}
 
-func (*Attr_StringDict) isAttr_Type() {}
+func (*attr_StringDict) isAttr_Type() {}
 
-func (*Attr_StringList) isAttr_Type() {}
+func (*attr_StringList) isAttr_Type() {}
 
-func (*Attr_StringKeyedLabelDict) isAttr_Type() {}
+func (*attr_StringKeyedLabelDict) isAttr_Type() {}
 
-func (*Attr_StringListDict) isAttr_Type() {}
+func (*attr_StringListDict) isAttr_Type() {}
 
 type BuildSetting struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Flag  bool                   `protobuf:"varint,1,opt,name=flag,proto3" json:"flag,omitempty"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*BuildSetting_Bool
-	//	*BuildSetting_Int
-	//	*BuildSetting_LabelList
-	//	*BuildSetting_String_
-	//	*BuildSetting_StringList
-	Type          isBuildSetting_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Flag bool                   `protobuf:"varint,1,opt,name=flag"`
+	xxx_hidden_Type isBuildSetting_Type    `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *BuildSetting) Reset() {
@@ -1502,28 +2937,16 @@ func (x *BuildSetting) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildSetting.ProtoReflect.Descriptor instead.
-func (*BuildSetting) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *BuildSetting) GetFlag() bool {
 	if x != nil {
-		return x.Flag
+		return x.xxx_hidden_Flag
 	}
 	return false
 }
 
-func (x *BuildSetting) GetType() isBuildSetting_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *BuildSetting) GetBool() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Type.(*BuildSetting_Bool); ok {
+		if x, ok := x.xxx_hidden_Type.(*buildSetting_Bool); ok {
 			return x.Bool
 		}
 	}
@@ -1532,7 +2955,7 @@ func (x *BuildSetting) GetBool() *emptypb.Empty {
 
 func (x *BuildSetting) GetInt() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Type.(*BuildSetting_Int); ok {
+		if x, ok := x.xxx_hidden_Type.(*buildSetting_Int); ok {
 			return x.Int
 		}
 	}
@@ -1541,16 +2964,16 @@ func (x *BuildSetting) GetInt() *emptypb.Empty {
 
 func (x *BuildSetting) GetLabelList() *BuildSetting_ListType {
 	if x != nil {
-		if x, ok := x.Type.(*BuildSetting_LabelList); ok {
+		if x, ok := x.xxx_hidden_Type.(*buildSetting_LabelList); ok {
 			return x.LabelList
 		}
 	}
 	return nil
 }
 
-func (x *BuildSetting) GetString_() *emptypb.Empty {
+func (x *BuildSetting) GetString() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Type.(*BuildSetting_String_); ok {
+		if x, ok := x.xxx_hidden_Type.(*buildSetting_String_); ok {
 			return x.String_
 		}
 	}
@@ -1559,54 +2982,252 @@ func (x *BuildSetting) GetString_() *emptypb.Empty {
 
 func (x *BuildSetting) GetStringList() *BuildSetting_ListType {
 	if x != nil {
-		if x, ok := x.Type.(*BuildSetting_StringList); ok {
+		if x, ok := x.xxx_hidden_Type.(*buildSetting_StringList); ok {
 			return x.StringList
 		}
 	}
 	return nil
 }
 
+func (x *BuildSetting) SetFlag(v bool) {
+	x.xxx_hidden_Flag = v
+}
+
+func (x *BuildSetting) SetBool(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &buildSetting_Bool{v}
+}
+
+func (x *BuildSetting) SetInt(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &buildSetting_Int{v}
+}
+
+func (x *BuildSetting) SetLabelList(v *BuildSetting_ListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &buildSetting_LabelList{v}
+}
+
+func (x *BuildSetting) SetString(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &buildSetting_String_{v}
+}
+
+func (x *BuildSetting) SetStringList(v *BuildSetting_ListType) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &buildSetting_StringList{v}
+}
+
+func (x *BuildSetting) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *BuildSetting) HasBool() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*buildSetting_Bool)
+	return ok
+}
+
+func (x *BuildSetting) HasInt() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*buildSetting_Int)
+	return ok
+}
+
+func (x *BuildSetting) HasLabelList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*buildSetting_LabelList)
+	return ok
+}
+
+func (x *BuildSetting) HasString() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*buildSetting_String_)
+	return ok
+}
+
+func (x *BuildSetting) HasStringList() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*buildSetting_StringList)
+	return ok
+}
+
+func (x *BuildSetting) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *BuildSetting) ClearBool() {
+	if _, ok := x.xxx_hidden_Type.(*buildSetting_Bool); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *BuildSetting) ClearInt() {
+	if _, ok := x.xxx_hidden_Type.(*buildSetting_Int); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *BuildSetting) ClearLabelList() {
+	if _, ok := x.xxx_hidden_Type.(*buildSetting_LabelList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *BuildSetting) ClearString() {
+	if _, ok := x.xxx_hidden_Type.(*buildSetting_String_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *BuildSetting) ClearStringList() {
+	if _, ok := x.xxx_hidden_Type.(*buildSetting_StringList); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const BuildSetting_Type_not_set_case case_BuildSetting_Type = 0
+const BuildSetting_Bool_case case_BuildSetting_Type = 2
+const BuildSetting_Int_case case_BuildSetting_Type = 3
+const BuildSetting_LabelList_case case_BuildSetting_Type = 4
+const BuildSetting_String__case case_BuildSetting_Type = 5
+const BuildSetting_StringList_case case_BuildSetting_Type = 6
+
+func (x *BuildSetting) WhichType() case_BuildSetting_Type {
+	if x == nil {
+		return BuildSetting_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *buildSetting_Bool:
+		return BuildSetting_Bool_case
+	case *buildSetting_Int:
+		return BuildSetting_Int_case
+	case *buildSetting_LabelList:
+		return BuildSetting_LabelList_case
+	case *buildSetting_String_:
+		return BuildSetting_String__case
+	case *buildSetting_StringList:
+		return BuildSetting_StringList_case
+	default:
+		return BuildSetting_Type_not_set_case
+	}
+}
+
+type BuildSetting_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Flag bool
+	// Fields of oneof xxx_hidden_Type:
+	Bool       *emptypb.Empty
+	Int        *emptypb.Empty
+	LabelList  *BuildSetting_ListType
+	String     *emptypb.Empty
+	StringList *BuildSetting_ListType
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 BuildSetting_builder) Build() *BuildSetting {
+	m0 := &BuildSetting{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Flag = b.Flag
+	if b.Bool != nil {
+		x.xxx_hidden_Type = &buildSetting_Bool{b.Bool}
+	}
+	if b.Int != nil {
+		x.xxx_hidden_Type = &buildSetting_Int{b.Int}
+	}
+	if b.LabelList != nil {
+		x.xxx_hidden_Type = &buildSetting_LabelList{b.LabelList}
+	}
+	if b.String != nil {
+		x.xxx_hidden_Type = &buildSetting_String_{b.String}
+	}
+	if b.StringList != nil {
+		x.xxx_hidden_Type = &buildSetting_StringList{b.StringList}
+	}
+	return m0
+}
+
+type case_BuildSetting_Type protoreflect.FieldNumber
+
+func (x case_BuildSetting_Type) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isBuildSetting_Type interface {
 	isBuildSetting_Type()
 }
 
-type BuildSetting_Bool struct {
-	Bool *emptypb.Empty `protobuf:"bytes,2,opt,name=bool,proto3,oneof"`
+type buildSetting_Bool struct {
+	Bool *emptypb.Empty `protobuf:"bytes,2,opt,name=bool,oneof"`
 }
 
-type BuildSetting_Int struct {
-	Int *emptypb.Empty `protobuf:"bytes,3,opt,name=int,proto3,oneof"`
+type buildSetting_Int struct {
+	Int *emptypb.Empty `protobuf:"bytes,3,opt,name=int,oneof"`
 }
 
-type BuildSetting_LabelList struct {
-	LabelList *BuildSetting_ListType `protobuf:"bytes,4,opt,name=label_list,json=labelList,proto3,oneof"`
+type buildSetting_LabelList struct {
+	LabelList *BuildSetting_ListType `protobuf:"bytes,4,opt,name=label_list,json=labelList,oneof"`
 }
 
-type BuildSetting_String_ struct {
-	String_ *emptypb.Empty `protobuf:"bytes,5,opt,name=string,proto3,oneof"`
+type buildSetting_String_ struct {
+	String_ *emptypb.Empty `protobuf:"bytes,5,opt,name=string,oneof"`
 }
 
-type BuildSetting_StringList struct {
-	StringList *BuildSetting_ListType `protobuf:"bytes,6,opt,name=string_list,json=stringList,proto3,oneof"`
+type buildSetting_StringList struct {
+	StringList *BuildSetting_ListType `protobuf:"bytes,6,opt,name=string_list,json=stringList,oneof"`
 }
 
-func (*BuildSetting_Bool) isBuildSetting_Type() {}
+func (*buildSetting_Bool) isBuildSetting_Type() {}
 
-func (*BuildSetting_Int) isBuildSetting_Type() {}
+func (*buildSetting_Int) isBuildSetting_Type() {}
 
-func (*BuildSetting_LabelList) isBuildSetting_Type() {}
+func (*buildSetting_LabelList) isBuildSetting_Type() {}
 
-func (*BuildSetting_String_) isBuildSetting_Type() {}
+func (*buildSetting_String_) isBuildSetting_Type() {}
 
-func (*BuildSetting_StringList) isBuildSetting_Type() {}
+func (*buildSetting_StringList) isBuildSetting_Type() {}
 
 type Depset struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Elements      []*List_Element        `protobuf:"bytes,1,rep,name=elements,proto3" json:"elements,omitempty"`
-	Order         Depset_Order           `protobuf:"varint,2,opt,name=order,proto3,enum=bonanza.model.starlark.Depset_Order" json:"order,omitempty"`
-	Identifier    []byte                 `protobuf:"bytes,3,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Elements   *[]*List_Element       `protobuf:"bytes,1,rep,name=elements"`
+	xxx_hidden_Order      Depset_Order           `protobuf:"varint,2,opt,name=order,enum=bonanza.model.starlark.Depset_Order"`
+	xxx_hidden_Identifier []byte                 `protobuf:"bytes,3,opt,name=identifier"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Depset) Reset() {
@@ -1634,37 +3255,67 @@ func (x *Depset) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Depset.ProtoReflect.Descriptor instead.
-func (*Depset) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *Depset) GetElements() []*List_Element {
 	if x != nil {
-		return x.Elements
+		if x.xxx_hidden_Elements != nil {
+			return *x.xxx_hidden_Elements
+		}
 	}
 	return nil
 }
 
 func (x *Depset) GetOrder() Depset_Order {
 	if x != nil {
-		return x.Order
+		return x.xxx_hidden_Order
 	}
 	return Depset_DEFAULT
 }
 
 func (x *Depset) GetIdentifier() []byte {
 	if x != nil {
-		return x.Identifier
+		return x.xxx_hidden_Identifier
 	}
 	return nil
 }
 
+func (x *Depset) SetElements(v []*List_Element) {
+	x.xxx_hidden_Elements = &v
+}
+
+func (x *Depset) SetOrder(v Depset_Order) {
+	x.xxx_hidden_Order = v
+}
+
+func (x *Depset) SetIdentifier(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Identifier = v
+}
+
+type Depset_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Elements   []*List_Element
+	Order      Depset_Order
+	Identifier []byte
+}
+
+func (b0 Depset_builder) Build() *Depset {
+	m0 := &Depset{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Elements = &b.Elements
+	x.xxx_hidden_Order = b.Order
+	x.xxx_hidden_Identifier = b.Identifier
+	return m0
+}
+
 type Dict struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*Dict_Entry          `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Entries *[]*Dict_Entry         `protobuf:"bytes,1,rep,name=entries"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Dict) Reset() {
@@ -1692,24 +3343,39 @@ func (x *Dict) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dict.ProtoReflect.Descriptor instead.
-func (*Dict) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *Dict) GetEntries() []*Dict_Entry {
 	if x != nil {
-		return x.Entries
+		if x.xxx_hidden_Entries != nil {
+			return *x.xxx_hidden_Entries
+		}
 	}
 	return nil
 }
 
+func (x *Dict) SetEntries(v []*Dict_Entry) {
+	x.xxx_hidden_Entries = &v
+}
+
+type Dict_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Entries []*Dict_Entry
+}
+
+func (b0 Dict_builder) Build() *Dict {
+	m0 := &Dict{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Entries = &b.Entries
+	return m0
+}
+
 type ExecGroup struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	ExecCompatibleWith []string               `protobuf:"bytes,1,rep,name=exec_compatible_with,json=execCompatibleWith,proto3" json:"exec_compatible_with,omitempty"`
-	Toolchains         []*ToolchainType       `protobuf:"bytes,2,rep,name=toolchains,proto3" json:"toolchains,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ExecCompatibleWith []string               `protobuf:"bytes,1,rep,name=exec_compatible_with,json=execCompatibleWith"`
+	xxx_hidden_Toolchains         *[]*ToolchainType      `protobuf:"bytes,2,rep,name=toolchains"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ExecGroup) Reset() {
@@ -1737,31 +3403,52 @@ func (x *ExecGroup) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ExecGroup.ProtoReflect.Descriptor instead.
-func (*ExecGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *ExecGroup) GetExecCompatibleWith() []string {
 	if x != nil {
-		return x.ExecCompatibleWith
+		return x.xxx_hidden_ExecCompatibleWith
 	}
 	return nil
 }
 
 func (x *ExecGroup) GetToolchains() []*ToolchainType {
 	if x != nil {
-		return x.Toolchains
+		if x.xxx_hidden_Toolchains != nil {
+			return *x.xxx_hidden_Toolchains
+		}
 	}
 	return nil
 }
 
+func (x *ExecGroup) SetExecCompatibleWith(v []string) {
+	x.xxx_hidden_ExecCompatibleWith = v
+}
+
+func (x *ExecGroup) SetToolchains(v []*ToolchainType) {
+	x.xxx_hidden_Toolchains = &v
+}
+
+type ExecGroup_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ExecCompatibleWith []string
+	Toolchains         []*ToolchainType
+}
+
+func (b0 ExecGroup_builder) Build() *ExecGroup {
+	m0 := &ExecGroup{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ExecCompatibleWith = b.ExecCompatibleWith
+	x.xxx_hidden_Toolchains = &b.Toolchains
+	return m0
+}
+
 type File struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Owner         *File_Owner            `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
-	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Owner *File_Owner            `protobuf:"bytes,1,opt,name=owner"`
+	xxx_hidden_Label string                 `protobuf:"bytes,2,opt,name=label"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *File) Reset() {
@@ -1789,32 +3476,62 @@ func (x *File) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use File.ProtoReflect.Descriptor instead.
-func (*File) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *File) GetOwner() *File_Owner {
 	if x != nil {
-		return x.Owner
+		return x.xxx_hidden_Owner
 	}
 	return nil
 }
 
 func (x *File) GetLabel() string {
 	if x != nil {
-		return x.Label
+		return x.xxx_hidden_Label
 	}
 	return ""
 }
 
+func (x *File) SetOwner(v *File_Owner) {
+	x.xxx_hidden_Owner = v
+}
+
+func (x *File) SetLabel(v string) {
+	x.xxx_hidden_Label = v
+}
+
+func (x *File) HasOwner() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Owner != nil
+}
+
+func (x *File) ClearOwner() {
+	x.xxx_hidden_Owner = nil
+}
+
+type File_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Owner *File_Owner
+	Label string
+}
+
+func (b0 File_builder) Build() *File {
+	m0 := &File{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Owner = b.Owner
+	x.xxx_hidden_Label = b.Label
+	return m0
+}
+
 type Function struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
-	NamePath      []*Function_Name       `protobuf:"bytes,2,rep,name=name_path,json=namePath,proto3" json:"name_path,omitempty"`
-	Closure       *Function_Closure      `protobuf:"bytes,3,opt,name=closure,proto3" json:"closure,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Filename string                 `protobuf:"bytes,1,opt,name=filename"`
+	xxx_hidden_NamePath *[]*Function_Name      `protobuf:"bytes,2,rep,name=name_path,json=namePath"`
+	xxx_hidden_Closure  *Function_Closure      `protobuf:"bytes,3,opt,name=closure"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Function) Reset() {
@@ -1842,53 +3559,91 @@ func (x *Function) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Function.ProtoReflect.Descriptor instead.
-func (*Function) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *Function) GetFilename() string {
 	if x != nil {
-		return x.Filename
+		return x.xxx_hidden_Filename
 	}
 	return ""
 }
 
 func (x *Function) GetNamePath() []*Function_Name {
 	if x != nil {
-		return x.NamePath
+		if x.xxx_hidden_NamePath != nil {
+			return *x.xxx_hidden_NamePath
+		}
 	}
 	return nil
 }
 
 func (x *Function) GetClosure() *Function_Closure {
 	if x != nil {
-		return x.Closure
+		return x.xxx_hidden_Closure
 	}
 	return nil
 }
 
+func (x *Function) SetFilename(v string) {
+	x.xxx_hidden_Filename = v
+}
+
+func (x *Function) SetNamePath(v []*Function_Name) {
+	x.xxx_hidden_NamePath = &v
+}
+
+func (x *Function) SetClosure(v *Function_Closure) {
+	x.xxx_hidden_Closure = v
+}
+
+func (x *Function) HasClosure() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Closure != nil
+}
+
+func (x *Function) ClearClosure() {
+	x.xxx_hidden_Closure = nil
+}
+
+type Function_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Filename string
+	NamePath []*Function_Name
+	Closure  *Function_Closure
+}
+
+func (b0 Function_builder) Build() *Function {
+	m0 := &Function{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Filename = b.Filename
+	x.xxx_hidden_NamePath = &b.NamePath
+	x.xxx_hidden_Closure = b.Closure
+	return m0
+}
+
 type Funcode struct {
-	state                protoimpl.MessageState    `protogen:"open.v1"`
-	Column               uint32                    `protobuf:"varint,1,opt,name=column,proto3" json:"column,omitempty"`
-	Code                 []byte                    `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	LineTable            []byte                    `protobuf:"bytes,3,opt,name=line_table,json=lineTable,proto3" json:"line_table,omitempty"`
-	StringConstants      [][]byte                  `protobuf:"bytes,4,rep,name=string_constants,json=stringConstants,proto3" json:"string_constants,omitempty"`
-	IntConstants         [][]byte                  `protobuf:"bytes,5,rep,name=int_constants,json=intConstants,proto3" json:"int_constants,omitempty"`
-	FloatConstants       []float64                 `protobuf:"fixed64,6,rep,packed,name=float_constants,json=floatConstants,proto3" json:"float_constants,omitempty"`
-	Names                []string                  `protobuf:"bytes,7,rep,name=names,proto3" json:"names,omitempty"`
-	Imports              []string                  `protobuf:"bytes,8,rep,name=imports,proto3" json:"imports,omitempty"`
-	Locals               []string                  `protobuf:"bytes,9,rep,name=locals,proto3" json:"locals,omitempty"`
-	Cells                []uint32                  `protobuf:"varint,10,rep,packed,name=cells,proto3" json:"cells,omitempty"`
-	FreeVariables        []string                  `protobuf:"bytes,11,rep,name=free_variables,json=freeVariables,proto3" json:"free_variables,omitempty"`
-	NumParams            uint32                    `protobuf:"varint,12,opt,name=num_params,json=numParams,proto3" json:"num_params,omitempty"`
-	NumKeywordOnlyParams uint32                    `protobuf:"varint,13,opt,name=num_keyword_only_params,json=numKeywordOnlyParams,proto3" json:"num_keyword_only_params,omitempty"`
-	HasArgs              bool                      `protobuf:"varint,14,opt,name=has_args,json=hasArgs,proto3" json:"has_args,omitempty"`
-	HasKwargs            bool                      `protobuf:"varint,15,opt,name=has_kwargs,json=hasKwargs,proto3" json:"has_kwargs,omitempty"`
-	MaxStack             uint32                    `protobuf:"varint,16,opt,name=max_stack,json=maxStack,proto3" json:"max_stack,omitempty"`
-	Functions            []*Funcode_NestedFunction `protobuf:"bytes,17,rep,name=functions,proto3" json:"functions,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Column               uint32                     `protobuf:"varint,1,opt,name=column"`
+	xxx_hidden_Code                 []byte                     `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_LineTable            []byte                     `protobuf:"bytes,3,opt,name=line_table,json=lineTable"`
+	xxx_hidden_StringConstants      [][]byte                   `protobuf:"bytes,4,rep,name=string_constants,json=stringConstants"`
+	xxx_hidden_IntConstants         [][]byte                   `protobuf:"bytes,5,rep,name=int_constants,json=intConstants"`
+	xxx_hidden_FloatConstants       []float64                  `protobuf:"fixed64,6,rep,packed,name=float_constants,json=floatConstants"`
+	xxx_hidden_Names                []string                   `protobuf:"bytes,7,rep,name=names"`
+	xxx_hidden_Imports              []string                   `protobuf:"bytes,8,rep,name=imports"`
+	xxx_hidden_Locals               []string                   `protobuf:"bytes,9,rep,name=locals"`
+	xxx_hidden_Cells                []uint32                   `protobuf:"varint,10,rep,packed,name=cells"`
+	xxx_hidden_FreeVariables        []string                   `protobuf:"bytes,11,rep,name=free_variables,json=freeVariables"`
+	xxx_hidden_NumParams            uint32                     `protobuf:"varint,12,opt,name=num_params,json=numParams"`
+	xxx_hidden_NumKeywordOnlyParams uint32                     `protobuf:"varint,13,opt,name=num_keyword_only_params,json=numKeywordOnlyParams"`
+	xxx_hidden_HasArgs              bool                       `protobuf:"varint,14,opt,name=has_args,json=hasArgs"`
+	xxx_hidden_HasKwargs            bool                       `protobuf:"varint,15,opt,name=has_kwargs,json=hasKwargs"`
+	xxx_hidden_MaxStack             uint32                     `protobuf:"varint,16,opt,name=max_stack,json=maxStack"`
+	xxx_hidden_Functions            *[]*Funcode_NestedFunction `protobuf:"bytes,17,rep,name=functions"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *Funcode) Reset() {
@@ -1916,140 +3671,257 @@ func (x *Funcode) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Funcode.ProtoReflect.Descriptor instead.
-func (*Funcode) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{13}
-}
-
 func (x *Funcode) GetColumn() uint32 {
 	if x != nil {
-		return x.Column
+		return x.xxx_hidden_Column
 	}
 	return 0
 }
 
 func (x *Funcode) GetCode() []byte {
 	if x != nil {
-		return x.Code
+		return x.xxx_hidden_Code
 	}
 	return nil
 }
 
 func (x *Funcode) GetLineTable() []byte {
 	if x != nil {
-		return x.LineTable
+		return x.xxx_hidden_LineTable
 	}
 	return nil
 }
 
 func (x *Funcode) GetStringConstants() [][]byte {
 	if x != nil {
-		return x.StringConstants
+		return x.xxx_hidden_StringConstants
 	}
 	return nil
 }
 
 func (x *Funcode) GetIntConstants() [][]byte {
 	if x != nil {
-		return x.IntConstants
+		return x.xxx_hidden_IntConstants
 	}
 	return nil
 }
 
 func (x *Funcode) GetFloatConstants() []float64 {
 	if x != nil {
-		return x.FloatConstants
+		return x.xxx_hidden_FloatConstants
 	}
 	return nil
 }
 
 func (x *Funcode) GetNames() []string {
 	if x != nil {
-		return x.Names
+		return x.xxx_hidden_Names
 	}
 	return nil
 }
 
 func (x *Funcode) GetImports() []string {
 	if x != nil {
-		return x.Imports
+		return x.xxx_hidden_Imports
 	}
 	return nil
 }
 
 func (x *Funcode) GetLocals() []string {
 	if x != nil {
-		return x.Locals
+		return x.xxx_hidden_Locals
 	}
 	return nil
 }
 
 func (x *Funcode) GetCells() []uint32 {
 	if x != nil {
-		return x.Cells
+		return x.xxx_hidden_Cells
 	}
 	return nil
 }
 
 func (x *Funcode) GetFreeVariables() []string {
 	if x != nil {
-		return x.FreeVariables
+		return x.xxx_hidden_FreeVariables
 	}
 	return nil
 }
 
 func (x *Funcode) GetNumParams() uint32 {
 	if x != nil {
-		return x.NumParams
+		return x.xxx_hidden_NumParams
 	}
 	return 0
 }
 
 func (x *Funcode) GetNumKeywordOnlyParams() uint32 {
 	if x != nil {
-		return x.NumKeywordOnlyParams
+		return x.xxx_hidden_NumKeywordOnlyParams
 	}
 	return 0
 }
 
 func (x *Funcode) GetHasArgs() bool {
 	if x != nil {
-		return x.HasArgs
+		return x.xxx_hidden_HasArgs
 	}
 	return false
 }
 
 func (x *Funcode) GetHasKwargs() bool {
 	if x != nil {
-		return x.HasKwargs
+		return x.xxx_hidden_HasKwargs
 	}
 	return false
 }
 
 func (x *Funcode) GetMaxStack() uint32 {
 	if x != nil {
-		return x.MaxStack
+		return x.xxx_hidden_MaxStack
 	}
 	return 0
 }
 
 func (x *Funcode) GetFunctions() []*Funcode_NestedFunction {
 	if x != nil {
-		return x.Functions
+		if x.xxx_hidden_Functions != nil {
+			return *x.xxx_hidden_Functions
+		}
 	}
 	return nil
 }
 
+func (x *Funcode) SetColumn(v uint32) {
+	x.xxx_hidden_Column = v
+}
+
+func (x *Funcode) SetCode(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Code = v
+}
+
+func (x *Funcode) SetLineTable(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_LineTable = v
+}
+
+func (x *Funcode) SetStringConstants(v [][]byte) {
+	x.xxx_hidden_StringConstants = v
+}
+
+func (x *Funcode) SetIntConstants(v [][]byte) {
+	x.xxx_hidden_IntConstants = v
+}
+
+func (x *Funcode) SetFloatConstants(v []float64) {
+	x.xxx_hidden_FloatConstants = v
+}
+
+func (x *Funcode) SetNames(v []string) {
+	x.xxx_hidden_Names = v
+}
+
+func (x *Funcode) SetImports(v []string) {
+	x.xxx_hidden_Imports = v
+}
+
+func (x *Funcode) SetLocals(v []string) {
+	x.xxx_hidden_Locals = v
+}
+
+func (x *Funcode) SetCells(v []uint32) {
+	x.xxx_hidden_Cells = v
+}
+
+func (x *Funcode) SetFreeVariables(v []string) {
+	x.xxx_hidden_FreeVariables = v
+}
+
+func (x *Funcode) SetNumParams(v uint32) {
+	x.xxx_hidden_NumParams = v
+}
+
+func (x *Funcode) SetNumKeywordOnlyParams(v uint32) {
+	x.xxx_hidden_NumKeywordOnlyParams = v
+}
+
+func (x *Funcode) SetHasArgs(v bool) {
+	x.xxx_hidden_HasArgs = v
+}
+
+func (x *Funcode) SetHasKwargs(v bool) {
+	x.xxx_hidden_HasKwargs = v
+}
+
+func (x *Funcode) SetMaxStack(v uint32) {
+	x.xxx_hidden_MaxStack = v
+}
+
+func (x *Funcode) SetFunctions(v []*Funcode_NestedFunction) {
+	x.xxx_hidden_Functions = &v
+}
+
+type Funcode_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Column               uint32
+	Code                 []byte
+	LineTable            []byte
+	StringConstants      [][]byte
+	IntConstants         [][]byte
+	FloatConstants       []float64
+	Names                []string
+	Imports              []string
+	Locals               []string
+	Cells                []uint32
+	FreeVariables        []string
+	NumParams            uint32
+	NumKeywordOnlyParams uint32
+	HasArgs              bool
+	HasKwargs            bool
+	MaxStack             uint32
+	Functions            []*Funcode_NestedFunction
+}
+
+func (b0 Funcode_builder) Build() *Funcode {
+	m0 := &Funcode{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Column = b.Column
+	x.xxx_hidden_Code = b.Code
+	x.xxx_hidden_LineTable = b.LineTable
+	x.xxx_hidden_StringConstants = b.StringConstants
+	x.xxx_hidden_IntConstants = b.IntConstants
+	x.xxx_hidden_FloatConstants = b.FloatConstants
+	x.xxx_hidden_Names = b.Names
+	x.xxx_hidden_Imports = b.Imports
+	x.xxx_hidden_Locals = b.Locals
+	x.xxx_hidden_Cells = b.Cells
+	x.xxx_hidden_FreeVariables = b.FreeVariables
+	x.xxx_hidden_NumParams = b.NumParams
+	x.xxx_hidden_NumKeywordOnlyParams = b.NumKeywordOnlyParams
+	x.xxx_hidden_HasArgs = b.HasArgs
+	x.xxx_hidden_HasKwargs = b.HasKwargs
+	x.xxx_hidden_MaxStack = b.MaxStack
+	x.xxx_hidden_Functions = &b.Functions
+	return m0
+}
+
 type InheritableAttrs struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Deprecation      string                 `protobuf:"bytes,1,opt,name=deprecation,proto3" json:"deprecation,omitempty"`
-	PackageMetadata  []string               `protobuf:"bytes,2,rep,name=package_metadata,json=packageMetadata,proto3" json:"package_metadata,omitempty"`
-	Testonly         bool                   `protobuf:"varint,3,opt,name=testonly,proto3" json:"testonly,omitempty"`
-	Visibility       *PackageGroup          `protobuf:"bytes,4,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	EnabledFeatures  []string               `protobuf:"bytes,5,rep,name=enabled_features,json=enabledFeatures,proto3" json:"enabled_features,omitempty"`
-	DisabledFeatures []string               `protobuf:"bytes,6,rep,name=disabled_features,json=disabledFeatures,proto3" json:"disabled_features,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Deprecation      string                 `protobuf:"bytes,1,opt,name=deprecation"`
+	xxx_hidden_PackageMetadata  []string               `protobuf:"bytes,2,rep,name=package_metadata,json=packageMetadata"`
+	xxx_hidden_Testonly         bool                   `protobuf:"varint,3,opt,name=testonly"`
+	xxx_hidden_Visibility       *PackageGroup          `protobuf:"bytes,4,opt,name=visibility"`
+	xxx_hidden_EnabledFeatures  []string               `protobuf:"bytes,5,rep,name=enabled_features,json=enabledFeatures"`
+	xxx_hidden_DisabledFeatures []string               `protobuf:"bytes,6,rep,name=disabled_features,json=disabledFeatures"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *InheritableAttrs) Reset() {
@@ -2077,63 +3949,117 @@ func (x *InheritableAttrs) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InheritableAttrs.ProtoReflect.Descriptor instead.
-func (*InheritableAttrs) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *InheritableAttrs) GetDeprecation() string {
 	if x != nil {
-		return x.Deprecation
+		return x.xxx_hidden_Deprecation
 	}
 	return ""
 }
 
 func (x *InheritableAttrs) GetPackageMetadata() []string {
 	if x != nil {
-		return x.PackageMetadata
+		return x.xxx_hidden_PackageMetadata
 	}
 	return nil
 }
 
 func (x *InheritableAttrs) GetTestonly() bool {
 	if x != nil {
-		return x.Testonly
+		return x.xxx_hidden_Testonly
 	}
 	return false
 }
 
 func (x *InheritableAttrs) GetVisibility() *PackageGroup {
 	if x != nil {
-		return x.Visibility
+		return x.xxx_hidden_Visibility
 	}
 	return nil
 }
 
 func (x *InheritableAttrs) GetEnabledFeatures() []string {
 	if x != nil {
-		return x.EnabledFeatures
+		return x.xxx_hidden_EnabledFeatures
 	}
 	return nil
 }
 
 func (x *InheritableAttrs) GetDisabledFeatures() []string {
 	if x != nil {
-		return x.DisabledFeatures
+		return x.xxx_hidden_DisabledFeatures
 	}
 	return nil
 }
 
+func (x *InheritableAttrs) SetDeprecation(v string) {
+	x.xxx_hidden_Deprecation = v
+}
+
+func (x *InheritableAttrs) SetPackageMetadata(v []string) {
+	x.xxx_hidden_PackageMetadata = v
+}
+
+func (x *InheritableAttrs) SetTestonly(v bool) {
+	x.xxx_hidden_Testonly = v
+}
+
+func (x *InheritableAttrs) SetVisibility(v *PackageGroup) {
+	x.xxx_hidden_Visibility = v
+}
+
+func (x *InheritableAttrs) SetEnabledFeatures(v []string) {
+	x.xxx_hidden_EnabledFeatures = v
+}
+
+func (x *InheritableAttrs) SetDisabledFeatures(v []string) {
+	x.xxx_hidden_DisabledFeatures = v
+}
+
+func (x *InheritableAttrs) HasVisibility() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Visibility != nil
+}
+
+func (x *InheritableAttrs) ClearVisibility() {
+	x.xxx_hidden_Visibility = nil
+}
+
+type InheritableAttrs_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Deprecation      string
+	PackageMetadata  []string
+	Testonly         bool
+	Visibility       *PackageGroup
+	EnabledFeatures  []string
+	DisabledFeatures []string
+}
+
+func (b0 InheritableAttrs_builder) Build() *InheritableAttrs {
+	m0 := &InheritableAttrs{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Deprecation = b.Deprecation
+	x.xxx_hidden_PackageMetadata = b.PackageMetadata
+	x.xxx_hidden_Testonly = b.Testonly
+	x.xxx_hidden_Visibility = b.Visibility
+	x.xxx_hidden_EnabledFeatures = b.EnabledFeatures
+	x.xxx_hidden_DisabledFeatures = b.DisabledFeatures
+	return m0
+}
+
 type LabelSetting struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	BuildSettingDefault string                 `protobuf:"bytes,1,opt,name=build_setting_default,json=buildSettingDefault,proto3" json:"build_setting_default,omitempty"`
-	Flag                bool                   `protobuf:"varint,2,opt,name=flag,proto3" json:"flag,omitempty"`
-	SingletonList       bool                   `protobuf:"varint,3,opt,name=singleton_list,json=singletonList,proto3" json:"singleton_list,omitempty"`
-	Visibility          *PackageGroup          `protobuf:"bytes,4,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	Scope               *BuildSettingScope     `protobuf:"bytes,5,opt,name=scope,proto3" json:"scope,omitempty"`
-	OnLeaveScope        string                 `protobuf:"bytes,6,opt,name=on_leave_scope,json=onLeaveScope,proto3" json:"on_leave_scope,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_BuildSettingDefault string                 `protobuf:"bytes,1,opt,name=build_setting_default,json=buildSettingDefault"`
+	xxx_hidden_Flag                bool                   `protobuf:"varint,2,opt,name=flag"`
+	xxx_hidden_SingletonList       bool                   `protobuf:"varint,3,opt,name=singleton_list,json=singletonList"`
+	xxx_hidden_Visibility          *PackageGroup          `protobuf:"bytes,4,opt,name=visibility"`
+	xxx_hidden_Scope               *BuildSettingScope     `protobuf:"bytes,5,opt,name=scope"`
+	xxx_hidden_OnLeaveScope        string                 `protobuf:"bytes,6,opt,name=on_leave_scope,json=onLeaveScope"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *LabelSetting) Reset() {
@@ -2161,64 +4087,123 @@ func (x *LabelSetting) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LabelSetting.ProtoReflect.Descriptor instead.
-func (*LabelSetting) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *LabelSetting) GetBuildSettingDefault() string {
 	if x != nil {
-		return x.BuildSettingDefault
+		return x.xxx_hidden_BuildSettingDefault
 	}
 	return ""
 }
 
 func (x *LabelSetting) GetFlag() bool {
 	if x != nil {
-		return x.Flag
+		return x.xxx_hidden_Flag
 	}
 	return false
 }
 
 func (x *LabelSetting) GetSingletonList() bool {
 	if x != nil {
-		return x.SingletonList
+		return x.xxx_hidden_SingletonList
 	}
 	return false
 }
 
 func (x *LabelSetting) GetVisibility() *PackageGroup {
 	if x != nil {
-		return x.Visibility
+		return x.xxx_hidden_Visibility
 	}
 	return nil
 }
 
 func (x *LabelSetting) GetScope() *BuildSettingScope {
 	if x != nil {
-		return x.Scope
+		return x.xxx_hidden_Scope
 	}
 	return nil
 }
 
 func (x *LabelSetting) GetOnLeaveScope() string {
 	if x != nil {
-		return x.OnLeaveScope
+		return x.xxx_hidden_OnLeaveScope
 	}
 	return ""
 }
 
+func (x *LabelSetting) SetBuildSettingDefault(v string) {
+	x.xxx_hidden_BuildSettingDefault = v
+}
+
+func (x *LabelSetting) SetFlag(v bool) {
+	x.xxx_hidden_Flag = v
+}
+
+func (x *LabelSetting) SetSingletonList(v bool) {
+	x.xxx_hidden_SingletonList = v
+}
+
+func (x *LabelSetting) SetVisibility(v *PackageGroup) {
+	x.xxx_hidden_Visibility = v
+}
+
+func (x *LabelSetting) SetScope(v *BuildSettingScope) {
+	x.xxx_hidden_Scope = v
+}
+
+func (x *LabelSetting) SetOnLeaveScope(v string) {
+	x.xxx_hidden_OnLeaveScope = v
+}
+
+func (x *LabelSetting) HasVisibility() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Visibility != nil
+}
+
+func (x *LabelSetting) HasScope() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Scope != nil
+}
+
+func (x *LabelSetting) ClearVisibility() {
+	x.xxx_hidden_Visibility = nil
+}
+
+func (x *LabelSetting) ClearScope() {
+	x.xxx_hidden_Scope = nil
+}
+
+type LabelSetting_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	BuildSettingDefault string
+	Flag                bool
+	SingletonList       bool
+	Visibility          *PackageGroup
+	Scope               *BuildSettingScope
+	OnLeaveScope        string
+}
+
+func (b0 LabelSetting_builder) Build() *LabelSetting {
+	m0 := &LabelSetting{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_BuildSettingDefault = b.BuildSettingDefault
+	x.xxx_hidden_Flag = b.Flag
+	x.xxx_hidden_SingletonList = b.SingletonList
+	x.xxx_hidden_Visibility = b.Visibility
+	x.xxx_hidden_Scope = b.Scope
+	x.xxx_hidden_OnLeaveScope = b.OnLeaveScope
+	return m0
+}
+
 type BuildSettingScope struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*BuildSettingScope_Target
-	//	*BuildSettingScope_Project
-	//	*BuildSettingScope_Universal
-	//	*BuildSettingScope_Exec
-	Kind          isBuildSettingScope_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Kind isBuildSettingScope_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *BuildSettingScope) Reset() {
@@ -2246,21 +4231,9 @@ func (x *BuildSettingScope) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildSettingScope.ProtoReflect.Descriptor instead.
-func (*BuildSettingScope) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *BuildSettingScope) GetKind() isBuildSettingScope_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *BuildSettingScope) GetTarget() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*BuildSettingScope_Target); ok {
+		if x, ok := x.xxx_hidden_Kind.(*buildSettingScope_Target); ok {
 			return x.Target
 		}
 	}
@@ -2269,7 +4242,7 @@ func (x *BuildSettingScope) GetTarget() *emptypb.Empty {
 
 func (x *BuildSettingScope) GetProject() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*BuildSettingScope_Project); ok {
+		if x, ok := x.xxx_hidden_Kind.(*buildSettingScope_Project); ok {
 			return x.Project
 		}
 	}
@@ -2278,7 +4251,7 @@ func (x *BuildSettingScope) GetProject() *emptypb.Empty {
 
 func (x *BuildSettingScope) GetUniversal() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*BuildSettingScope_Universal); ok {
+		if x, ok := x.xxx_hidden_Kind.(*buildSettingScope_Universal); ok {
 			return x.Universal
 		}
 	}
@@ -2287,46 +4260,205 @@ func (x *BuildSettingScope) GetUniversal() *emptypb.Empty {
 
 func (x *BuildSettingScope) GetExec() string {
 	if x != nil {
-		if x, ok := x.Kind.(*BuildSettingScope_Exec); ok {
+		if x, ok := x.xxx_hidden_Kind.(*buildSettingScope_Exec); ok {
 			return x.Exec
 		}
 	}
 	return ""
 }
 
+func (x *BuildSettingScope) SetTarget(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &buildSettingScope_Target{v}
+}
+
+func (x *BuildSettingScope) SetProject(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &buildSettingScope_Project{v}
+}
+
+func (x *BuildSettingScope) SetUniversal(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &buildSettingScope_Universal{v}
+}
+
+func (x *BuildSettingScope) SetExec(v string) {
+	x.xxx_hidden_Kind = &buildSettingScope_Exec{v}
+}
+
+func (x *BuildSettingScope) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *BuildSettingScope) HasTarget() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*buildSettingScope_Target)
+	return ok
+}
+
+func (x *BuildSettingScope) HasProject() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*buildSettingScope_Project)
+	return ok
+}
+
+func (x *BuildSettingScope) HasUniversal() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*buildSettingScope_Universal)
+	return ok
+}
+
+func (x *BuildSettingScope) HasExec() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*buildSettingScope_Exec)
+	return ok
+}
+
+func (x *BuildSettingScope) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *BuildSettingScope) ClearTarget() {
+	if _, ok := x.xxx_hidden_Kind.(*buildSettingScope_Target); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *BuildSettingScope) ClearProject() {
+	if _, ok := x.xxx_hidden_Kind.(*buildSettingScope_Project); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *BuildSettingScope) ClearUniversal() {
+	if _, ok := x.xxx_hidden_Kind.(*buildSettingScope_Universal); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *BuildSettingScope) ClearExec() {
+	if _, ok := x.xxx_hidden_Kind.(*buildSettingScope_Exec); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const BuildSettingScope_Kind_not_set_case case_BuildSettingScope_Kind = 0
+const BuildSettingScope_Target_case case_BuildSettingScope_Kind = 1
+const BuildSettingScope_Project_case case_BuildSettingScope_Kind = 2
+const BuildSettingScope_Universal_case case_BuildSettingScope_Kind = 3
+const BuildSettingScope_Exec_case case_BuildSettingScope_Kind = 4
+
+func (x *BuildSettingScope) WhichKind() case_BuildSettingScope_Kind {
+	if x == nil {
+		return BuildSettingScope_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *buildSettingScope_Target:
+		return BuildSettingScope_Target_case
+	case *buildSettingScope_Project:
+		return BuildSettingScope_Project_case
+	case *buildSettingScope_Universal:
+		return BuildSettingScope_Universal_case
+	case *buildSettingScope_Exec:
+		return BuildSettingScope_Exec_case
+	default:
+		return BuildSettingScope_Kind_not_set_case
+	}
+}
+
+type BuildSettingScope_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Target    *emptypb.Empty
+	Project   *emptypb.Empty
+	Universal *emptypb.Empty
+	Exec      *string
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 BuildSettingScope_builder) Build() *BuildSettingScope {
+	m0 := &BuildSettingScope{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Target != nil {
+		x.xxx_hidden_Kind = &buildSettingScope_Target{b.Target}
+	}
+	if b.Project != nil {
+		x.xxx_hidden_Kind = &buildSettingScope_Project{b.Project}
+	}
+	if b.Universal != nil {
+		x.xxx_hidden_Kind = &buildSettingScope_Universal{b.Universal}
+	}
+	if b.Exec != nil {
+		x.xxx_hidden_Kind = &buildSettingScope_Exec{*b.Exec}
+	}
+	return m0
+}
+
+type case_BuildSettingScope_Kind protoreflect.FieldNumber
+
+func (x case_BuildSettingScope_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isBuildSettingScope_Kind interface {
 	isBuildSettingScope_Kind()
 }
 
-type BuildSettingScope_Target struct {
-	Target *emptypb.Empty `protobuf:"bytes,1,opt,name=target,proto3,oneof"`
+type buildSettingScope_Target struct {
+	Target *emptypb.Empty `protobuf:"bytes,1,opt,name=target,oneof"`
 }
 
-type BuildSettingScope_Project struct {
-	Project *emptypb.Empty `protobuf:"bytes,2,opt,name=project,proto3,oneof"`
+type buildSettingScope_Project struct {
+	Project *emptypb.Empty `protobuf:"bytes,2,opt,name=project,oneof"`
 }
 
-type BuildSettingScope_Universal struct {
-	Universal *emptypb.Empty `protobuf:"bytes,3,opt,name=universal,proto3,oneof"`
+type buildSettingScope_Universal struct {
+	Universal *emptypb.Empty `protobuf:"bytes,3,opt,name=universal,oneof"`
 }
 
-type BuildSettingScope_Exec struct {
-	Exec string `protobuf:"bytes,4,opt,name=exec,proto3,oneof"`
+type buildSettingScope_Exec struct {
+	Exec string `protobuf:"bytes,4,opt,name=exec,oneof"`
 }
 
-func (*BuildSettingScope_Target) isBuildSettingScope_Kind() {}
+func (*buildSettingScope_Target) isBuildSettingScope_Kind() {}
 
-func (*BuildSettingScope_Project) isBuildSettingScope_Kind() {}
+func (*buildSettingScope_Project) isBuildSettingScope_Kind() {}
 
-func (*BuildSettingScope_Universal) isBuildSettingScope_Kind() {}
+func (*buildSettingScope_Universal) isBuildSettingScope_Kind() {}
 
-func (*BuildSettingScope_Exec) isBuildSettingScope_Kind() {}
+func (*buildSettingScope_Exec) isBuildSettingScope_Kind() {}
 
 type List struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Elements      []*List_Element        `protobuf:"bytes,1,rep,name=elements,proto3" json:"elements,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Elements *[]*List_Element       `protobuf:"bytes,1,rep,name=elements"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *List) Reset() {
@@ -2354,27 +4486,38 @@ func (x *List) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use List.ProtoReflect.Descriptor instead.
-func (*List) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17}
-}
-
 func (x *List) GetElements() []*List_Element {
 	if x != nil {
-		return x.Elements
+		if x.xxx_hidden_Elements != nil {
+			return *x.xxx_hidden_Elements
+		}
 	}
 	return nil
 }
 
+func (x *List) SetElements(v []*List_Element) {
+	x.xxx_hidden_Elements = &v
+}
+
+type List_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Elements []*List_Element
+}
+
+func (b0 List_builder) Build() *List {
+	m0 := &List{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Elements = &b.Elements
+	return m0
+}
+
 type Macro struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Macro_Reference
-	//	*Macro_Definition_
-	Kind          isMacro_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isMacro_Kind           `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Macro) Reset() {
@@ -2402,21 +4545,9 @@ func (x *Macro) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Macro.ProtoReflect.Descriptor instead.
-func (*Macro) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *Macro) GetKind() isMacro_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Macro) GetReference() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Macro_Reference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*macro_Reference); ok {
 			return x.Reference
 		}
 	}
@@ -2425,35 +4556,136 @@ func (x *Macro) GetReference() string {
 
 func (x *Macro) GetDefinition() *Macro_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Macro_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*macro_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *Macro) SetReference(v string) {
+	x.xxx_hidden_Kind = &macro_Reference{v}
+}
+
+func (x *Macro) SetDefinition(v *Macro_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &macro_Definition_{v}
+}
+
+func (x *Macro) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Macro) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*macro_Reference)
+	return ok
+}
+
+func (x *Macro) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*macro_Definition_)
+	return ok
+}
+
+func (x *Macro) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Macro) ClearReference() {
+	if _, ok := x.xxx_hidden_Kind.(*macro_Reference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Macro) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*macro_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Macro_Kind_not_set_case case_Macro_Kind = 0
+const Macro_Reference_case case_Macro_Kind = 1
+const Macro_Definition_case case_Macro_Kind = 2
+
+func (x *Macro) WhichKind() case_Macro_Kind {
+	if x == nil {
+		return Macro_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *macro_Reference:
+		return Macro_Reference_case
+	case *macro_Definition_:
+		return Macro_Definition_case
+	default:
+		return Macro_Kind_not_set_case
+	}
+}
+
+type Macro_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Reference  *string
+	Definition *Macro_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Macro_builder) Build() *Macro {
+	m0 := &Macro{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Reference != nil {
+		x.xxx_hidden_Kind = &macro_Reference{*b.Reference}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &macro_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_Macro_Kind protoreflect.FieldNumber
+
+func (x case_Macro_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isMacro_Kind interface {
 	isMacro_Kind()
 }
 
-type Macro_Reference struct {
-	Reference string `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type macro_Reference struct {
+	Reference string `protobuf:"bytes,1,opt,name=reference,oneof"`
 }
 
-type Macro_Definition_ struct {
-	Definition *Macro_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type macro_Definition_ struct {
+	Definition *Macro_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*Macro_Reference) isMacro_Kind() {}
+func (*macro_Reference) isMacro_Kind() {}
 
-func (*Macro_Definition_) isMacro_Kind() {}
+func (*macro_Definition_) isMacro_Kind() {}
 
 type MacroExpansionContext struct {
-	state         protoimpl.MessageState            `protogen:"open.v1"`
-	NameSuffix    string                            `protobuf:"bytes,1,opt,name=name_suffix,json=nameSuffix,proto3" json:"name_suffix,omitempty"`
-	Definition    *MacroExpansionContext_Definition `protobuf:"bytes,2,opt,name=definition,proto3" json:"definition,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState            `protogen:"opaque.v1"`
+	xxx_hidden_NameSuffix string                            `protobuf:"bytes,1,opt,name=name_suffix,json=nameSuffix"`
+	xxx_hidden_Definition *MacroExpansionContext_Definition `protobuf:"bytes,2,opt,name=definition"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *MacroExpansionContext) Reset() {
@@ -2481,31 +4713,61 @@ func (x *MacroExpansionContext) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroExpansionContext.ProtoReflect.Descriptor instead.
-func (*MacroExpansionContext) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *MacroExpansionContext) GetNameSuffix() string {
 	if x != nil {
-		return x.NameSuffix
+		return x.xxx_hidden_NameSuffix
 	}
 	return ""
 }
 
 func (x *MacroExpansionContext) GetDefinition() *MacroExpansionContext_Definition {
 	if x != nil {
-		return x.Definition
+		return x.xxx_hidden_Definition
 	}
 	return nil
 }
 
+func (x *MacroExpansionContext) SetNameSuffix(v string) {
+	x.xxx_hidden_NameSuffix = v
+}
+
+func (x *MacroExpansionContext) SetDefinition(v *MacroExpansionContext_Definition) {
+	x.xxx_hidden_Definition = v
+}
+
+func (x *MacroExpansionContext) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Definition != nil
+}
+
+func (x *MacroExpansionContext) ClearDefinition() {
+	x.xxx_hidden_Definition = nil
+}
+
+type MacroExpansionContext_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	NameSuffix string
+	Definition *MacroExpansionContext_Definition
+}
+
+func (b0 MacroExpansionContext_builder) Build() *MacroExpansionContext {
+	m0 := &MacroExpansionContext{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_NameSuffix = b.NameSuffix
+	x.xxx_hidden_Definition = b.Definition
+	return m0
+}
+
 type MacroInstance struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	NameSuffix    string                    `protobuf:"bytes,1,opt,name=name_suffix,json=nameSuffix,proto3" json:"name_suffix,omitempty"`
-	Definition    *MacroInstance_Definition `protobuf:"bytes,2,opt,name=definition,proto3" json:"definition,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_NameSuffix string                    `protobuf:"bytes,1,opt,name=name_suffix,json=nameSuffix"`
+	xxx_hidden_Definition *MacroInstance_Definition `protobuf:"bytes,2,opt,name=definition"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *MacroInstance) Reset() {
@@ -2533,31 +4795,61 @@ func (x *MacroInstance) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroInstance.ProtoReflect.Descriptor instead.
-func (*MacroInstance) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *MacroInstance) GetNameSuffix() string {
 	if x != nil {
-		return x.NameSuffix
+		return x.xxx_hidden_NameSuffix
 	}
 	return ""
 }
 
 func (x *MacroInstance) GetDefinition() *MacroInstance_Definition {
 	if x != nil {
-		return x.Definition
+		return x.xxx_hidden_Definition
 	}
 	return nil
 }
 
+func (x *MacroInstance) SetNameSuffix(v string) {
+	x.xxx_hidden_NameSuffix = v
+}
+
+func (x *MacroInstance) SetDefinition(v *MacroInstance_Definition) {
+	x.xxx_hidden_Definition = v
+}
+
+func (x *MacroInstance) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Definition != nil
+}
+
+func (x *MacroInstance) ClearDefinition() {
+	x.xxx_hidden_Definition = nil
+}
+
+type MacroInstance_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	NameSuffix string
+	Definition *MacroInstance_Definition
+}
+
+func (b0 MacroInstance_builder) Build() *MacroInstance {
+	m0 := &MacroInstance{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_NameSuffix = b.NameSuffix
+	x.xxx_hidden_Definition = b.Definition
+	return m0
+}
+
 type ModuleExtension struct {
-	state          protoimpl.MessageState           `protogen:"open.v1"`
-	Implementation *Function                        `protobuf:"bytes,1,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	TagClasses     []*ModuleExtension_NamedTagClass `protobuf:"bytes,2,rep,name=tag_classes,json=tagClasses,proto3" json:"tag_classes,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState            `protogen:"opaque.v1"`
+	xxx_hidden_Implementation *Function                         `protobuf:"bytes,1,opt,name=implementation"`
+	xxx_hidden_TagClasses     *[]*ModuleExtension_NamedTagClass `protobuf:"bytes,2,rep,name=tag_classes,json=tagClasses"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ModuleExtension) Reset() {
@@ -2585,30 +4877,62 @@ func (x *ModuleExtension) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ModuleExtension.ProtoReflect.Descriptor instead.
-func (*ModuleExtension) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *ModuleExtension) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *ModuleExtension) GetTagClasses() []*ModuleExtension_NamedTagClass {
 	if x != nil {
-		return x.TagClasses
+		if x.xxx_hidden_TagClasses != nil {
+			return *x.xxx_hidden_TagClasses
+		}
 	}
 	return nil
 }
 
+func (x *ModuleExtension) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *ModuleExtension) SetTagClasses(v []*ModuleExtension_NamedTagClass) {
+	x.xxx_hidden_TagClasses = &v
+}
+
+func (x *ModuleExtension) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *ModuleExtension) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+type ModuleExtension_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Implementation *Function
+	TagClasses     []*ModuleExtension_NamedTagClass
+}
+
+func (b0 ModuleExtension_builder) Build() *ModuleExtension {
+	m0 := &ModuleExtension{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_TagClasses = &b.TagClasses
+	return m0
+}
+
 type PredeclaredOutputFileTarget struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	OwnerTargetName string                 `protobuf:"bytes,1,opt,name=owner_target_name,json=ownerTargetName,proto3" json:"owner_target_name,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_OwnerTargetName string                 `protobuf:"bytes,1,opt,name=owner_target_name,json=ownerTargetName"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *PredeclaredOutputFileTarget) Reset() {
@@ -2636,24 +4960,37 @@ func (x *PredeclaredOutputFileTarget) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PredeclaredOutputFileTarget.ProtoReflect.Descriptor instead.
-func (*PredeclaredOutputFileTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *PredeclaredOutputFileTarget) GetOwnerTargetName() string {
 	if x != nil {
-		return x.OwnerTargetName
+		return x.xxx_hidden_OwnerTargetName
 	}
 	return ""
 }
 
+func (x *PredeclaredOutputFileTarget) SetOwnerTargetName(v string) {
+	x.xxx_hidden_OwnerTargetName = v
+}
+
+type PredeclaredOutputFileTarget_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OwnerTargetName string
+}
+
+func (b0 PredeclaredOutputFileTarget_builder) Build() *PredeclaredOutputFileTarget {
+	m0 := &PredeclaredOutputFileTarget{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_OwnerTargetName = b.OwnerTargetName
+	return m0
+}
+
 type PackageGroup struct {
-	state                protoimpl.MessageState    `protogen:"open.v1"`
-	Tree                 *PackageGroup_Subpackages `protobuf:"bytes,1,opt,name=tree,proto3" json:"tree,omitempty"`
-	IncludePackageGroups []string                  `protobuf:"bytes,2,rep,name=include_package_groups,json=includePackageGroups,proto3" json:"include_package_groups,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Tree                 *PackageGroup_Subpackages `protobuf:"bytes,1,opt,name=tree"`
+	xxx_hidden_IncludePackageGroups []string                  `protobuf:"bytes,2,rep,name=include_package_groups,json=includePackageGroups"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *PackageGroup) Reset() {
@@ -2681,32 +5018,62 @@ func (x *PackageGroup) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PackageGroup.ProtoReflect.Descriptor instead.
-func (*PackageGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *PackageGroup) GetTree() *PackageGroup_Subpackages {
 	if x != nil {
-		return x.Tree
+		return x.xxx_hidden_Tree
 	}
 	return nil
 }
 
 func (x *PackageGroup) GetIncludePackageGroups() []string {
 	if x != nil {
-		return x.IncludePackageGroups
+		return x.xxx_hidden_IncludePackageGroups
 	}
 	return nil
 }
 
+func (x *PackageGroup) SetTree(v *PackageGroup_Subpackages) {
+	x.xxx_hidden_Tree = v
+}
+
+func (x *PackageGroup) SetIncludePackageGroups(v []string) {
+	x.xxx_hidden_IncludePackageGroups = v
+}
+
+func (x *PackageGroup) HasTree() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Tree != nil
+}
+
+func (x *PackageGroup) ClearTree() {
+	x.xxx_hidden_Tree = nil
+}
+
+type PackageGroup_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Tree                 *PackageGroup_Subpackages
+	IncludePackageGroups []string
+}
+
+func (b0 PackageGroup_builder) Build() *PackageGroup {
+	m0 := &PackageGroup{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Tree = b.Tree
+	x.xxx_hidden_IncludePackageGroups = b.IncludePackageGroups
+	return m0
+}
+
 type Provider struct {
-	state              protoimpl.MessageState       `protogen:"open.v1"`
-	InstanceProperties *Provider_InstanceProperties `protobuf:"bytes,1,opt,name=instance_properties,json=instanceProperties,proto3" json:"instance_properties,omitempty"`
-	InitFunction       *Function                    `protobuf:"bytes,2,opt,name=init_function,json=initFunction,proto3" json:"init_function,omitempty"`
-	Fields             []string                     `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_InstanceProperties *Provider_InstanceProperties `protobuf:"bytes,1,opt,name=instance_properties,json=instanceProperties"`
+	xxx_hidden_InitFunction       *Function                    `protobuf:"bytes,2,opt,name=init_function,json=initFunction"`
+	xxx_hidden_Fields             []string                     `protobuf:"bytes,3,rep,name=fields"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Provider) Reset() {
@@ -2734,38 +5101,85 @@ func (x *Provider) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Provider.ProtoReflect.Descriptor instead.
-func (*Provider) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24}
-}
-
 func (x *Provider) GetInstanceProperties() *Provider_InstanceProperties {
 	if x != nil {
-		return x.InstanceProperties
+		return x.xxx_hidden_InstanceProperties
 	}
 	return nil
 }
 
 func (x *Provider) GetInitFunction() *Function {
 	if x != nil {
-		return x.InitFunction
+		return x.xxx_hidden_InitFunction
 	}
 	return nil
 }
 
 func (x *Provider) GetFields() []string {
 	if x != nil {
-		return x.Fields
+		return x.xxx_hidden_Fields
 	}
 	return nil
 }
 
+func (x *Provider) SetInstanceProperties(v *Provider_InstanceProperties) {
+	x.xxx_hidden_InstanceProperties = v
+}
+
+func (x *Provider) SetInitFunction(v *Function) {
+	x.xxx_hidden_InitFunction = v
+}
+
+func (x *Provider) SetFields(v []string) {
+	x.xxx_hidden_Fields = v
+}
+
+func (x *Provider) HasInstanceProperties() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InstanceProperties != nil
+}
+
+func (x *Provider) HasInitFunction() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InitFunction != nil
+}
+
+func (x *Provider) ClearInstanceProperties() {
+	x.xxx_hidden_InstanceProperties = nil
+}
+
+func (x *Provider) ClearInitFunction() {
+	x.xxx_hidden_InitFunction = nil
+}
+
+type Provider_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	InstanceProperties *Provider_InstanceProperties
+	InitFunction       *Function
+	Fields             []string
+}
+
+func (b0 Provider_builder) Build() *Provider {
+	m0 := &Provider{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_InstanceProperties = b.InstanceProperties
+	x.xxx_hidden_InitFunction = b.InitFunction
+	x.xxx_hidden_Fields = b.Fields
+	return m0
+}
+
 type Struct struct {
-	state                      protoimpl.MessageState       `protogen:"open.v1"`
-	Fields                     *Struct_Fields               `protobuf:"bytes,1,opt,name=fields,proto3" json:"fields,omitempty"`
-	ProviderInstanceProperties *Provider_InstanceProperties `protobuf:"bytes,2,opt,name=provider_instance_properties,json=providerInstanceProperties,proto3" json:"provider_instance_properties,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                 protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Fields                     *Struct_Fields               `protobuf:"bytes,1,opt,name=fields"`
+	xxx_hidden_ProviderInstanceProperties *Provider_InstanceProperties `protobuf:"bytes,2,opt,name=provider_instance_properties,json=providerInstanceProperties"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *Struct) Reset() {
@@ -2793,30 +5207,71 @@ func (x *Struct) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Struct.ProtoReflect.Descriptor instead.
-func (*Struct) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{25}
-}
-
 func (x *Struct) GetFields() *Struct_Fields {
 	if x != nil {
-		return x.Fields
+		return x.xxx_hidden_Fields
 	}
 	return nil
 }
 
 func (x *Struct) GetProviderInstanceProperties() *Provider_InstanceProperties {
 	if x != nil {
-		return x.ProviderInstanceProperties
+		return x.xxx_hidden_ProviderInstanceProperties
 	}
 	return nil
 }
 
+func (x *Struct) SetFields(v *Struct_Fields) {
+	x.xxx_hidden_Fields = v
+}
+
+func (x *Struct) SetProviderInstanceProperties(v *Provider_InstanceProperties) {
+	x.xxx_hidden_ProviderInstanceProperties = v
+}
+
+func (x *Struct) HasFields() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Fields != nil
+}
+
+func (x *Struct) HasProviderInstanceProperties() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ProviderInstanceProperties != nil
+}
+
+func (x *Struct) ClearFields() {
+	x.xxx_hidden_Fields = nil
+}
+
+func (x *Struct) ClearProviderInstanceProperties() {
+	x.xxx_hidden_ProviderInstanceProperties = nil
+}
+
+type Struct_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Fields                     *Struct_Fields
+	ProviderInstanceProperties *Provider_InstanceProperties
+}
+
+func (b0 Struct_builder) Build() *Struct {
+	m0 := &Struct{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Fields = b.Fields
+	x.xxx_hidden_ProviderInstanceProperties = b.ProviderInstanceProperties
+	return m0
+}
+
 type TagClass struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Attrs         []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attrs *[]*NamedAttr          `protobuf:"bytes,1,rep,name=attrs"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *TagClass) Reset() {
@@ -2844,24 +5299,39 @@ func (x *TagClass) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TagClass.ProtoReflect.Descriptor instead.
-func (*TagClass) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{26}
-}
-
 func (x *TagClass) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
+func (x *TagClass) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+type TagClass_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs []*NamedAttr
+}
+
+func (b0 TagClass_builder) Build() *TagClass {
+	m0 := &TagClass{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	return m0
+}
+
 type TargetReference struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	OriginalLabel string                      `protobuf:"bytes,1,opt,name=original_label,json=originalLabel,proto3" json:"original_label,omitempty"`
-	Configured    *TargetReference_Configured `protobuf:"bytes,2,opt,name=configured,proto3" json:"configured,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_OriginalLabel string                      `protobuf:"bytes,1,opt,name=original_label,json=originalLabel"`
+	xxx_hidden_Configured    *TargetReference_Configured `protobuf:"bytes,2,opt,name=configured"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *TargetReference) Reset() {
@@ -2889,30 +5359,60 @@ func (x *TargetReference) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TargetReference.ProtoReflect.Descriptor instead.
-func (*TargetReference) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{27}
-}
-
 func (x *TargetReference) GetOriginalLabel() string {
 	if x != nil {
-		return x.OriginalLabel
+		return x.xxx_hidden_OriginalLabel
 	}
 	return ""
 }
 
 func (x *TargetReference) GetConfigured() *TargetReference_Configured {
 	if x != nil {
-		return x.Configured
+		return x.xxx_hidden_Configured
 	}
 	return nil
 }
 
+func (x *TargetReference) SetOriginalLabel(v string) {
+	x.xxx_hidden_OriginalLabel = v
+}
+
+func (x *TargetReference) SetConfigured(v *TargetReference_Configured) {
+	x.xxx_hidden_Configured = v
+}
+
+func (x *TargetReference) HasConfigured() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Configured != nil
+}
+
+func (x *TargetReference) ClearConfigured() {
+	x.xxx_hidden_Configured = nil
+}
+
+type TargetReference_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OriginalLabel string
+	Configured    *TargetReference_Configured
+}
+
+func (b0 TargetReference_builder) Build() *TargetReference {
+	m0 := &TargetReference{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_OriginalLabel = b.OriginalLabel
+	x.xxx_hidden_Configured = b.Configured
+	return m0
+}
+
 type ProviderSet struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	ProviderIdentifiers []string               `protobuf:"bytes,1,rep,name=provider_identifiers,json=providerIdentifiers,proto3" json:"provider_identifiers,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ProviderIdentifiers []string               `protobuf:"bytes,1,rep,name=provider_identifiers,json=providerIdentifiers"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *ProviderSet) Reset() {
@@ -2940,24 +5440,37 @@ func (x *ProviderSet) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ProviderSet.ProtoReflect.Descriptor instead.
-func (*ProviderSet) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{28}
-}
-
 func (x *ProviderSet) GetProviderIdentifiers() []string {
 	if x != nil {
-		return x.ProviderIdentifiers
+		return x.xxx_hidden_ProviderIdentifiers
 	}
 	return nil
 }
 
+func (x *ProviderSet) SetProviderIdentifiers(v []string) {
+	x.xxx_hidden_ProviderIdentifiers = v
+}
+
+type ProviderSet_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ProviderIdentifiers []string
+}
+
+func (b0 ProviderSet_builder) Build() *ProviderSet {
+	m0 := &ProviderSet{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ProviderIdentifiers = b.ProviderIdentifiers
+	return m0
+}
+
 type ToolchainType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ToolchainType string                 `protobuf:"bytes,1,opt,name=toolchain_type,json=toolchainType,proto3" json:"toolchain_type,omitempty"`
-	Mandatory     bool                   `protobuf:"varint,2,opt,name=mandatory,proto3" json:"mandatory,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ToolchainType string                 `protobuf:"bytes,1,opt,name=toolchain_type,json=toolchainType"`
+	xxx_hidden_Mandatory     bool                   `protobuf:"varint,2,opt,name=mandatory"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ToolchainType) Reset() {
@@ -2985,30 +5498,49 @@ func (x *ToolchainType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ToolchainType.ProtoReflect.Descriptor instead.
-func (*ToolchainType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{29}
-}
-
 func (x *ToolchainType) GetToolchainType() string {
 	if x != nil {
-		return x.ToolchainType
+		return x.xxx_hidden_ToolchainType
 	}
 	return ""
 }
 
 func (x *ToolchainType) GetMandatory() bool {
 	if x != nil {
-		return x.Mandatory
+		return x.xxx_hidden_Mandatory
 	}
 	return false
 }
 
+func (x *ToolchainType) SetToolchainType(v string) {
+	x.xxx_hidden_ToolchainType = v
+}
+
+func (x *ToolchainType) SetMandatory(v bool) {
+	x.xxx_hidden_Mandatory = v
+}
+
+type ToolchainType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ToolchainType string
+	Mandatory     bool
+}
+
+func (b0 ToolchainType_builder) Build() *ToolchainType {
+	m0 := &ToolchainType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ToolchainType = b.ToolchainType
+	x.xxx_hidden_Mandatory = b.Mandatory
+	return m0
+}
+
 type Tuple struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Elements      []*Value               `protobuf:"bytes,1,rep,name=elements,proto3" json:"elements,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Elements *[]*Value              `protobuf:"bytes,1,rep,name=elements"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Tuple) Reset() {
@@ -3036,24 +5568,39 @@ func (x *Tuple) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Tuple.ProtoReflect.Descriptor instead.
-func (*Tuple) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{30}
-}
-
 func (x *Tuple) GetElements() []*Value {
 	if x != nil {
-		return x.Elements
+		if x.xxx_hidden_Elements != nil {
+			return *x.xxx_hidden_Elements
+		}
 	}
 	return nil
 }
 
+func (x *Tuple) SetElements(v []*Value) {
+	x.xxx_hidden_Elements = &v
+}
+
+type Tuple_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Elements []*Value
+}
+
+func (b0 Tuple_builder) Build() *Tuple {
+	m0 := &Tuple{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Elements = &b.Elements
+	return m0
+}
+
 type NamedAttr struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Attr          *Attr                  `protobuf:"bytes,2,opt,name=attr,proto3" json:"attr,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Attr *Attr                  `protobuf:"bytes,2,opt,name=attr"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *NamedAttr) Reset() {
@@ -3081,31 +5628,61 @@ func (x *NamedAttr) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NamedAttr.ProtoReflect.Descriptor instead.
-func (*NamedAttr) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{31}
-}
-
 func (x *NamedAttr) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *NamedAttr) GetAttr() *Attr {
 	if x != nil {
-		return x.Attr
+		return x.xxx_hidden_Attr
 	}
 	return nil
 }
 
+func (x *NamedAttr) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *NamedAttr) SetAttr(v *Attr) {
+	x.xxx_hidden_Attr = v
+}
+
+func (x *NamedAttr) HasAttr() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Attr != nil
+}
+
+func (x *NamedAttr) ClearAttr() {
+	x.xxx_hidden_Attr = nil
+}
+
+type NamedAttr_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name string
+	Attr *Attr
+}
+
+func (b0 NamedAttr_builder) Build() *NamedAttr {
+	m0 := &NamedAttr{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Attr = b.Attr
+	return m0
+}
+
 type NamedExecGroup struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ExecGroup     *ExecGroup             `protobuf:"bytes,2,opt,name=exec_group,json=execGroup,proto3" json:"exec_group,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name      string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_ExecGroup *ExecGroup             `protobuf:"bytes,2,opt,name=exec_group,json=execGroup"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *NamedExecGroup) Reset() {
@@ -3133,31 +5710,61 @@ func (x *NamedExecGroup) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NamedExecGroup.ProtoReflect.Descriptor instead.
-func (*NamedExecGroup) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{32}
-}
-
 func (x *NamedExecGroup) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *NamedExecGroup) GetExecGroup() *ExecGroup {
 	if x != nil {
-		return x.ExecGroup
+		return x.xxx_hidden_ExecGroup
 	}
 	return nil
 }
 
+func (x *NamedExecGroup) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *NamedExecGroup) SetExecGroup(v *ExecGroup) {
+	x.xxx_hidden_ExecGroup = v
+}
+
+func (x *NamedExecGroup) HasExecGroup() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExecGroup != nil
+}
+
+func (x *NamedExecGroup) ClearExecGroup() {
+	x.xxx_hidden_ExecGroup = nil
+}
+
+type NamedExecGroup_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name      string
+	ExecGroup *ExecGroup
+}
+
+func (b0 NamedExecGroup_builder) Build() *NamedExecGroup {
+	m0 := &NamedExecGroup{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_ExecGroup = b.ExecGroup
+	return m0
+}
+
 type Repo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Definition    *Repo_Definition       `protobuf:"bytes,2,opt,name=definition,proto3" json:"definition,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name       string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Definition *Repo_Definition       `protobuf:"bytes,2,opt,name=definition"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
@@ -3185,34 +5792,60 @@ func (x *Repo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Repo.ProtoReflect.Descriptor instead.
-func (*Repo) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33}
-}
-
 func (x *Repo) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Repo) GetDefinition() *Repo_Definition {
 	if x != nil {
-		return x.Definition
+		return x.xxx_hidden_Definition
 	}
 	return nil
 }
 
+func (x *Repo) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Repo) SetDefinition(v *Repo_Definition) {
+	x.xxx_hidden_Definition = v
+}
+
+func (x *Repo) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Definition != nil
+}
+
+func (x *Repo) ClearDefinition() {
+	x.xxx_hidden_Definition = nil
+}
+
+type Repo_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name       string
+	Definition *Repo_Definition
+}
+
+func (b0 Repo_builder) Build() *Repo {
+	m0 := &Repo{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Definition = b.Definition
+	return m0
+}
+
 type RepositoryRule struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*RepositoryRule_Reference
-	//	*RepositoryRule_Definition_
-	Kind          isRepositoryRule_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isRepositoryRule_Kind  `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RepositoryRule) Reset() {
@@ -3240,21 +5873,9 @@ func (x *RepositoryRule) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RepositoryRule.ProtoReflect.Descriptor instead.
-func (*RepositoryRule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *RepositoryRule) GetKind() isRepositoryRule_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *RepositoryRule) GetReference() string {
 	if x != nil {
-		if x, ok := x.Kind.(*RepositoryRule_Reference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*repositoryRule_Reference); ok {
 			return x.Reference
 		}
 	}
@@ -3263,38 +5884,135 @@ func (x *RepositoryRule) GetReference() string {
 
 func (x *RepositoryRule) GetDefinition() *RepositoryRule_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*RepositoryRule_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*repositoryRule_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *RepositoryRule) SetReference(v string) {
+	x.xxx_hidden_Kind = &repositoryRule_Reference{v}
+}
+
+func (x *RepositoryRule) SetDefinition(v *RepositoryRule_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &repositoryRule_Definition_{v}
+}
+
+func (x *RepositoryRule) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *RepositoryRule) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*repositoryRule_Reference)
+	return ok
+}
+
+func (x *RepositoryRule) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*repositoryRule_Definition_)
+	return ok
+}
+
+func (x *RepositoryRule) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *RepositoryRule) ClearReference() {
+	if _, ok := x.xxx_hidden_Kind.(*repositoryRule_Reference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *RepositoryRule) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*repositoryRule_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const RepositoryRule_Kind_not_set_case case_RepositoryRule_Kind = 0
+const RepositoryRule_Reference_case case_RepositoryRule_Kind = 1
+const RepositoryRule_Definition_case case_RepositoryRule_Kind = 2
+
+func (x *RepositoryRule) WhichKind() case_RepositoryRule_Kind {
+	if x == nil {
+		return RepositoryRule_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *repositoryRule_Reference:
+		return RepositoryRule_Reference_case
+	case *repositoryRule_Definition_:
+		return RepositoryRule_Definition_case
+	default:
+		return RepositoryRule_Kind_not_set_case
+	}
+}
+
+type RepositoryRule_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Reference  *string
+	Definition *RepositoryRule_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 RepositoryRule_builder) Build() *RepositoryRule {
+	m0 := &RepositoryRule{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Reference != nil {
+		x.xxx_hidden_Kind = &repositoryRule_Reference{*b.Reference}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &repositoryRule_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_RepositoryRule_Kind protoreflect.FieldNumber
+
+func (x case_RepositoryRule_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isRepositoryRule_Kind interface {
 	isRepositoryRule_Kind()
 }
 
-type RepositoryRule_Reference struct {
-	Reference string `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type repositoryRule_Reference struct {
+	Reference string `protobuf:"bytes,1,opt,name=reference,oneof"`
 }
 
-type RepositoryRule_Definition_ struct {
-	Definition *RepositoryRule_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type repositoryRule_Definition_ struct {
+	Definition *RepositoryRule_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*RepositoryRule_Reference) isRepositoryRule_Kind() {}
+func (*repositoryRule_Reference) isRepositoryRule_Kind() {}
 
-func (*RepositoryRule_Definition_) isRepositoryRule_Kind() {}
+func (*repositoryRule_Definition_) isRepositoryRule_Kind() {}
 
 type Rule struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Rule_Reference
-	//	*Rule_Definition_
-	Kind          isRule_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isRule_Kind            `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Rule) Reset() {
@@ -3322,21 +6040,9 @@ func (x *Rule) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Rule.ProtoReflect.Descriptor instead.
-func (*Rule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35}
-}
-
-func (x *Rule) GetKind() isRule_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Rule) GetReference() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Rule_Reference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*rule_Reference); ok {
 			return x.Reference
 		}
 	}
@@ -3345,41 +6051,142 @@ func (x *Rule) GetReference() string {
 
 func (x *Rule) GetDefinition() *Rule_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Rule_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*rule_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *Rule) SetReference(v string) {
+	x.xxx_hidden_Kind = &rule_Reference{v}
+}
+
+func (x *Rule) SetDefinition(v *Rule_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &rule_Definition_{v}
+}
+
+func (x *Rule) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Rule) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*rule_Reference)
+	return ok
+}
+
+func (x *Rule) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*rule_Definition_)
+	return ok
+}
+
+func (x *Rule) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Rule) ClearReference() {
+	if _, ok := x.xxx_hidden_Kind.(*rule_Reference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Rule) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*rule_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Rule_Kind_not_set_case case_Rule_Kind = 0
+const Rule_Reference_case case_Rule_Kind = 1
+const Rule_Definition_case case_Rule_Kind = 2
+
+func (x *Rule) WhichKind() case_Rule_Kind {
+	if x == nil {
+		return Rule_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *rule_Reference:
+		return Rule_Reference_case
+	case *rule_Definition_:
+		return Rule_Definition_case
+	default:
+		return Rule_Kind_not_set_case
+	}
+}
+
+type Rule_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Reference  *string
+	Definition *Rule_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Rule_builder) Build() *Rule {
+	m0 := &Rule{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Reference != nil {
+		x.xxx_hidden_Kind = &rule_Reference{*b.Reference}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &rule_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_Rule_Kind protoreflect.FieldNumber
+
+func (x case_Rule_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isRule_Kind interface {
 	isRule_Kind()
 }
 
-type Rule_Reference struct {
-	Reference string `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type rule_Reference struct {
+	Reference string `protobuf:"bytes,1,opt,name=reference,oneof"`
 }
 
-type Rule_Definition_ struct {
-	Definition *Rule_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type rule_Definition_ struct {
+	Definition *Rule_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*Rule_Reference) isRule_Kind() {}
+func (*rule_Reference) isRule_Kind() {}
 
-func (*Rule_Definition_) isRule_Kind() {}
+func (*rule_Definition_) isRule_Kind() {}
 
 type RuleTarget struct {
-	state                protoimpl.MessageState        `protogen:"open.v1"`
-	RuleIdentifier       string                        `protobuf:"bytes,1,opt,name=rule_identifier,json=ruleIdentifier,proto3" json:"rule_identifier,omitempty"`
-	PublicAttrValues     []*RuleTarget_PublicAttrValue `protobuf:"bytes,2,rep,name=public_attr_values,json=publicAttrValues,proto3" json:"public_attr_values,omitempty"`
-	ExecCompatibleWith   []string                      `protobuf:"bytes,3,rep,name=exec_compatible_with,json=execCompatibleWith,proto3" json:"exec_compatible_with,omitempty"`
-	Tags                 []string                      `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	TargetCompatibleWith []*Select_Group               `protobuf:"bytes,5,rep,name=target_compatible_with,json=targetCompatibleWith,proto3" json:"target_compatible_with,omitempty"`
-	InheritableAttrs     *InheritableAttrs             `protobuf:"bytes,6,opt,name=inheritable_attrs,json=inheritableAttrs,proto3" json:"inheritable_attrs,omitempty"`
-	BuildSetting         *RuleTarget_BuildSetting      `protobuf:"bytes,7,opt,name=build_setting,json=buildSetting,proto3" json:"build_setting,omitempty"`
-	Test                 *RuleTarget_Test              `protobuf:"bytes,8,opt,name=test,proto3" json:"test,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_RuleIdentifier       string                         `protobuf:"bytes,1,opt,name=rule_identifier,json=ruleIdentifier"`
+	xxx_hidden_PublicAttrValues     *[]*RuleTarget_PublicAttrValue `protobuf:"bytes,2,rep,name=public_attr_values,json=publicAttrValues"`
+	xxx_hidden_ExecCompatibleWith   []string                       `protobuf:"bytes,3,rep,name=exec_compatible_with,json=execCompatibleWith"`
+	xxx_hidden_Tags                 []string                       `protobuf:"bytes,4,rep,name=tags"`
+	xxx_hidden_TargetCompatibleWith *[]*Select_Group               `protobuf:"bytes,5,rep,name=target_compatible_with,json=targetCompatibleWith"`
+	xxx_hidden_InheritableAttrs     *InheritableAttrs              `protobuf:"bytes,6,opt,name=inheritable_attrs,json=inheritableAttrs"`
+	xxx_hidden_BuildSetting         *RuleTarget_BuildSetting       `protobuf:"bytes,7,opt,name=build_setting,json=buildSetting"`
+	xxx_hidden_Test                 *RuleTarget_Test               `protobuf:"bytes,8,opt,name=test"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *RuleTarget) Reset() {
@@ -3407,77 +6214,169 @@ func (x *RuleTarget) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RuleTarget.ProtoReflect.Descriptor instead.
-func (*RuleTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36}
-}
-
 func (x *RuleTarget) GetRuleIdentifier() string {
 	if x != nil {
-		return x.RuleIdentifier
+		return x.xxx_hidden_RuleIdentifier
 	}
 	return ""
 }
 
 func (x *RuleTarget) GetPublicAttrValues() []*RuleTarget_PublicAttrValue {
 	if x != nil {
-		return x.PublicAttrValues
+		if x.xxx_hidden_PublicAttrValues != nil {
+			return *x.xxx_hidden_PublicAttrValues
+		}
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetExecCompatibleWith() []string {
 	if x != nil {
-		return x.ExecCompatibleWith
+		return x.xxx_hidden_ExecCompatibleWith
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetTags() []string {
 	if x != nil {
-		return x.Tags
+		return x.xxx_hidden_Tags
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetTargetCompatibleWith() []*Select_Group {
 	if x != nil {
-		return x.TargetCompatibleWith
+		if x.xxx_hidden_TargetCompatibleWith != nil {
+			return *x.xxx_hidden_TargetCompatibleWith
+		}
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetInheritableAttrs() *InheritableAttrs {
 	if x != nil {
-		return x.InheritableAttrs
+		return x.xxx_hidden_InheritableAttrs
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetBuildSetting() *RuleTarget_BuildSetting {
 	if x != nil {
-		return x.BuildSetting
+		return x.xxx_hidden_BuildSetting
 	}
 	return nil
 }
 
 func (x *RuleTarget) GetTest() *RuleTarget_Test {
 	if x != nil {
-		return x.Test
+		return x.xxx_hidden_Test
 	}
 	return nil
 }
 
+func (x *RuleTarget) SetRuleIdentifier(v string) {
+	x.xxx_hidden_RuleIdentifier = v
+}
+
+func (x *RuleTarget) SetPublicAttrValues(v []*RuleTarget_PublicAttrValue) {
+	x.xxx_hidden_PublicAttrValues = &v
+}
+
+func (x *RuleTarget) SetExecCompatibleWith(v []string) {
+	x.xxx_hidden_ExecCompatibleWith = v
+}
+
+func (x *RuleTarget) SetTags(v []string) {
+	x.xxx_hidden_Tags = v
+}
+
+func (x *RuleTarget) SetTargetCompatibleWith(v []*Select_Group) {
+	x.xxx_hidden_TargetCompatibleWith = &v
+}
+
+func (x *RuleTarget) SetInheritableAttrs(v *InheritableAttrs) {
+	x.xxx_hidden_InheritableAttrs = v
+}
+
+func (x *RuleTarget) SetBuildSetting(v *RuleTarget_BuildSetting) {
+	x.xxx_hidden_BuildSetting = v
+}
+
+func (x *RuleTarget) SetTest(v *RuleTarget_Test) {
+	x.xxx_hidden_Test = v
+}
+
+func (x *RuleTarget) HasInheritableAttrs() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InheritableAttrs != nil
+}
+
+func (x *RuleTarget) HasBuildSetting() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BuildSetting != nil
+}
+
+func (x *RuleTarget) HasTest() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Test != nil
+}
+
+func (x *RuleTarget) ClearInheritableAttrs() {
+	x.xxx_hidden_InheritableAttrs = nil
+}
+
+func (x *RuleTarget) ClearBuildSetting() {
+	x.xxx_hidden_BuildSetting = nil
+}
+
+func (x *RuleTarget) ClearTest() {
+	x.xxx_hidden_Test = nil
+}
+
+type RuleTarget_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RuleIdentifier       string
+	PublicAttrValues     []*RuleTarget_PublicAttrValue
+	ExecCompatibleWith   []string
+	Tags                 []string
+	TargetCompatibleWith []*Select_Group
+	InheritableAttrs     *InheritableAttrs
+	BuildSetting         *RuleTarget_BuildSetting
+	Test                 *RuleTarget_Test
+}
+
+func (b0 RuleTarget_builder) Build() *RuleTarget {
+	m0 := &RuleTarget{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RuleIdentifier = b.RuleIdentifier
+	x.xxx_hidden_PublicAttrValues = &b.PublicAttrValues
+	x.xxx_hidden_ExecCompatibleWith = b.ExecCompatibleWith
+	x.xxx_hidden_Tags = b.Tags
+	x.xxx_hidden_TargetCompatibleWith = &b.TargetCompatibleWith
+	x.xxx_hidden_InheritableAttrs = b.InheritableAttrs
+	x.xxx_hidden_BuildSetting = b.BuildSetting
+	x.xxx_hidden_Test = b.Test
+	return m0
+}
+
 type TestSuite struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tests         []*TestSuite_Test      `protobuf:"bytes,1,rep,name=tests,proto3" json:"tests,omitempty"`
-	PositiveTags  []string               `protobuf:"bytes,2,rep,name=positive_tags,json=positiveTags,proto3" json:"positive_tags,omitempty"`
-	NegativeTags  []string               `protobuf:"bytes,3,rep,name=negative_tags,json=negativeTags,proto3" json:"negative_tags,omitempty"`
-	Sizes         []TestSize             `protobuf:"varint,4,rep,packed,name=sizes,proto3,enum=bonanza.model.starlark.TestSize" json:"sizes,omitempty"`
-	Visibility    *PackageGroup          `protobuf:"bytes,5,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	Manual        bool                   `protobuf:"varint,6,opt,name=manual,proto3" json:"manual,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Tests        *[]*TestSuite_Test     `protobuf:"bytes,1,rep,name=tests"`
+	xxx_hidden_PositiveTags []string               `protobuf:"bytes,2,rep,name=positive_tags,json=positiveTags"`
+	xxx_hidden_NegativeTags []string               `protobuf:"bytes,3,rep,name=negative_tags,json=negativeTags"`
+	xxx_hidden_Sizes        []TestSize             `protobuf:"varint,4,rep,packed,name=sizes,enum=bonanza.model.starlark.TestSize"`
+	xxx_hidden_Visibility   *PackageGroup          `protobuf:"bytes,5,opt,name=visibility"`
+	xxx_hidden_Manual       bool                   `protobuf:"varint,6,opt,name=manual"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *TestSuite) Reset() {
@@ -3505,59 +6404,115 @@ func (x *TestSuite) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TestSuite.ProtoReflect.Descriptor instead.
-func (*TestSuite) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{37}
-}
-
 func (x *TestSuite) GetTests() []*TestSuite_Test {
 	if x != nil {
-		return x.Tests
+		if x.xxx_hidden_Tests != nil {
+			return *x.xxx_hidden_Tests
+		}
 	}
 	return nil
 }
 
 func (x *TestSuite) GetPositiveTags() []string {
 	if x != nil {
-		return x.PositiveTags
+		return x.xxx_hidden_PositiveTags
 	}
 	return nil
 }
 
 func (x *TestSuite) GetNegativeTags() []string {
 	if x != nil {
-		return x.NegativeTags
+		return x.xxx_hidden_NegativeTags
 	}
 	return nil
 }
 
 func (x *TestSuite) GetSizes() []TestSize {
 	if x != nil {
-		return x.Sizes
+		return x.xxx_hidden_Sizes
 	}
 	return nil
 }
 
 func (x *TestSuite) GetVisibility() *PackageGroup {
 	if x != nil {
-		return x.Visibility
+		return x.xxx_hidden_Visibility
 	}
 	return nil
 }
 
 func (x *TestSuite) GetManual() bool {
 	if x != nil {
-		return x.Manual
+		return x.xxx_hidden_Manual
 	}
 	return false
 }
 
+func (x *TestSuite) SetTests(v []*TestSuite_Test) {
+	x.xxx_hidden_Tests = &v
+}
+
+func (x *TestSuite) SetPositiveTags(v []string) {
+	x.xxx_hidden_PositiveTags = v
+}
+
+func (x *TestSuite) SetNegativeTags(v []string) {
+	x.xxx_hidden_NegativeTags = v
+}
+
+func (x *TestSuite) SetSizes(v []TestSize) {
+	x.xxx_hidden_Sizes = v
+}
+
+func (x *TestSuite) SetVisibility(v *PackageGroup) {
+	x.xxx_hidden_Visibility = v
+}
+
+func (x *TestSuite) SetManual(v bool) {
+	x.xxx_hidden_Manual = v
+}
+
+func (x *TestSuite) HasVisibility() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Visibility != nil
+}
+
+func (x *TestSuite) ClearVisibility() {
+	x.xxx_hidden_Visibility = nil
+}
+
+type TestSuite_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Tests        []*TestSuite_Test
+	PositiveTags []string
+	NegativeTags []string
+	Sizes        []TestSize
+	Visibility   *PackageGroup
+	Manual       bool
+}
+
+func (b0 TestSuite_builder) Build() *TestSuite {
+	m0 := &TestSuite{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Tests = &b.Tests
+	x.xxx_hidden_PositiveTags = b.PositiveTags
+	x.xxx_hidden_NegativeTags = b.NegativeTags
+	x.xxx_hidden_Sizes = b.Sizes
+	x.xxx_hidden_Visibility = b.Visibility
+	x.xxx_hidden_Manual = b.Manual
+	return m0
+}
+
 type Select struct {
-	state                 protoimpl.MessageState       `protogen:"open.v1"`
-	Groups                []*Select_Group              `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
-	ConcatenationOperator Select_ConcatenationOperator `protobuf:"varint,2,opt,name=concatenation_operator,json=concatenationOperator,proto3,enum=bonanza.model.starlark.Select_ConcatenationOperator" json:"concatenation_operator,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Groups                *[]*Select_Group             `protobuf:"bytes,1,rep,name=groups"`
+	xxx_hidden_ConcatenationOperator Select_ConcatenationOperator `protobuf:"varint,2,opt,name=concatenation_operator,json=concatenationOperator,enum=bonanza.model.starlark.Select_ConcatenationOperator"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *Select) Reset() {
@@ -3585,30 +6540,51 @@ func (x *Select) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Select.ProtoReflect.Descriptor instead.
-func (*Select) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38}
-}
-
 func (x *Select) GetGroups() []*Select_Group {
 	if x != nil {
-		return x.Groups
+		if x.xxx_hidden_Groups != nil {
+			return *x.xxx_hidden_Groups
+		}
 	}
 	return nil
 }
 
 func (x *Select) GetConcatenationOperator() Select_ConcatenationOperator {
 	if x != nil {
-		return x.ConcatenationOperator
+		return x.xxx_hidden_ConcatenationOperator
 	}
 	return Select_NONE
 }
 
+func (x *Select) SetGroups(v []*Select_Group) {
+	x.xxx_hidden_Groups = &v
+}
+
+func (x *Select) SetConcatenationOperator(v Select_ConcatenationOperator) {
+	x.xxx_hidden_ConcatenationOperator = v
+}
+
+type Select_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Groups                []*Select_Group
+	ConcatenationOperator Select_ConcatenationOperator
+}
+
+func (b0 Select_builder) Build() *Select {
+	m0 := &Select{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Groups = &b.Groups
+	x.xxx_hidden_ConcatenationOperator = b.ConcatenationOperator
+	return m0
+}
+
 type Set struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Elements      []*List_Element        `protobuf:"bytes,1,rep,name=elements,proto3" json:"elements,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Elements *[]*List_Element       `protobuf:"bytes,1,rep,name=elements"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Set) Reset() {
@@ -3636,23 +6612,38 @@ func (x *Set) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Set.ProtoReflect.Descriptor instead.
-func (*Set) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{39}
-}
-
 func (x *Set) GetElements() []*List_Element {
 	if x != nil {
-		return x.Elements
+		if x.xxx_hidden_Elements != nil {
+			return *x.xxx_hidden_Elements
+		}
 	}
 	return nil
 }
 
+func (x *Set) SetElements(v []*List_Element) {
+	x.xxx_hidden_Elements = &v
+}
+
+type Set_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Elements []*List_Element
+}
+
+func (b0 Set_builder) Build() *Set {
+	m0 := &Set{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Elements = &b.Elements
+	return m0
+}
+
 type SourceFileTarget struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Visibility    *PackageGroup          `protobuf:"bytes,4,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Visibility *PackageGroup          `protobuf:"bytes,4,opt,name=visibility"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *SourceFileTarget) Reset() {
@@ -3680,27 +6671,47 @@ func (x *SourceFileTarget) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SourceFileTarget.ProtoReflect.Descriptor instead.
-func (*SourceFileTarget) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{40}
-}
-
 func (x *SourceFileTarget) GetVisibility() *PackageGroup {
 	if x != nil {
-		return x.Visibility
+		return x.xxx_hidden_Visibility
 	}
 	return nil
 }
 
+func (x *SourceFileTarget) SetVisibility(v *PackageGroup) {
+	x.xxx_hidden_Visibility = v
+}
+
+func (x *SourceFileTarget) HasVisibility() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Visibility != nil
+}
+
+func (x *SourceFileTarget) ClearVisibility() {
+	x.xxx_hidden_Visibility = nil
+}
+
+type SourceFileTarget_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Visibility *PackageGroup
+}
+
+func (b0 SourceFileTarget_builder) Build() *SourceFileTarget {
+	m0 := &SourceFileTarget{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Visibility = b.Visibility
+	return m0
+}
+
 type Subrule struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Subrule_Reference
-	//	*Subrule_Definition_
-	Kind          isSubrule_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isSubrule_Kind         `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Subrule) Reset() {
@@ -3728,21 +6739,9 @@ func (x *Subrule) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Subrule.ProtoReflect.Descriptor instead.
-func (*Subrule) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{41}
-}
-
-func (x *Subrule) GetKind() isSubrule_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Subrule) GetReference() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Subrule_Reference); ok {
+		if x, ok := x.xxx_hidden_Kind.(*subrule_Reference); ok {
 			return x.Reference
 		}
 	}
@@ -3751,35 +6750,136 @@ func (x *Subrule) GetReference() string {
 
 func (x *Subrule) GetDefinition() *Subrule_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Subrule_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*subrule_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *Subrule) SetReference(v string) {
+	x.xxx_hidden_Kind = &subrule_Reference{v}
+}
+
+func (x *Subrule) SetDefinition(v *Subrule_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &subrule_Definition_{v}
+}
+
+func (x *Subrule) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Subrule) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*subrule_Reference)
+	return ok
+}
+
+func (x *Subrule) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*subrule_Definition_)
+	return ok
+}
+
+func (x *Subrule) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Subrule) ClearReference() {
+	if _, ok := x.xxx_hidden_Kind.(*subrule_Reference); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Subrule) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*subrule_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Subrule_Kind_not_set_case case_Subrule_Kind = 0
+const Subrule_Reference_case case_Subrule_Kind = 1
+const Subrule_Definition_case case_Subrule_Kind = 2
+
+func (x *Subrule) WhichKind() case_Subrule_Kind {
+	if x == nil {
+		return Subrule_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *subrule_Reference:
+		return Subrule_Reference_case
+	case *subrule_Definition_:
+		return Subrule_Definition_case
+	default:
+		return Subrule_Kind_not_set_case
+	}
+}
+
+type Subrule_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Reference  *string
+	Definition *Subrule_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Subrule_builder) Build() *Subrule {
+	m0 := &Subrule{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Reference != nil {
+		x.xxx_hidden_Kind = &subrule_Reference{*b.Reference}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &subrule_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_Subrule_Kind protoreflect.FieldNumber
+
+func (x case_Subrule_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isSubrule_Kind interface {
 	isSubrule_Kind()
 }
 
-type Subrule_Reference struct {
-	Reference string `protobuf:"bytes,1,opt,name=reference,proto3,oneof"`
+type subrule_Reference struct {
+	Reference string `protobuf:"bytes,1,opt,name=reference,oneof"`
 }
 
-type Subrule_Definition_ struct {
-	Definition *Subrule_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type subrule_Definition_ struct {
+	Definition *Subrule_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*Subrule_Reference) isSubrule_Kind() {}
+func (*subrule_Reference) isSubrule_Kind() {}
 
-func (*Subrule_Definition_) isSubrule_Kind() {}
+func (*subrule_Definition_) isSubrule_Kind() {}
 
 type Target struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Definition    *Target_Definition     `protobuf:"bytes,2,opt,name=definition,proto3" json:"definition,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name       string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Definition *Target_Definition     `protobuf:"bytes,2,opt,name=definition"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Target) Reset() {
@@ -3807,37 +6907,60 @@ func (x *Target) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Target.ProtoReflect.Descriptor instead.
-func (*Target) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{42}
-}
-
 func (x *Target) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Target) GetDefinition() *Target_Definition {
 	if x != nil {
-		return x.Definition
+		return x.xxx_hidden_Definition
 	}
 	return nil
 }
 
+func (x *Target) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Target) SetDefinition(v *Target_Definition) {
+	x.xxx_hidden_Definition = v
+}
+
+func (x *Target) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Definition != nil
+}
+
+func (x *Target) ClearDefinition() {
+	x.xxx_hidden_Definition = nil
+}
+
+type Target_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name       string
+	Definition *Target_Definition
+}
+
+func (b0 Target_builder) Build() *Target {
+	m0 := &Target{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Definition = b.Definition
+	return m0
+}
+
 type Transition struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Transition_ExecGroup
-	//	*Transition_None
-	//	*Transition_Target
-	//	*Transition_UserDefined_
-	//	*Transition_Unconfigured
-	Kind          isTransition_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Kind isTransition_Kind      `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Transition) Reset() {
@@ -3865,21 +6988,9 @@ func (x *Transition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Transition.ProtoReflect.Descriptor instead.
-func (*Transition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{43}
-}
-
-func (x *Transition) GetKind() isTransition_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Transition) GetExecGroup() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_ExecGroup); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_ExecGroup); ok {
 			return x.ExecGroup
 		}
 	}
@@ -3888,7 +6999,7 @@ func (x *Transition) GetExecGroup() string {
 
 func (x *Transition) GetNone() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_None); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_None); ok {
 			return x.None
 		}
 	}
@@ -3897,7 +7008,7 @@ func (x *Transition) GetNone() *emptypb.Empty {
 
 func (x *Transition) GetTarget() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Target); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_Target); ok {
 			return x.Target
 		}
 	}
@@ -3906,7 +7017,7 @@ func (x *Transition) GetTarget() *emptypb.Empty {
 
 func (x *Transition) GetUserDefined() *Transition_UserDefined {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_UserDefined_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_UserDefined_); ok {
 			return x.UserDefined
 		}
 	}
@@ -3915,56 +7026,240 @@ func (x *Transition) GetUserDefined() *Transition_UserDefined {
 
 func (x *Transition) GetUnconfigured() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_Unconfigured); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_Unconfigured); ok {
 			return x.Unconfigured
 		}
 	}
 	return nil
 }
 
+func (x *Transition) SetExecGroup(v string) {
+	x.xxx_hidden_Kind = &transition_ExecGroup{v}
+}
+
+func (x *Transition) SetNone(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &transition_None{v}
+}
+
+func (x *Transition) SetTarget(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &transition_Target{v}
+}
+
+func (x *Transition) SetUserDefined(v *Transition_UserDefined) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &transition_UserDefined_{v}
+}
+
+func (x *Transition) SetUnconfigured(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &transition_Unconfigured{v}
+}
+
+func (x *Transition) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Transition) HasExecGroup() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_ExecGroup)
+	return ok
+}
+
+func (x *Transition) HasNone() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_None)
+	return ok
+}
+
+func (x *Transition) HasTarget() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_Target)
+	return ok
+}
+
+func (x *Transition) HasUserDefined() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_UserDefined_)
+	return ok
+}
+
+func (x *Transition) HasUnconfigured() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_Unconfigured)
+	return ok
+}
+
+func (x *Transition) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Transition) ClearExecGroup() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_ExecGroup); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Transition) ClearNone() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_None); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Transition) ClearTarget() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_Target); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Transition) ClearUserDefined() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_UserDefined_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Transition) ClearUnconfigured() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_Unconfigured); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Transition_Kind_not_set_case case_Transition_Kind = 0
+const Transition_ExecGroup_case case_Transition_Kind = 1
+const Transition_None_case case_Transition_Kind = 2
+const Transition_Target_case case_Transition_Kind = 3
+const Transition_UserDefined_case case_Transition_Kind = 4
+const Transition_Unconfigured_case case_Transition_Kind = 5
+
+func (x *Transition) WhichKind() case_Transition_Kind {
+	if x == nil {
+		return Transition_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *transition_ExecGroup:
+		return Transition_ExecGroup_case
+	case *transition_None:
+		return Transition_None_case
+	case *transition_Target:
+		return Transition_Target_case
+	case *transition_UserDefined_:
+		return Transition_UserDefined_case
+	case *transition_Unconfigured:
+		return Transition_Unconfigured_case
+	default:
+		return Transition_Kind_not_set_case
+	}
+}
+
+type Transition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	ExecGroup    *string
+	None         *emptypb.Empty
+	Target       *emptypb.Empty
+	UserDefined  *Transition_UserDefined
+	Unconfigured *emptypb.Empty
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Transition_builder) Build() *Transition {
+	m0 := &Transition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ExecGroup != nil {
+		x.xxx_hidden_Kind = &transition_ExecGroup{*b.ExecGroup}
+	}
+	if b.None != nil {
+		x.xxx_hidden_Kind = &transition_None{b.None}
+	}
+	if b.Target != nil {
+		x.xxx_hidden_Kind = &transition_Target{b.Target}
+	}
+	if b.UserDefined != nil {
+		x.xxx_hidden_Kind = &transition_UserDefined_{b.UserDefined}
+	}
+	if b.Unconfigured != nil {
+		x.xxx_hidden_Kind = &transition_Unconfigured{b.Unconfigured}
+	}
+	return m0
+}
+
+type case_Transition_Kind protoreflect.FieldNumber
+
+func (x case_Transition_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isTransition_Kind interface {
 	isTransition_Kind()
 }
 
-type Transition_ExecGroup struct {
-	ExecGroup string `protobuf:"bytes,1,opt,name=exec_group,json=execGroup,proto3,oneof"`
+type transition_ExecGroup struct {
+	ExecGroup string `protobuf:"bytes,1,opt,name=exec_group,json=execGroup,oneof"`
 }
 
-type Transition_None struct {
-	None *emptypb.Empty `protobuf:"bytes,2,opt,name=none,proto3,oneof"`
+type transition_None struct {
+	None *emptypb.Empty `protobuf:"bytes,2,opt,name=none,oneof"`
 }
 
-type Transition_Target struct {
-	Target *emptypb.Empty `protobuf:"bytes,3,opt,name=target,proto3,oneof"`
+type transition_Target struct {
+	Target *emptypb.Empty `protobuf:"bytes,3,opt,name=target,oneof"`
 }
 
-type Transition_UserDefined_ struct {
-	UserDefined *Transition_UserDefined `protobuf:"bytes,4,opt,name=user_defined,json=userDefined,proto3,oneof"`
+type transition_UserDefined_ struct {
+	UserDefined *Transition_UserDefined `protobuf:"bytes,4,opt,name=user_defined,json=userDefined,oneof"`
 }
 
-type Transition_Unconfigured struct {
-	Unconfigured *emptypb.Empty `protobuf:"bytes,5,opt,name=unconfigured,proto3,oneof"`
+type transition_Unconfigured struct {
+	Unconfigured *emptypb.Empty `protobuf:"bytes,5,opt,name=unconfigured,oneof"`
 }
 
-func (*Transition_ExecGroup) isTransition_Kind() {}
+func (*transition_ExecGroup) isTransition_Kind() {}
 
-func (*Transition_None) isTransition_Kind() {}
+func (*transition_None) isTransition_Kind() {}
 
-func (*Transition_Target) isTransition_Kind() {}
+func (*transition_Target) isTransition_Kind() {}
 
-func (*Transition_UserDefined_) isTransition_Kind() {}
+func (*transition_UserDefined_) isTransition_Kind() {}
 
-func (*Transition_Unconfigured) isTransition_Kind() {}
+func (*transition_Unconfigured) isTransition_Kind() {}
 
 type CompiledProgram_FunctionEntry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*CompiledProgram_FunctionEntry_Leaf_
-	//	*CompiledProgram_FunctionEntry_Parent_
-	Level         isCompiledProgram_FunctionEntry_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState                `protogen:"opaque.v1"`
+	xxx_hidden_Level isCompiledProgram_FunctionEntry_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CompiledProgram_FunctionEntry) Reset() {
@@ -3992,21 +7287,9 @@ func (x *CompiledProgram_FunctionEntry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompiledProgram_FunctionEntry.ProtoReflect.Descriptor instead.
-func (*CompiledProgram_FunctionEntry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{0, 0}
-}
-
-func (x *CompiledProgram_FunctionEntry) GetLevel() isCompiledProgram_FunctionEntry_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *CompiledProgram_FunctionEntry) GetLeaf() *CompiledProgram_FunctionEntry_Leaf {
 	if x != nil {
-		if x, ok := x.Level.(*CompiledProgram_FunctionEntry_Leaf_); ok {
+		if x, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Leaf_); ok {
 			return x.Leaf
 		}
 	}
@@ -4015,35 +7298,140 @@ func (x *CompiledProgram_FunctionEntry) GetLeaf() *CompiledProgram_FunctionEntry
 
 func (x *CompiledProgram_FunctionEntry) GetParent() *CompiledProgram_FunctionEntry_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*CompiledProgram_FunctionEntry_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *CompiledProgram_FunctionEntry) SetLeaf(v *CompiledProgram_FunctionEntry_Leaf) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &compiledProgram_FunctionEntry_Leaf_{v}
+}
+
+func (x *CompiledProgram_FunctionEntry) SetParent(v *CompiledProgram_FunctionEntry_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &compiledProgram_FunctionEntry_Parent_{v}
+}
+
+func (x *CompiledProgram_FunctionEntry) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *CompiledProgram_FunctionEntry) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Leaf_)
+	return ok
+}
+
+func (x *CompiledProgram_FunctionEntry) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Parent_)
+	return ok
+}
+
+func (x *CompiledProgram_FunctionEntry) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *CompiledProgram_FunctionEntry) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Leaf_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *CompiledProgram_FunctionEntry) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*compiledProgram_FunctionEntry_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const CompiledProgram_FunctionEntry_Level_not_set_case case_CompiledProgram_FunctionEntry_Level = 0
+const CompiledProgram_FunctionEntry_Leaf_case case_CompiledProgram_FunctionEntry_Level = 1
+const CompiledProgram_FunctionEntry_Parent_case case_CompiledProgram_FunctionEntry_Level = 2
+
+func (x *CompiledProgram_FunctionEntry) WhichLevel() case_CompiledProgram_FunctionEntry_Level {
+	if x == nil {
+		return CompiledProgram_FunctionEntry_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *compiledProgram_FunctionEntry_Leaf_:
+		return CompiledProgram_FunctionEntry_Leaf_case
+	case *compiledProgram_FunctionEntry_Parent_:
+		return CompiledProgram_FunctionEntry_Parent_case
+	default:
+		return CompiledProgram_FunctionEntry_Level_not_set_case
+	}
+}
+
+type CompiledProgram_FunctionEntry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *CompiledProgram_FunctionEntry_Leaf
+	Parent *CompiledProgram_FunctionEntry_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 CompiledProgram_FunctionEntry_builder) Build() *CompiledProgram_FunctionEntry {
+	m0 := &CompiledProgram_FunctionEntry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &compiledProgram_FunctionEntry_Leaf_{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &compiledProgram_FunctionEntry_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_CompiledProgram_FunctionEntry_Level protoreflect.FieldNumber
+
+func (x case_CompiledProgram_FunctionEntry_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isCompiledProgram_FunctionEntry_Level interface {
 	isCompiledProgram_FunctionEntry_Level()
 }
 
-type CompiledProgram_FunctionEntry_Leaf_ struct {
-	Leaf *CompiledProgram_FunctionEntry_Leaf `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type compiledProgram_FunctionEntry_Leaf_ struct {
+	Leaf *CompiledProgram_FunctionEntry_Leaf `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type CompiledProgram_FunctionEntry_Parent_ struct {
-	Parent *CompiledProgram_FunctionEntry_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type compiledProgram_FunctionEntry_Parent_ struct {
+	Parent *CompiledProgram_FunctionEntry_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*CompiledProgram_FunctionEntry_Leaf_) isCompiledProgram_FunctionEntry_Level() {}
+func (*compiledProgram_FunctionEntry_Leaf_) isCompiledProgram_FunctionEntry_Level() {}
 
-func (*CompiledProgram_FunctionEntry_Parent_) isCompiledProgram_FunctionEntry_Level() {}
+func (*compiledProgram_FunctionEntry_Parent_) isCompiledProgram_FunctionEntry_Level() {}
 
 type CompiledProgram_FunctionEntry_Leaf struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *Function_Name         `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Code          *Funcode               `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name *Function_Name         `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Code *Funcode               `protobuf:"bytes,2,opt,name=code"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CompiledProgram_FunctionEntry_Leaf) Reset() {
@@ -4071,32 +7459,73 @@ func (x *CompiledProgram_FunctionEntry_Leaf) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompiledProgram_FunctionEntry_Leaf.ProtoReflect.Descriptor instead.
-func (*CompiledProgram_FunctionEntry_Leaf) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{0, 0, 0}
-}
-
 func (x *CompiledProgram_FunctionEntry_Leaf) GetName() *Function_Name {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return nil
 }
 
 func (x *CompiledProgram_FunctionEntry_Leaf) GetCode() *Funcode {
 	if x != nil {
-		return x.Code
+		return x.xxx_hidden_Code
 	}
 	return nil
 }
 
+func (x *CompiledProgram_FunctionEntry_Leaf) SetName(v *Function_Name) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *CompiledProgram_FunctionEntry_Leaf) SetCode(v *Funcode) {
+	x.xxx_hidden_Code = v
+}
+
+func (x *CompiledProgram_FunctionEntry_Leaf) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Name != nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Leaf) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Code != nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Leaf) ClearName() {
+	x.xxx_hidden_Name = nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Leaf) ClearCode() {
+	x.xxx_hidden_Code = nil
+}
+
+type CompiledProgram_FunctionEntry_Leaf_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name *Function_Name
+	Code *Funcode
+}
+
+func (b0 CompiledProgram_FunctionEntry_Leaf_builder) Build() *CompiledProgram_FunctionEntry_Leaf {
+	m0 := &CompiledProgram_FunctionEntry_Leaf{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Code = b.Code
+	return m0
+}
+
 type CompiledProgram_FunctionEntry_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	FirstName     *Function_Name           `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
-	FunctionCount uint32                   `protobuf:"varint,3,opt,name=function_count,json=functionCount,proto3" json:"function_count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_FirstName     *Function_Name           `protobuf:"bytes,2,opt,name=first_name,json=firstName"`
+	xxx_hidden_FunctionCount uint32                   `protobuf:"varint,3,opt,name=function_count,json=functionCount"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *CompiledProgram_FunctionEntry_Parent) Reset() {
@@ -4124,42 +7553,84 @@ func (x *CompiledProgram_FunctionEntry_Parent) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompiledProgram_FunctionEntry_Parent.ProtoReflect.Descriptor instead.
-func (*CompiledProgram_FunctionEntry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{0, 0, 1}
-}
-
 func (x *CompiledProgram_FunctionEntry_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *CompiledProgram_FunctionEntry_Parent) GetFirstName() *Function_Name {
 	if x != nil {
-		return x.FirstName
+		return x.xxx_hidden_FirstName
 	}
 	return nil
 }
 
 func (x *CompiledProgram_FunctionEntry_Parent) GetFunctionCount() uint32 {
 	if x != nil {
-		return x.FunctionCount
+		return x.xxx_hidden_FunctionCount
 	}
 	return 0
 }
 
+func (x *CompiledProgram_FunctionEntry_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) SetFirstName(v *Function_Name) {
+	x.xxx_hidden_FirstName = v
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) SetFunctionCount(v uint32) {
+	x.xxx_hidden_FunctionCount = v
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) HasFirstName() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FirstName != nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+func (x *CompiledProgram_FunctionEntry_Parent) ClearFirstName() {
+	x.xxx_hidden_FirstName = nil
+}
+
+type CompiledProgram_FunctionEntry_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference     *core.DecodableReference
+	FirstName     *Function_Name
+	FunctionCount uint32
+}
+
+func (b0 CompiledProgram_FunctionEntry_Parent_builder) Build() *CompiledProgram_FunctionEntry_Parent {
+	m0 := &CompiledProgram_FunctionEntry_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_FirstName = b.FirstName
+	x.xxx_hidden_FunctionCount = b.FunctionCount
+	return m0
+}
+
 type Aspect_PropagationEdges struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Aspect_PropagationEdges_Fixed_
-	//	*Aspect_PropagationEdges_All
-	//	*Aspect_PropagationEdges_Function
-	Kind          isAspect_PropagationEdges_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Kind isAspect_PropagationEdges_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Aspect_PropagationEdges) Reset() {
@@ -4187,21 +7658,9 @@ func (x *Aspect_PropagationEdges) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Aspect_PropagationEdges.ProtoReflect.Descriptor instead.
-func (*Aspect_PropagationEdges) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{3, 0}
-}
-
-func (x *Aspect_PropagationEdges) GetKind() isAspect_PropagationEdges_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Aspect_PropagationEdges) GetFixed() *Aspect_PropagationEdges_Fixed {
 	if x != nil {
-		if x, ok := x.Kind.(*Aspect_PropagationEdges_Fixed_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Fixed_); ok {
 			return x.Fixed
 		}
 	}
@@ -4210,7 +7669,7 @@ func (x *Aspect_PropagationEdges) GetFixed() *Aspect_PropagationEdges_Fixed {
 
 func (x *Aspect_PropagationEdges) GetAll() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*Aspect_PropagationEdges_All); ok {
+		if x, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_All); ok {
 			return x.All
 		}
 	}
@@ -4219,51 +7678,185 @@ func (x *Aspect_PropagationEdges) GetAll() *emptypb.Empty {
 
 func (x *Aspect_PropagationEdges) GetFunction() *Function {
 	if x != nil {
-		if x, ok := x.Kind.(*Aspect_PropagationEdges_Function); ok {
+		if x, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Function); ok {
 			return x.Function
 		}
 	}
 	return nil
 }
 
+func (x *Aspect_PropagationEdges) SetFixed(v *Aspect_PropagationEdges_Fixed) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &aspect_PropagationEdges_Fixed_{v}
+}
+
+func (x *Aspect_PropagationEdges) SetAll(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &aspect_PropagationEdges_All{v}
+}
+
+func (x *Aspect_PropagationEdges) SetFunction(v *Function) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &aspect_PropagationEdges_Function{v}
+}
+
+func (x *Aspect_PropagationEdges) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Aspect_PropagationEdges) HasFixed() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Fixed_)
+	return ok
+}
+
+func (x *Aspect_PropagationEdges) HasAll() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_All)
+	return ok
+}
+
+func (x *Aspect_PropagationEdges) HasFunction() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Function)
+	return ok
+}
+
+func (x *Aspect_PropagationEdges) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Aspect_PropagationEdges) ClearFixed() {
+	if _, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Fixed_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Aspect_PropagationEdges) ClearAll() {
+	if _, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_All); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Aspect_PropagationEdges) ClearFunction() {
+	if _, ok := x.xxx_hidden_Kind.(*aspect_PropagationEdges_Function); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Aspect_PropagationEdges_Kind_not_set_case case_Aspect_PropagationEdges_Kind = 0
+const Aspect_PropagationEdges_Fixed_case case_Aspect_PropagationEdges_Kind = 1
+const Aspect_PropagationEdges_All_case case_Aspect_PropagationEdges_Kind = 2
+const Aspect_PropagationEdges_Function_case case_Aspect_PropagationEdges_Kind = 3
+
+func (x *Aspect_PropagationEdges) WhichKind() case_Aspect_PropagationEdges_Kind {
+	if x == nil {
+		return Aspect_PropagationEdges_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *aspect_PropagationEdges_Fixed_:
+		return Aspect_PropagationEdges_Fixed_case
+	case *aspect_PropagationEdges_All:
+		return Aspect_PropagationEdges_All_case
+	case *aspect_PropagationEdges_Function:
+		return Aspect_PropagationEdges_Function_case
+	default:
+		return Aspect_PropagationEdges_Kind_not_set_case
+	}
+}
+
+type Aspect_PropagationEdges_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Fixed    *Aspect_PropagationEdges_Fixed
+	All      *emptypb.Empty
+	Function *Function
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Aspect_PropagationEdges_builder) Build() *Aspect_PropagationEdges {
+	m0 := &Aspect_PropagationEdges{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Fixed != nil {
+		x.xxx_hidden_Kind = &aspect_PropagationEdges_Fixed_{b.Fixed}
+	}
+	if b.All != nil {
+		x.xxx_hidden_Kind = &aspect_PropagationEdges_All{b.All}
+	}
+	if b.Function != nil {
+		x.xxx_hidden_Kind = &aspect_PropagationEdges_Function{b.Function}
+	}
+	return m0
+}
+
+type case_Aspect_PropagationEdges_Kind protoreflect.FieldNumber
+
+func (x case_Aspect_PropagationEdges_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isAspect_PropagationEdges_Kind interface {
 	isAspect_PropagationEdges_Kind()
 }
 
-type Aspect_PropagationEdges_Fixed_ struct {
-	Fixed *Aspect_PropagationEdges_Fixed `protobuf:"bytes,1,opt,name=fixed,proto3,oneof"`
+type aspect_PropagationEdges_Fixed_ struct {
+	Fixed *Aspect_PropagationEdges_Fixed `protobuf:"bytes,1,opt,name=fixed,oneof"`
 }
 
-type Aspect_PropagationEdges_All struct {
-	All *emptypb.Empty `protobuf:"bytes,2,opt,name=all,proto3,oneof"`
+type aspect_PropagationEdges_All struct {
+	All *emptypb.Empty `protobuf:"bytes,2,opt,name=all,oneof"`
 }
 
-type Aspect_PropagationEdges_Function struct {
-	Function *Function `protobuf:"bytes,3,opt,name=function,proto3,oneof"`
+type aspect_PropagationEdges_Function struct {
+	Function *Function `protobuf:"bytes,3,opt,name=function,oneof"`
 }
 
-func (*Aspect_PropagationEdges_Fixed_) isAspect_PropagationEdges_Kind() {}
+func (*aspect_PropagationEdges_Fixed_) isAspect_PropagationEdges_Kind() {}
 
-func (*Aspect_PropagationEdges_All) isAspect_PropagationEdges_Kind() {}
+func (*aspect_PropagationEdges_All) isAspect_PropagationEdges_Kind() {}
 
-func (*Aspect_PropagationEdges_Function) isAspect_PropagationEdges_Kind() {}
+func (*aspect_PropagationEdges_Function) isAspect_PropagationEdges_Kind() {}
 
 type Aspect_Definition struct {
-	state                   protoimpl.MessageState   `protogen:"open.v1"`
-	Attrs                   []*NamedAttr             `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	AttrAspects             *Aspect_PropagationEdges `protobuf:"bytes,2,opt,name=attr_aspects,json=attrAspects,proto3" json:"attr_aspects,omitempty"`
-	ExecGroups              []*NamedExecGroup        `protobuf:"bytes,3,rep,name=exec_groups,json=execGroups,proto3" json:"exec_groups,omitempty"`
-	Implementation          *Function                `protobuf:"bytes,4,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	RequiredProviders       []*ProviderSet           `protobuf:"bytes,5,rep,name=required_providers,json=requiredProviders,proto3" json:"required_providers,omitempty"`
-	RequiredAspectProviders []*ProviderSet           `protobuf:"bytes,6,rep,name=required_aspect_providers,json=requiredAspectProviders,proto3" json:"required_aspect_providers,omitempty"`
-	Provides                []string                 `protobuf:"bytes,7,rep,name=provides,proto3" json:"provides,omitempty"`
-	Requires                []string                 `protobuf:"bytes,8,rep,name=requires,proto3" json:"requires,omitempty"`
-	ApplyToGeneratingRules  bool                     `protobuf:"varint,9,opt,name=apply_to_generating_rules,json=applyToGeneratingRules,proto3" json:"apply_to_generating_rules,omitempty"`
-	SubruleIdentifiers      []string                 `protobuf:"bytes,10,rep,name=subrule_identifiers,json=subruleIdentifiers,proto3" json:"subrule_identifiers,omitempty"`
-	ToolchainsAspects       *Aspect_PropagationEdges `protobuf:"bytes,11,opt,name=toolchains_aspects,json=toolchainsAspects,proto3" json:"toolchains_aspects,omitempty"`
-	PropagationPredicate    *Function                `protobuf:"bytes,12,opt,name=propagation_predicate,json=propagationPredicate,proto3" json:"propagation_predicate,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                              protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Attrs                   *[]*NamedAttr            `protobuf:"bytes,1,rep,name=attrs"`
+	xxx_hidden_AttrAspects             *Aspect_PropagationEdges `protobuf:"bytes,2,opt,name=attr_aspects,json=attrAspects"`
+	xxx_hidden_ExecGroups              *[]*NamedExecGroup       `protobuf:"bytes,3,rep,name=exec_groups,json=execGroups"`
+	xxx_hidden_Implementation          *Function                `protobuf:"bytes,4,opt,name=implementation"`
+	xxx_hidden_RequiredProviders       *[]*ProviderSet          `protobuf:"bytes,5,rep,name=required_providers,json=requiredProviders"`
+	xxx_hidden_RequiredAspectProviders *[]*ProviderSet          `protobuf:"bytes,6,rep,name=required_aspect_providers,json=requiredAspectProviders"`
+	xxx_hidden_Provides                []string                 `protobuf:"bytes,7,rep,name=provides"`
+	xxx_hidden_Requires                []string                 `protobuf:"bytes,8,rep,name=requires"`
+	xxx_hidden_ApplyToGeneratingRules  bool                     `protobuf:"varint,9,opt,name=apply_to_generating_rules,json=applyToGeneratingRules"`
+	xxx_hidden_SubruleIdentifiers      []string                 `protobuf:"bytes,10,rep,name=subrule_identifiers,json=subruleIdentifiers"`
+	xxx_hidden_ToolchainsAspects       *Aspect_PropagationEdges `protobuf:"bytes,11,opt,name=toolchains_aspects,json=toolchainsAspects"`
+	xxx_hidden_PropagationPredicate    *Function                `protobuf:"bytes,12,opt,name=propagation_predicate,json=propagationPredicate"`
+	unknownFields                      protoimpl.UnknownFields
+	sizeCache                          protoimpl.SizeCache
 }
 
 func (x *Aspect_Definition) Reset() {
@@ -4291,100 +7884,231 @@ func (x *Aspect_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Aspect_Definition.ProtoReflect.Descriptor instead.
-func (*Aspect_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{3, 1}
-}
-
 func (x *Aspect_Definition) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetAttrAspects() *Aspect_PropagationEdges {
 	if x != nil {
-		return x.AttrAspects
+		return x.xxx_hidden_AttrAspects
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetExecGroups() []*NamedExecGroup {
 	if x != nil {
-		return x.ExecGroups
+		if x.xxx_hidden_ExecGroups != nil {
+			return *x.xxx_hidden_ExecGroups
+		}
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetRequiredProviders() []*ProviderSet {
 	if x != nil {
-		return x.RequiredProviders
+		if x.xxx_hidden_RequiredProviders != nil {
+			return *x.xxx_hidden_RequiredProviders
+		}
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetRequiredAspectProviders() []*ProviderSet {
 	if x != nil {
-		return x.RequiredAspectProviders
+		if x.xxx_hidden_RequiredAspectProviders != nil {
+			return *x.xxx_hidden_RequiredAspectProviders
+		}
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetProvides() []string {
 	if x != nil {
-		return x.Provides
+		return x.xxx_hidden_Provides
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetRequires() []string {
 	if x != nil {
-		return x.Requires
+		return x.xxx_hidden_Requires
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetApplyToGeneratingRules() bool {
 	if x != nil {
-		return x.ApplyToGeneratingRules
+		return x.xxx_hidden_ApplyToGeneratingRules
 	}
 	return false
 }
 
 func (x *Aspect_Definition) GetSubruleIdentifiers() []string {
 	if x != nil {
-		return x.SubruleIdentifiers
+		return x.xxx_hidden_SubruleIdentifiers
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetToolchainsAspects() *Aspect_PropagationEdges {
 	if x != nil {
-		return x.ToolchainsAspects
+		return x.xxx_hidden_ToolchainsAspects
 	}
 	return nil
 }
 
 func (x *Aspect_Definition) GetPropagationPredicate() *Function {
 	if x != nil {
-		return x.PropagationPredicate
+		return x.xxx_hidden_PropagationPredicate
 	}
 	return nil
 }
 
+func (x *Aspect_Definition) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+func (x *Aspect_Definition) SetAttrAspects(v *Aspect_PropagationEdges) {
+	x.xxx_hidden_AttrAspects = v
+}
+
+func (x *Aspect_Definition) SetExecGroups(v []*NamedExecGroup) {
+	x.xxx_hidden_ExecGroups = &v
+}
+
+func (x *Aspect_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *Aspect_Definition) SetRequiredProviders(v []*ProviderSet) {
+	x.xxx_hidden_RequiredProviders = &v
+}
+
+func (x *Aspect_Definition) SetRequiredAspectProviders(v []*ProviderSet) {
+	x.xxx_hidden_RequiredAspectProviders = &v
+}
+
+func (x *Aspect_Definition) SetProvides(v []string) {
+	x.xxx_hidden_Provides = v
+}
+
+func (x *Aspect_Definition) SetRequires(v []string) {
+	x.xxx_hidden_Requires = v
+}
+
+func (x *Aspect_Definition) SetApplyToGeneratingRules(v bool) {
+	x.xxx_hidden_ApplyToGeneratingRules = v
+}
+
+func (x *Aspect_Definition) SetSubruleIdentifiers(v []string) {
+	x.xxx_hidden_SubruleIdentifiers = v
+}
+
+func (x *Aspect_Definition) SetToolchainsAspects(v *Aspect_PropagationEdges) {
+	x.xxx_hidden_ToolchainsAspects = v
+}
+
+func (x *Aspect_Definition) SetPropagationPredicate(v *Function) {
+	x.xxx_hidden_PropagationPredicate = v
+}
+
+func (x *Aspect_Definition) HasAttrAspects() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_AttrAspects != nil
+}
+
+func (x *Aspect_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *Aspect_Definition) HasToolchainsAspects() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ToolchainsAspects != nil
+}
+
+func (x *Aspect_Definition) HasPropagationPredicate() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PropagationPredicate != nil
+}
+
+func (x *Aspect_Definition) ClearAttrAspects() {
+	x.xxx_hidden_AttrAspects = nil
+}
+
+func (x *Aspect_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+func (x *Aspect_Definition) ClearToolchainsAspects() {
+	x.xxx_hidden_ToolchainsAspects = nil
+}
+
+func (x *Aspect_Definition) ClearPropagationPredicate() {
+	x.xxx_hidden_PropagationPredicate = nil
+}
+
+type Aspect_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs                   []*NamedAttr
+	AttrAspects             *Aspect_PropagationEdges
+	ExecGroups              []*NamedExecGroup
+	Implementation          *Function
+	RequiredProviders       []*ProviderSet
+	RequiredAspectProviders []*ProviderSet
+	Provides                []string
+	Requires                []string
+	ApplyToGeneratingRules  bool
+	SubruleIdentifiers      []string
+	ToolchainsAspects       *Aspect_PropagationEdges
+	PropagationPredicate    *Function
+}
+
+func (b0 Aspect_Definition_builder) Build() *Aspect_Definition {
+	m0 := &Aspect_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	x.xxx_hidden_AttrAspects = b.AttrAspects
+	x.xxx_hidden_ExecGroups = &b.ExecGroups
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_RequiredProviders = &b.RequiredProviders
+	x.xxx_hidden_RequiredAspectProviders = &b.RequiredAspectProviders
+	x.xxx_hidden_Provides = b.Provides
+	x.xxx_hidden_Requires = b.Requires
+	x.xxx_hidden_ApplyToGeneratingRules = b.ApplyToGeneratingRules
+	x.xxx_hidden_SubruleIdentifiers = b.SubruleIdentifiers
+	x.xxx_hidden_ToolchainsAspects = b.ToolchainsAspects
+	x.xxx_hidden_PropagationPredicate = b.PropagationPredicate
+	return m0
+}
+
 type Aspect_PropagationEdges_Fixed struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Names         []string               `protobuf:"bytes,1,rep,name=names,proto3" json:"names,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Names []string               `protobuf:"bytes,1,rep,name=names"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Aspect_PropagationEdges_Fixed) Reset() {
@@ -4412,23 +8136,36 @@ func (x *Aspect_PropagationEdges_Fixed) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Aspect_PropagationEdges_Fixed.ProtoReflect.Descriptor instead.
-func (*Aspect_PropagationEdges_Fixed) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{3, 0, 0}
-}
-
 func (x *Aspect_PropagationEdges_Fixed) GetNames() []string {
 	if x != nil {
-		return x.Names
+		return x.xxx_hidden_Names
 	}
 	return nil
 }
 
+func (x *Aspect_PropagationEdges_Fixed) SetNames(v []string) {
+	x.xxx_hidden_Names = v
+}
+
+type Aspect_PropagationEdges_Fixed_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Names []string
+}
+
+func (b0 Aspect_PropagationEdges_Fixed_builder) Build() *Aspect_PropagationEdges_Fixed {
+	m0 := &Aspect_PropagationEdges_Fixed{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Names = b.Names
+	return m0
+}
+
 type Attr_AllowFiles struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	FilenamePattern []byte                 `protobuf:"bytes,1,opt,name=filename_pattern,json=filenamePattern,proto3" json:"filename_pattern,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FilenamePattern []byte                 `protobuf:"bytes,1,opt,name=filename_pattern,json=filenamePattern"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Attr_AllowFiles) Reset() {
@@ -4456,26 +8193,42 @@ func (x *Attr_AllowFiles) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_AllowFiles.ProtoReflect.Descriptor instead.
-func (*Attr_AllowFiles) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 0}
-}
-
 func (x *Attr_AllowFiles) GetFilenamePattern() []byte {
 	if x != nil {
-		return x.FilenamePattern
+		return x.xxx_hidden_FilenamePattern
 	}
 	return nil
 }
 
+func (x *Attr_AllowFiles) SetFilenamePattern(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_FilenamePattern = v
+}
+
+type Attr_AllowFiles_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	FilenamePattern []byte
+}
+
+func (b0 Attr_AllowFiles_builder) Build() *Attr_AllowFiles {
+	m0 := &Attr_AllowFiles{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_FilenamePattern = b.FilenamePattern
+	return m0
+}
+
 type Attr_LabelOptions struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Providers     []*ProviderSet         `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
-	Aspects       []string               `protobuf:"bytes,2,rep,name=aspects,proto3" json:"aspects,omitempty"`
-	Cfg           *Transition            `protobuf:"bytes,3,opt,name=cfg,proto3" json:"cfg,omitempty"`
-	AllowFiles    *Attr_AllowFiles       `protobuf:"bytes,4,opt,name=allow_files,json=allowFiles,proto3" json:"allow_files,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Providers  *[]*ProviderSet        `protobuf:"bytes,1,rep,name=providers"`
+	xxx_hidden_Aspects    []string               `protobuf:"bytes,2,rep,name=aspects"`
+	xxx_hidden_Cfg        *Transition            `protobuf:"bytes,3,opt,name=cfg"`
+	xxx_hidden_AllowFiles *Attr_AllowFiles       `protobuf:"bytes,4,opt,name=allow_files,json=allowFiles"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Attr_LabelOptions) Reset() {
@@ -4503,44 +8256,99 @@ func (x *Attr_LabelOptions) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_LabelOptions.ProtoReflect.Descriptor instead.
-func (*Attr_LabelOptions) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 1}
-}
-
 func (x *Attr_LabelOptions) GetProviders() []*ProviderSet {
 	if x != nil {
-		return x.Providers
+		if x.xxx_hidden_Providers != nil {
+			return *x.xxx_hidden_Providers
+		}
 	}
 	return nil
 }
 
 func (x *Attr_LabelOptions) GetAspects() []string {
 	if x != nil {
-		return x.Aspects
+		return x.xxx_hidden_Aspects
 	}
 	return nil
 }
 
 func (x *Attr_LabelOptions) GetCfg() *Transition {
 	if x != nil {
-		return x.Cfg
+		return x.xxx_hidden_Cfg
 	}
 	return nil
 }
 
 func (x *Attr_LabelOptions) GetAllowFiles() *Attr_AllowFiles {
 	if x != nil {
-		return x.AllowFiles
+		return x.xxx_hidden_AllowFiles
 	}
 	return nil
 }
 
+func (x *Attr_LabelOptions) SetProviders(v []*ProviderSet) {
+	x.xxx_hidden_Providers = &v
+}
+
+func (x *Attr_LabelOptions) SetAspects(v []string) {
+	x.xxx_hidden_Aspects = v
+}
+
+func (x *Attr_LabelOptions) SetCfg(v *Transition) {
+	x.xxx_hidden_Cfg = v
+}
+
+func (x *Attr_LabelOptions) SetAllowFiles(v *Attr_AllowFiles) {
+	x.xxx_hidden_AllowFiles = v
+}
+
+func (x *Attr_LabelOptions) HasCfg() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Cfg != nil
+}
+
+func (x *Attr_LabelOptions) HasAllowFiles() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_AllowFiles != nil
+}
+
+func (x *Attr_LabelOptions) ClearCfg() {
+	x.xxx_hidden_Cfg = nil
+}
+
+func (x *Attr_LabelOptions) ClearAllowFiles() {
+	x.xxx_hidden_AllowFiles = nil
+}
+
+type Attr_LabelOptions_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Providers  []*ProviderSet
+	Aspects    []string
+	Cfg        *Transition
+	AllowFiles *Attr_AllowFiles
+}
+
+func (b0 Attr_LabelOptions_builder) Build() *Attr_LabelOptions {
+	m0 := &Attr_LabelOptions{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Providers = &b.Providers
+	x.xxx_hidden_Aspects = b.Aspects
+	x.xxx_hidden_Cfg = b.Cfg
+	x.xxx_hidden_AllowFiles = b.AllowFiles
+	return m0
+}
+
 type Attr_CompositeOptions struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AllowEmpty    bool                   `protobuf:"varint,1,opt,name=allow_empty,json=allowEmpty,proto3" json:"allow_empty,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_AllowEmpty bool                   `protobuf:"varint,1,opt,name=allow_empty,json=allowEmpty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Attr_CompositeOptions) Reset() {
@@ -4568,23 +8376,36 @@ func (x *Attr_CompositeOptions) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_CompositeOptions.ProtoReflect.Descriptor instead.
-func (*Attr_CompositeOptions) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 2}
-}
-
 func (x *Attr_CompositeOptions) GetAllowEmpty() bool {
 	if x != nil {
-		return x.AllowEmpty
+		return x.xxx_hidden_AllowEmpty
 	}
 	return false
 }
 
+func (x *Attr_CompositeOptions) SetAllowEmpty(v bool) {
+	x.xxx_hidden_AllowEmpty = v
+}
+
+type Attr_CompositeOptions_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	AllowEmpty bool
+}
+
+func (b0 Attr_CompositeOptions_builder) Build() *Attr_CompositeOptions {
+	m0 := &Attr_CompositeOptions{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_AllowEmpty = b.AllowEmpty
+	return m0
+}
+
 type Attr_IntType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []int32                `protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Values []int32                `protobuf:"varint,1,rep,packed,name=values"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Attr_IntType) Reset() {
@@ -4612,23 +8433,36 @@ func (x *Attr_IntType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_IntType.ProtoReflect.Descriptor instead.
-func (*Attr_IntType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 3}
-}
-
 func (x *Attr_IntType) GetValues() []int32 {
 	if x != nil {
-		return x.Values
+		return x.xxx_hidden_Values
 	}
 	return nil
 }
 
+func (x *Attr_IntType) SetValues(v []int32) {
+	x.xxx_hidden_Values = v
+}
+
+type Attr_IntType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Values []int32
+}
+
+func (b0 Attr_IntType_builder) Build() *Attr_IntType {
+	m0 := &Attr_IntType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Values = b.Values
+	return m0
+}
+
 type Attr_IntListType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ListOptions   *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions,proto3" json:"list_options,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ListOptions *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attr_IntListType) Reset() {
@@ -4656,26 +8490,50 @@ func (x *Attr_IntListType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_IntListType.ProtoReflect.Descriptor instead.
-func (*Attr_IntListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 4}
-}
-
 func (x *Attr_IntListType) GetListOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.ListOptions
+		return x.xxx_hidden_ListOptions
 	}
 	return nil
 }
 
+func (x *Attr_IntListType) SetListOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_ListOptions = v
+}
+
+func (x *Attr_IntListType) HasListOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ListOptions != nil
+}
+
+func (x *Attr_IntListType) ClearListOptions() {
+	x.xxx_hidden_ListOptions = nil
+}
+
+type Attr_IntListType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ListOptions *Attr_CompositeOptions
+}
+
+func (b0 Attr_IntListType_builder) Build() *Attr_IntListType {
+	m0 := &Attr_IntListType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ListOptions = b.ListOptions
+	return m0
+}
+
 type Attr_LabelType struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ValueOptions    *Attr_LabelOptions     `protobuf:"bytes,1,opt,name=value_options,json=valueOptions,proto3" json:"value_options,omitempty"`
-	AllowNone       bool                   `protobuf:"varint,2,opt,name=allow_none,json=allowNone,proto3" json:"allow_none,omitempty"`
-	AllowSingleFile bool                   `protobuf:"varint,3,opt,name=allow_single_file,json=allowSingleFile,proto3" json:"allow_single_file,omitempty"`
-	Executable      bool                   `protobuf:"varint,4,opt,name=executable,proto3" json:"executable,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ValueOptions    *Attr_LabelOptions     `protobuf:"bytes,1,opt,name=value_options,json=valueOptions"`
+	xxx_hidden_AllowNone       bool                   `protobuf:"varint,2,opt,name=allow_none,json=allowNone"`
+	xxx_hidden_AllowSingleFile bool                   `protobuf:"varint,3,opt,name=allow_single_file,json=allowSingleFile"`
+	xxx_hidden_Executable      bool                   `protobuf:"varint,4,opt,name=executable"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Attr_LabelType) Reset() {
@@ -4703,45 +8561,87 @@ func (x *Attr_LabelType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_LabelType.ProtoReflect.Descriptor instead.
-func (*Attr_LabelType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 5}
-}
-
 func (x *Attr_LabelType) GetValueOptions() *Attr_LabelOptions {
 	if x != nil {
-		return x.ValueOptions
+		return x.xxx_hidden_ValueOptions
 	}
 	return nil
 }
 
 func (x *Attr_LabelType) GetAllowNone() bool {
 	if x != nil {
-		return x.AllowNone
+		return x.xxx_hidden_AllowNone
 	}
 	return false
 }
 
 func (x *Attr_LabelType) GetAllowSingleFile() bool {
 	if x != nil {
-		return x.AllowSingleFile
+		return x.xxx_hidden_AllowSingleFile
 	}
 	return false
 }
 
 func (x *Attr_LabelType) GetExecutable() bool {
 	if x != nil {
-		return x.Executable
+		return x.xxx_hidden_Executable
 	}
 	return false
 }
 
+func (x *Attr_LabelType) SetValueOptions(v *Attr_LabelOptions) {
+	x.xxx_hidden_ValueOptions = v
+}
+
+func (x *Attr_LabelType) SetAllowNone(v bool) {
+	x.xxx_hidden_AllowNone = v
+}
+
+func (x *Attr_LabelType) SetAllowSingleFile(v bool) {
+	x.xxx_hidden_AllowSingleFile = v
+}
+
+func (x *Attr_LabelType) SetExecutable(v bool) {
+	x.xxx_hidden_Executable = v
+}
+
+func (x *Attr_LabelType) HasValueOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ValueOptions != nil
+}
+
+func (x *Attr_LabelType) ClearValueOptions() {
+	x.xxx_hidden_ValueOptions = nil
+}
+
+type Attr_LabelType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ValueOptions    *Attr_LabelOptions
+	AllowNone       bool
+	AllowSingleFile bool
+	Executable      bool
+}
+
+func (b0 Attr_LabelType_builder) Build() *Attr_LabelType {
+	m0 := &Attr_LabelType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ValueOptions = b.ValueOptions
+	x.xxx_hidden_AllowNone = b.AllowNone
+	x.xxx_hidden_AllowSingleFile = b.AllowSingleFile
+	x.xxx_hidden_Executable = b.Executable
+	return m0
+}
+
 type Attr_LabelKeyedStringDictType struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	DictOptions    *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions,proto3" json:"dict_options,omitempty"`
-	DictKeyOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=dict_key_options,json=dictKeyOptions,proto3" json:"dict_key_options,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DictOptions    *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions"`
+	xxx_hidden_DictKeyOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=dict_key_options,json=dictKeyOptions"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Attr_LabelKeyedStringDictType) Reset() {
@@ -4769,31 +8669,72 @@ func (x *Attr_LabelKeyedStringDictType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_LabelKeyedStringDictType.ProtoReflect.Descriptor instead.
-func (*Attr_LabelKeyedStringDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 6}
-}
-
 func (x *Attr_LabelKeyedStringDictType) GetDictOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.DictOptions
+		return x.xxx_hidden_DictOptions
 	}
 	return nil
 }
 
 func (x *Attr_LabelKeyedStringDictType) GetDictKeyOptions() *Attr_LabelOptions {
 	if x != nil {
-		return x.DictKeyOptions
+		return x.xxx_hidden_DictKeyOptions
 	}
 	return nil
 }
 
+func (x *Attr_LabelKeyedStringDictType) SetDictOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_DictOptions = v
+}
+
+func (x *Attr_LabelKeyedStringDictType) SetDictKeyOptions(v *Attr_LabelOptions) {
+	x.xxx_hidden_DictKeyOptions = v
+}
+
+func (x *Attr_LabelKeyedStringDictType) HasDictOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictOptions != nil
+}
+
+func (x *Attr_LabelKeyedStringDictType) HasDictKeyOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictKeyOptions != nil
+}
+
+func (x *Attr_LabelKeyedStringDictType) ClearDictOptions() {
+	x.xxx_hidden_DictOptions = nil
+}
+
+func (x *Attr_LabelKeyedStringDictType) ClearDictKeyOptions() {
+	x.xxx_hidden_DictKeyOptions = nil
+}
+
+type Attr_LabelKeyedStringDictType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DictOptions    *Attr_CompositeOptions
+	DictKeyOptions *Attr_LabelOptions
+}
+
+func (b0 Attr_LabelKeyedStringDictType_builder) Build() *Attr_LabelKeyedStringDictType {
+	m0 := &Attr_LabelKeyedStringDictType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DictOptions = b.DictOptions
+	x.xxx_hidden_DictKeyOptions = b.DictKeyOptions
+	return m0
+}
+
 type Attr_LabelListType struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	ListOptions      *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions,proto3" json:"list_options,omitempty"`
-	ListValueOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=list_value_options,json=listValueOptions,proto3" json:"list_value_options,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ListOptions      *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions"`
+	xxx_hidden_ListValueOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=list_value_options,json=listValueOptions"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *Attr_LabelListType) Reset() {
@@ -4821,30 +8762,71 @@ func (x *Attr_LabelListType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_LabelListType.ProtoReflect.Descriptor instead.
-func (*Attr_LabelListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 7}
-}
-
 func (x *Attr_LabelListType) GetListOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.ListOptions
+		return x.xxx_hidden_ListOptions
 	}
 	return nil
 }
 
 func (x *Attr_LabelListType) GetListValueOptions() *Attr_LabelOptions {
 	if x != nil {
-		return x.ListValueOptions
+		return x.xxx_hidden_ListValueOptions
 	}
 	return nil
 }
 
+func (x *Attr_LabelListType) SetListOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_ListOptions = v
+}
+
+func (x *Attr_LabelListType) SetListValueOptions(v *Attr_LabelOptions) {
+	x.xxx_hidden_ListValueOptions = v
+}
+
+func (x *Attr_LabelListType) HasListOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ListOptions != nil
+}
+
+func (x *Attr_LabelListType) HasListValueOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ListValueOptions != nil
+}
+
+func (x *Attr_LabelListType) ClearListOptions() {
+	x.xxx_hidden_ListOptions = nil
+}
+
+func (x *Attr_LabelListType) ClearListValueOptions() {
+	x.xxx_hidden_ListValueOptions = nil
+}
+
+type Attr_LabelListType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ListOptions      *Attr_CompositeOptions
+	ListValueOptions *Attr_LabelOptions
+}
+
+func (b0 Attr_LabelListType_builder) Build() *Attr_LabelListType {
+	m0 := &Attr_LabelListType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ListOptions = b.ListOptions
+	x.xxx_hidden_ListValueOptions = b.ListValueOptions
+	return m0
+}
+
 type Attr_OutputType struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	FilenameTemplate string                 `protobuf:"bytes,1,opt,name=filename_template,json=filenameTemplate,proto3" json:"filename_template,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FilenameTemplate string                 `protobuf:"bytes,1,opt,name=filename_template,json=filenameTemplate"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *Attr_OutputType) Reset() {
@@ -4872,23 +8854,36 @@ func (x *Attr_OutputType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_OutputType.ProtoReflect.Descriptor instead.
-func (*Attr_OutputType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 8}
-}
-
 func (x *Attr_OutputType) GetFilenameTemplate() string {
 	if x != nil {
-		return x.FilenameTemplate
+		return x.xxx_hidden_FilenameTemplate
 	}
 	return ""
 }
 
+func (x *Attr_OutputType) SetFilenameTemplate(v string) {
+	x.xxx_hidden_FilenameTemplate = v
+}
+
+type Attr_OutputType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	FilenameTemplate string
+}
+
+func (b0 Attr_OutputType_builder) Build() *Attr_OutputType {
+	m0 := &Attr_OutputType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_FilenameTemplate = b.FilenameTemplate
+	return m0
+}
+
 type Attr_OutputListType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ListOptions   *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions,proto3" json:"list_options,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ListOptions *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attr_OutputListType) Reset() {
@@ -4916,23 +8911,47 @@ func (x *Attr_OutputListType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_OutputListType.ProtoReflect.Descriptor instead.
-func (*Attr_OutputListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 9}
-}
-
 func (x *Attr_OutputListType) GetListOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.ListOptions
+		return x.xxx_hidden_ListOptions
 	}
 	return nil
 }
 
+func (x *Attr_OutputListType) SetListOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_ListOptions = v
+}
+
+func (x *Attr_OutputListType) HasListOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ListOptions != nil
+}
+
+func (x *Attr_OutputListType) ClearListOptions() {
+	x.xxx_hidden_ListOptions = nil
+}
+
+type Attr_OutputListType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ListOptions *Attr_CompositeOptions
+}
+
+func (b0 Attr_OutputListType_builder) Build() *Attr_OutputListType {
+	m0 := &Attr_OutputListType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ListOptions = b.ListOptions
+	return m0
+}
+
 type Attr_StringType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Values []string               `protobuf:"bytes,1,rep,name=values"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Attr_StringType) Reset() {
@@ -4960,23 +8979,36 @@ func (x *Attr_StringType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_StringType.ProtoReflect.Descriptor instead.
-func (*Attr_StringType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 10}
-}
-
 func (x *Attr_StringType) GetValues() []string {
 	if x != nil {
-		return x.Values
+		return x.xxx_hidden_Values
 	}
 	return nil
 }
 
+func (x *Attr_StringType) SetValues(v []string) {
+	x.xxx_hidden_Values = v
+}
+
+type Attr_StringType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Values []string
+}
+
+func (b0 Attr_StringType_builder) Build() *Attr_StringType {
+	m0 := &Attr_StringType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Values = b.Values
+	return m0
+}
+
 type Attr_StringDictType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DictOptions   *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions,proto3" json:"dict_options,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DictOptions *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attr_StringDictType) Reset() {
@@ -5004,23 +9036,47 @@ func (x *Attr_StringDictType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_StringDictType.ProtoReflect.Descriptor instead.
-func (*Attr_StringDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 11}
-}
-
 func (x *Attr_StringDictType) GetDictOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.DictOptions
+		return x.xxx_hidden_DictOptions
 	}
 	return nil
 }
 
+func (x *Attr_StringDictType) SetDictOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_DictOptions = v
+}
+
+func (x *Attr_StringDictType) HasDictOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictOptions != nil
+}
+
+func (x *Attr_StringDictType) ClearDictOptions() {
+	x.xxx_hidden_DictOptions = nil
+}
+
+type Attr_StringDictType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DictOptions *Attr_CompositeOptions
+}
+
+func (b0 Attr_StringDictType_builder) Build() *Attr_StringDictType {
+	m0 := &Attr_StringDictType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DictOptions = b.DictOptions
+	return m0
+}
+
 type Attr_StringListType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ListOptions   *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions,proto3" json:"list_options,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ListOptions *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=list_options,json=listOptions"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attr_StringListType) Reset() {
@@ -5048,24 +9104,48 @@ func (x *Attr_StringListType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_StringListType.ProtoReflect.Descriptor instead.
-func (*Attr_StringListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 12}
-}
-
 func (x *Attr_StringListType) GetListOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.ListOptions
+		return x.xxx_hidden_ListOptions
 	}
 	return nil
 }
 
+func (x *Attr_StringListType) SetListOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_ListOptions = v
+}
+
+func (x *Attr_StringListType) HasListOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ListOptions != nil
+}
+
+func (x *Attr_StringListType) ClearListOptions() {
+	x.xxx_hidden_ListOptions = nil
+}
+
+type Attr_StringListType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ListOptions *Attr_CompositeOptions
+}
+
+func (b0 Attr_StringListType_builder) Build() *Attr_StringListType {
+	m0 := &Attr_StringListType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ListOptions = b.ListOptions
+	return m0
+}
+
 type Attr_StringKeyedLabelDictType struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	DictOptions      *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions,proto3" json:"dict_options,omitempty"`
-	DictValueOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=dict_value_options,json=dictValueOptions,proto3" json:"dict_value_options,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DictOptions      *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions"`
+	xxx_hidden_DictValueOptions *Attr_LabelOptions     `protobuf:"bytes,2,opt,name=dict_value_options,json=dictValueOptions"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *Attr_StringKeyedLabelDictType) Reset() {
@@ -5093,30 +9173,71 @@ func (x *Attr_StringKeyedLabelDictType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_StringKeyedLabelDictType.ProtoReflect.Descriptor instead.
-func (*Attr_StringKeyedLabelDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 13}
-}
-
 func (x *Attr_StringKeyedLabelDictType) GetDictOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.DictOptions
+		return x.xxx_hidden_DictOptions
 	}
 	return nil
 }
 
 func (x *Attr_StringKeyedLabelDictType) GetDictValueOptions() *Attr_LabelOptions {
 	if x != nil {
-		return x.DictValueOptions
+		return x.xxx_hidden_DictValueOptions
 	}
 	return nil
 }
 
+func (x *Attr_StringKeyedLabelDictType) SetDictOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_DictOptions = v
+}
+
+func (x *Attr_StringKeyedLabelDictType) SetDictValueOptions(v *Attr_LabelOptions) {
+	x.xxx_hidden_DictValueOptions = v
+}
+
+func (x *Attr_StringKeyedLabelDictType) HasDictOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictOptions != nil
+}
+
+func (x *Attr_StringKeyedLabelDictType) HasDictValueOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictValueOptions != nil
+}
+
+func (x *Attr_StringKeyedLabelDictType) ClearDictOptions() {
+	x.xxx_hidden_DictOptions = nil
+}
+
+func (x *Attr_StringKeyedLabelDictType) ClearDictValueOptions() {
+	x.xxx_hidden_DictValueOptions = nil
+}
+
+type Attr_StringKeyedLabelDictType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DictOptions      *Attr_CompositeOptions
+	DictValueOptions *Attr_LabelOptions
+}
+
+func (b0 Attr_StringKeyedLabelDictType_builder) Build() *Attr_StringKeyedLabelDictType {
+	m0 := &Attr_StringKeyedLabelDictType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DictOptions = b.DictOptions
+	x.xxx_hidden_DictValueOptions = b.DictValueOptions
+	return m0
+}
+
 type Attr_StringListDictType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DictOptions   *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions,proto3" json:"dict_options,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DictOptions *Attr_CompositeOptions `protobuf:"bytes,1,opt,name=dict_options,json=dictOptions"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attr_StringListDictType) Reset() {
@@ -5144,23 +9265,47 @@ func (x *Attr_StringListDictType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attr_StringListDictType.ProtoReflect.Descriptor instead.
-func (*Attr_StringListDictType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{6, 14}
-}
-
 func (x *Attr_StringListDictType) GetDictOptions() *Attr_CompositeOptions {
 	if x != nil {
-		return x.DictOptions
+		return x.xxx_hidden_DictOptions
 	}
 	return nil
 }
 
+func (x *Attr_StringListDictType) SetDictOptions(v *Attr_CompositeOptions) {
+	x.xxx_hidden_DictOptions = v
+}
+
+func (x *Attr_StringListDictType) HasDictOptions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DictOptions != nil
+}
+
+func (x *Attr_StringListDictType) ClearDictOptions() {
+	x.xxx_hidden_DictOptions = nil
+}
+
+type Attr_StringListDictType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DictOptions *Attr_CompositeOptions
+}
+
+func (b0 Attr_StringListDictType_builder) Build() *Attr_StringListDictType {
+	m0 := &Attr_StringListDictType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DictOptions = b.DictOptions
+	return m0
+}
+
 type BuildSetting_ListType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Repeatable    bool                   `protobuf:"varint,1,opt,name=repeatable,proto3" json:"repeatable,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Repeatable bool                   `protobuf:"varint,1,opt,name=repeatable"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *BuildSetting_ListType) Reset() {
@@ -5188,27 +9333,36 @@ func (x *BuildSetting_ListType) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildSetting_ListType.ProtoReflect.Descriptor instead.
-func (*BuildSetting_ListType) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{7, 0}
-}
-
 func (x *BuildSetting_ListType) GetRepeatable() bool {
 	if x != nil {
-		return x.Repeatable
+		return x.xxx_hidden_Repeatable
 	}
 	return false
 }
 
+func (x *BuildSetting_ListType) SetRepeatable(v bool) {
+	x.xxx_hidden_Repeatable = v
+}
+
+type BuildSetting_ListType_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Repeatable bool
+}
+
+func (b0 BuildSetting_ListType_builder) Build() *BuildSetting_ListType {
+	m0 := &BuildSetting_ListType{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Repeatable = b.Repeatable
+	return m0
+}
+
 type Dict_Entry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*Dict_Entry_Leaf_
-	//	*Dict_Entry_Parent_
-	Level         isDict_Entry_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isDict_Entry_Level     `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Dict_Entry) Reset() {
@@ -5236,21 +9390,9 @@ func (x *Dict_Entry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dict_Entry.ProtoReflect.Descriptor instead.
-func (*Dict_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9, 0}
-}
-
-func (x *Dict_Entry) GetLevel() isDict_Entry_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *Dict_Entry) GetLeaf() *Dict_Entry_Leaf {
 	if x != nil {
-		if x, ok := x.Level.(*Dict_Entry_Leaf_); ok {
+		if x, ok := x.xxx_hidden_Level.(*dict_Entry_Leaf_); ok {
 			return x.Leaf
 		}
 	}
@@ -5259,35 +9401,140 @@ func (x *Dict_Entry) GetLeaf() *Dict_Entry_Leaf {
 
 func (x *Dict_Entry) GetParent() *Dict_Entry_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*Dict_Entry_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*dict_Entry_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *Dict_Entry) SetLeaf(v *Dict_Entry_Leaf) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &dict_Entry_Leaf_{v}
+}
+
+func (x *Dict_Entry) SetParent(v *Dict_Entry_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &dict_Entry_Parent_{v}
+}
+
+func (x *Dict_Entry) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *Dict_Entry) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*dict_Entry_Leaf_)
+	return ok
+}
+
+func (x *Dict_Entry) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*dict_Entry_Parent_)
+	return ok
+}
+
+func (x *Dict_Entry) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *Dict_Entry) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*dict_Entry_Leaf_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *Dict_Entry) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*dict_Entry_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const Dict_Entry_Level_not_set_case case_Dict_Entry_Level = 0
+const Dict_Entry_Leaf_case case_Dict_Entry_Level = 1
+const Dict_Entry_Parent_case case_Dict_Entry_Level = 2
+
+func (x *Dict_Entry) WhichLevel() case_Dict_Entry_Level {
+	if x == nil {
+		return Dict_Entry_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *dict_Entry_Leaf_:
+		return Dict_Entry_Leaf_case
+	case *dict_Entry_Parent_:
+		return Dict_Entry_Parent_case
+	default:
+		return Dict_Entry_Level_not_set_case
+	}
+}
+
+type Dict_Entry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *Dict_Entry_Leaf
+	Parent *Dict_Entry_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 Dict_Entry_builder) Build() *Dict_Entry {
+	m0 := &Dict_Entry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &dict_Entry_Leaf_{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &dict_Entry_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_Dict_Entry_Level protoreflect.FieldNumber
+
+func (x case_Dict_Entry_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isDict_Entry_Level interface {
 	isDict_Entry_Level()
 }
 
-type Dict_Entry_Leaf_ struct {
-	Leaf *Dict_Entry_Leaf `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type dict_Entry_Leaf_ struct {
+	Leaf *Dict_Entry_Leaf `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type Dict_Entry_Parent_ struct {
-	Parent *Dict_Entry_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type dict_Entry_Parent_ struct {
+	Parent *Dict_Entry_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*Dict_Entry_Leaf_) isDict_Entry_Level() {}
+func (*dict_Entry_Leaf_) isDict_Entry_Level() {}
 
-func (*Dict_Entry_Parent_) isDict_Entry_Level() {}
+func (*dict_Entry_Parent_) isDict_Entry_Level() {}
 
 type Dict_Entry_Leaf struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           *Value                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *Value                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Key   *Value                 `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_Value *Value                 `protobuf:"bytes,2,opt,name=value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Dict_Entry_Leaf) Reset() {
@@ -5315,30 +9562,71 @@ func (x *Dict_Entry_Leaf) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dict_Entry_Leaf.ProtoReflect.Descriptor instead.
-func (*Dict_Entry_Leaf) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9, 0, 0}
-}
-
 func (x *Dict_Entry_Leaf) GetKey() *Value {
 	if x != nil {
-		return x.Key
+		return x.xxx_hidden_Key
 	}
 	return nil
 }
 
 func (x *Dict_Entry_Leaf) GetValue() *Value {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
+func (x *Dict_Entry_Leaf) SetKey(v *Value) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *Dict_Entry_Leaf) SetValue(v *Value) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *Dict_Entry_Leaf) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *Dict_Entry_Leaf) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *Dict_Entry_Leaf) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+func (x *Dict_Entry_Leaf) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type Dict_Entry_Leaf_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Key   *Value
+	Value *Value
+}
+
+func (b0 Dict_Entry_Leaf_builder) Build() *Dict_Entry_Leaf {
+	m0 := &Dict_Entry_Leaf{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type Dict_Entry_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Dict_Entry_Parent) Reset() {
@@ -5366,25 +9654,49 @@ func (x *Dict_Entry_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Dict_Entry_Parent.ProtoReflect.Descriptor instead.
-func (*Dict_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{9, 0, 1}
-}
-
 func (x *Dict_Entry_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
+func (x *Dict_Entry_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *Dict_Entry_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *Dict_Entry_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type Dict_Entry_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+}
+
+func (b0 Dict_Entry_Parent_builder) Build() *Dict_Entry_Parent {
+	m0 := &Dict_Entry_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	return m0
+}
+
 type File_Owner struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Variant       *TargetVariant         `protobuf:"bytes,1,opt,name=variant,proto3" json:"variant,omitempty"`
-	TargetName    string                 `protobuf:"bytes,2,opt,name=target_name,json=targetName,proto3" json:"target_name,omitempty"`
-	Type          File_Owner_Type        `protobuf:"varint,3,opt,name=type,proto3,enum=bonanza.model.starlark.File_Owner_Type" json:"type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Variant    *TargetVariant         `protobuf:"bytes,1,opt,name=variant"`
+	xxx_hidden_TargetName string                 `protobuf:"bytes,2,opt,name=target_name,json=targetName"`
+	xxx_hidden_Type       File_Owner_Type        `protobuf:"varint,3,opt,name=type,enum=bonanza.model.starlark.File_Owner_Type"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *File_Owner) Reset() {
@@ -5412,38 +9724,74 @@ func (x *File_Owner) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use File_Owner.ProtoReflect.Descriptor instead.
-func (*File_Owner) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{11, 0}
-}
-
 func (x *File_Owner) GetVariant() *TargetVariant {
 	if x != nil {
-		return x.Variant
+		return x.xxx_hidden_Variant
 	}
 	return nil
 }
 
 func (x *File_Owner) GetTargetName() string {
 	if x != nil {
-		return x.TargetName
+		return x.xxx_hidden_TargetName
 	}
 	return ""
 }
 
 func (x *File_Owner) GetType() File_Owner_Type {
 	if x != nil {
-		return x.Type
+		return x.xxx_hidden_Type
 	}
 	return File_Owner_FILE
 }
 
+func (x *File_Owner) SetVariant(v *TargetVariant) {
+	x.xxx_hidden_Variant = v
+}
+
+func (x *File_Owner) SetTargetName(v string) {
+	x.xxx_hidden_TargetName = v
+}
+
+func (x *File_Owner) SetType(v File_Owner_Type) {
+	x.xxx_hidden_Type = v
+}
+
+func (x *File_Owner) HasVariant() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Variant != nil
+}
+
+func (x *File_Owner) ClearVariant() {
+	x.xxx_hidden_Variant = nil
+}
+
+type File_Owner_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Variant    *TargetVariant
+	TargetName string
+	Type       File_Owner_Type
+}
+
+func (b0 File_Owner_builder) Build() *File_Owner {
+	m0 := &File_Owner{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Variant = b.Variant
+	x.xxx_hidden_TargetName = b.TargetName
+	x.xxx_hidden_Type = b.Type
+	return m0
+}
+
 type Function_Name struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Name                string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	DisambiguationIndex int32                  `protobuf:"varint,2,opt,name=disambiguation_index,json=disambiguationIndex,proto3" json:"disambiguation_index,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name                string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_DisambiguationIndex int32                  `protobuf:"varint,2,opt,name=disambiguation_index,json=disambiguationIndex"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *Function_Name) Reset() {
@@ -5471,31 +9819,50 @@ func (x *Function_Name) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Function_Name.ProtoReflect.Descriptor instead.
-func (*Function_Name) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12, 0}
-}
-
 func (x *Function_Name) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Function_Name) GetDisambiguationIndex() int32 {
 	if x != nil {
-		return x.DisambiguationIndex
+		return x.xxx_hidden_DisambiguationIndex
 	}
 	return 0
 }
 
+func (x *Function_Name) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Function_Name) SetDisambiguationIndex(v int32) {
+	x.xxx_hidden_DisambiguationIndex = v
+}
+
+type Function_Name_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name                string
+	DisambiguationIndex int32
+}
+
+func (b0 Function_Name_builder) Build() *Function_Name {
+	m0 := &Function_Name{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_DisambiguationIndex = b.DisambiguationIndex
+	return m0
+}
+
 type Function_Closure struct {
-	state             protoimpl.MessageState               `protogen:"open.v1"`
-	DefaultParameters []*Function_Closure_DefaultParameter `protobuf:"bytes,1,rep,name=default_parameters,json=defaultParameters,proto3" json:"default_parameters,omitempty"`
-	FreeVariables     []*Value                             `protobuf:"bytes,2,rep,name=free_variables,json=freeVariables,proto3" json:"free_variables,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState                `protogen:"opaque.v1"`
+	xxx_hidden_DefaultParameters *[]*Function_Closure_DefaultParameter `protobuf:"bytes,1,rep,name=default_parameters,json=defaultParameters"`
+	xxx_hidden_FreeVariables     *[]*Value                             `protobuf:"bytes,2,rep,name=free_variables,json=freeVariables"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Function_Closure) Reset() {
@@ -5523,30 +9890,53 @@ func (x *Function_Closure) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Function_Closure.ProtoReflect.Descriptor instead.
-func (*Function_Closure) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12, 1}
-}
-
 func (x *Function_Closure) GetDefaultParameters() []*Function_Closure_DefaultParameter {
 	if x != nil {
-		return x.DefaultParameters
+		if x.xxx_hidden_DefaultParameters != nil {
+			return *x.xxx_hidden_DefaultParameters
+		}
 	}
 	return nil
 }
 
 func (x *Function_Closure) GetFreeVariables() []*Value {
 	if x != nil {
-		return x.FreeVariables
+		if x.xxx_hidden_FreeVariables != nil {
+			return *x.xxx_hidden_FreeVariables
+		}
 	}
 	return nil
 }
 
+func (x *Function_Closure) SetDefaultParameters(v []*Function_Closure_DefaultParameter) {
+	x.xxx_hidden_DefaultParameters = &v
+}
+
+func (x *Function_Closure) SetFreeVariables(v []*Value) {
+	x.xxx_hidden_FreeVariables = &v
+}
+
+type Function_Closure_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DefaultParameters []*Function_Closure_DefaultParameter
+	FreeVariables     []*Value
+}
+
+func (b0 Function_Closure_builder) Build() *Function_Closure {
+	m0 := &Function_Closure{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DefaultParameters = &b.DefaultParameters
+	x.xxx_hidden_FreeVariables = &b.FreeVariables
+	return m0
+}
+
 type Function_Closure_DefaultParameter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         *Value                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Value *Value                 `protobuf:"bytes,1,opt,name=value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Function_Closure_DefaultParameter) Reset() {
@@ -5574,25 +9964,49 @@ func (x *Function_Closure_DefaultParameter) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Function_Closure_DefaultParameter.ProtoReflect.Descriptor instead.
-func (*Function_Closure_DefaultParameter) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{12, 1, 0}
-}
-
 func (x *Function_Closure_DefaultParameter) GetValue() *Value {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
+func (x *Function_Closure_DefaultParameter) SetValue(v *Value) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *Function_Closure_DefaultParameter) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *Function_Closure_DefaultParameter) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type Function_Closure_DefaultParameter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Value *Value
+}
+
+func (b0 Function_Closure_DefaultParameter_builder) Build() *Function_Closure_DefaultParameter {
+	m0 := &Function_Closure_DefaultParameter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type Funcode_NestedFunction struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Funcode       *Funcode               `protobuf:"bytes,2,opt,name=funcode,proto3" json:"funcode,omitempty"`
-	RelativeLine  uint32                 `protobuf:"varint,3,opt,name=relative_line,json=relativeLine,proto3" json:"relative_line,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name         string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Funcode      *Funcode               `protobuf:"bytes,2,opt,name=funcode"`
+	xxx_hidden_RelativeLine uint32                 `protobuf:"varint,3,opt,name=relative_line,json=relativeLine"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Funcode_NestedFunction) Reset() {
@@ -5620,41 +10034,73 @@ func (x *Funcode_NestedFunction) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Funcode_NestedFunction.ProtoReflect.Descriptor instead.
-func (*Funcode_NestedFunction) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{13, 0}
-}
-
 func (x *Funcode_NestedFunction) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Funcode_NestedFunction) GetFuncode() *Funcode {
 	if x != nil {
-		return x.Funcode
+		return x.xxx_hidden_Funcode
 	}
 	return nil
 }
 
 func (x *Funcode_NestedFunction) GetRelativeLine() uint32 {
 	if x != nil {
-		return x.RelativeLine
+		return x.xxx_hidden_RelativeLine
 	}
 	return 0
 }
 
+func (x *Funcode_NestedFunction) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Funcode_NestedFunction) SetFuncode(v *Funcode) {
+	x.xxx_hidden_Funcode = v
+}
+
+func (x *Funcode_NestedFunction) SetRelativeLine(v uint32) {
+	x.xxx_hidden_RelativeLine = v
+}
+
+func (x *Funcode_NestedFunction) HasFuncode() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Funcode != nil
+}
+
+func (x *Funcode_NestedFunction) ClearFuncode() {
+	x.xxx_hidden_Funcode = nil
+}
+
+type Funcode_NestedFunction_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name         string
+	Funcode      *Funcode
+	RelativeLine uint32
+}
+
+func (b0 Funcode_NestedFunction_builder) Build() *Funcode_NestedFunction {
+	m0 := &Funcode_NestedFunction{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Funcode = b.Funcode
+	x.xxx_hidden_RelativeLine = b.RelativeLine
+	return m0
+}
+
 type List_Element struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*List_Element_Leaf
-	//	*List_Element_Parent_
-	Level         isList_Element_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isList_Element_Level   `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *List_Element) Reset() {
@@ -5682,21 +10128,9 @@ func (x *List_Element) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use List_Element.ProtoReflect.Descriptor instead.
-func (*List_Element) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 0}
-}
-
-func (x *List_Element) GetLevel() isList_Element_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *List_Element) GetLeaf() *Value {
 	if x != nil {
-		if x, ok := x.Level.(*List_Element_Leaf); ok {
+		if x, ok := x.xxx_hidden_Level.(*list_Element_Leaf); ok {
 			return x.Leaf
 		}
 	}
@@ -5705,35 +10139,140 @@ func (x *List_Element) GetLeaf() *Value {
 
 func (x *List_Element) GetParent() *List_Element_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*List_Element_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*list_Element_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *List_Element) SetLeaf(v *Value) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &list_Element_Leaf{v}
+}
+
+func (x *List_Element) SetParent(v *List_Element_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &list_Element_Parent_{v}
+}
+
+func (x *List_Element) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *List_Element) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*list_Element_Leaf)
+	return ok
+}
+
+func (x *List_Element) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*list_Element_Parent_)
+	return ok
+}
+
+func (x *List_Element) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *List_Element) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*list_Element_Leaf); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *List_Element) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*list_Element_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const List_Element_Level_not_set_case case_List_Element_Level = 0
+const List_Element_Leaf_case case_List_Element_Level = 1
+const List_Element_Parent_case case_List_Element_Level = 2
+
+func (x *List_Element) WhichLevel() case_List_Element_Level {
+	if x == nil {
+		return List_Element_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *list_Element_Leaf:
+		return List_Element_Leaf_case
+	case *list_Element_Parent_:
+		return List_Element_Parent_case
+	default:
+		return List_Element_Level_not_set_case
+	}
+}
+
+type List_Element_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *Value
+	Parent *List_Element_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 List_Element_builder) Build() *List_Element {
+	m0 := &List_Element{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &list_Element_Leaf{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &list_Element_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_List_Element_Level protoreflect.FieldNumber
+
+func (x case_List_Element_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isList_Element_Level interface {
 	isList_Element_Level()
 }
 
-type List_Element_Leaf struct {
-	Leaf *Value `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type list_Element_Leaf struct {
+	Leaf *Value `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type List_Element_Parent_ struct {
-	Parent *List_Element_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type list_Element_Parent_ struct {
+	Parent *List_Element_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*List_Element_Leaf) isList_Element_Level() {}
+func (*list_Element_Leaf) isList_Element_Level() {}
 
-func (*List_Element_Parent_) isList_Element_Level() {}
+func (*list_Element_Parent_) isList_Element_Level() {}
 
 type List_Element_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	Count         uint64                   `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_Count     uint64                   `protobuf:"varint,2,opt,name=count"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *List_Element_Parent) Reset() {
@@ -5761,32 +10300,62 @@ func (x *List_Element_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use List_Element_Parent.ProtoReflect.Descriptor instead.
-func (*List_Element_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{17, 0, 0}
-}
-
 func (x *List_Element_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *List_Element_Parent) GetCount() uint64 {
 	if x != nil {
-		return x.Count
+		return x.xxx_hidden_Count
 	}
 	return 0
 }
 
+func (x *List_Element_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *List_Element_Parent) SetCount(v uint64) {
+	x.xxx_hidden_Count = v
+}
+
+func (x *List_Element_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *List_Element_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type List_Element_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+	Count     uint64
+}
+
+func (b0 List_Element_Parent_builder) Build() *List_Element_Parent {
+	m0 := &List_Element_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_Count = b.Count
+	return m0
+}
+
 type Macro_Definition struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Attrs          []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	Implementation *Function              `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	Finalizer      bool                   `protobuf:"varint,3,opt,name=finalizer,proto3" json:"finalizer,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attrs          *[]*NamedAttr          `protobuf:"bytes,1,rep,name=attrs"`
+	xxx_hidden_Implementation *Function              `protobuf:"bytes,2,opt,name=implementation"`
+	xxx_hidden_Finalizer      bool                   `protobuf:"varint,3,opt,name=finalizer"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Macro_Definition) Reset() {
@@ -5814,40 +10383,78 @@ func (x *Macro_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Macro_Definition.ProtoReflect.Descriptor instead.
-func (*Macro_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{18, 0}
-}
-
 func (x *Macro_Definition) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
 func (x *Macro_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *Macro_Definition) GetFinalizer() bool {
 	if x != nil {
-		return x.Finalizer
+		return x.xxx_hidden_Finalizer
 	}
 	return false
 }
 
+func (x *Macro_Definition) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+func (x *Macro_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *Macro_Definition) SetFinalizer(v bool) {
+	x.xxx_hidden_Finalizer = v
+}
+
+func (x *Macro_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *Macro_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+type Macro_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs          []*NamedAttr
+	Implementation *Function
+	Finalizer      bool
+}
+
+func (b0 Macro_Definition_builder) Build() *Macro_Definition {
+	m0 := &Macro_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_Finalizer = b.Finalizer
+	return m0
+}
+
 type MacroExpansionContext_Definition struct {
-	state                        protoimpl.MessageState    `protogen:"open.v1"`
-	RootMacroInstanceDefinition  *MacroInstance_Definition `protobuf:"bytes,1,opt,name=root_macro_instance_definition,json=rootMacroInstanceDefinition,proto3" json:"root_macro_instance_definition,omitempty"`
-	ReferencedTargetNameSuffixes []string                  `protobuf:"bytes,2,rep,name=referenced_target_name_suffixes,json=referencedTargetNameSuffixes,proto3" json:"referenced_target_name_suffixes,omitempty"`
-	ForbiddenTargetNameSuffixes  []string                  `protobuf:"bytes,3,rep,name=forbidden_target_name_suffixes,json=forbiddenTargetNameSuffixes,proto3" json:"forbidden_target_name_suffixes,omitempty"`
-	NestedMacroInstances         []*MacroInstance_Entry    `protobuf:"bytes,4,rep,name=nested_macro_instances,json=nestedMacroInstances,proto3" json:"nested_macro_instances,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                                   protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_RootMacroInstanceDefinition  *MacroInstance_Definition `protobuf:"bytes,1,opt,name=root_macro_instance_definition,json=rootMacroInstanceDefinition"`
+	xxx_hidden_ReferencedTargetNameSuffixes []string                  `protobuf:"bytes,2,rep,name=referenced_target_name_suffixes,json=referencedTargetNameSuffixes"`
+	xxx_hidden_ForbiddenTargetNameSuffixes  []string                  `protobuf:"bytes,3,rep,name=forbidden_target_name_suffixes,json=forbiddenTargetNameSuffixes"`
+	xxx_hidden_NestedMacroInstances         *[]*MacroInstance_Entry   `protobuf:"bytes,4,rep,name=nested_macro_instances,json=nestedMacroInstances"`
+	unknownFields                           protoimpl.UnknownFields
+	sizeCache                               protoimpl.SizeCache
 }
 
 func (x *MacroExpansionContext_Definition) Reset() {
@@ -5875,48 +10482,88 @@ func (x *MacroExpansionContext_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroExpansionContext_Definition.ProtoReflect.Descriptor instead.
-func (*MacroExpansionContext_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19, 0}
-}
-
 func (x *MacroExpansionContext_Definition) GetRootMacroInstanceDefinition() *MacroInstance_Definition {
 	if x != nil {
-		return x.RootMacroInstanceDefinition
+		return x.xxx_hidden_RootMacroInstanceDefinition
 	}
 	return nil
 }
 
 func (x *MacroExpansionContext_Definition) GetReferencedTargetNameSuffixes() []string {
 	if x != nil {
-		return x.ReferencedTargetNameSuffixes
+		return x.xxx_hidden_ReferencedTargetNameSuffixes
 	}
 	return nil
 }
 
 func (x *MacroExpansionContext_Definition) GetForbiddenTargetNameSuffixes() []string {
 	if x != nil {
-		return x.ForbiddenTargetNameSuffixes
+		return x.xxx_hidden_ForbiddenTargetNameSuffixes
 	}
 	return nil
 }
 
 func (x *MacroExpansionContext_Definition) GetNestedMacroInstances() []*MacroInstance_Entry {
 	if x != nil {
-		return x.NestedMacroInstances
+		if x.xxx_hidden_NestedMacroInstances != nil {
+			return *x.xxx_hidden_NestedMacroInstances
+		}
 	}
 	return nil
 }
 
+func (x *MacroExpansionContext_Definition) SetRootMacroInstanceDefinition(v *MacroInstance_Definition) {
+	x.xxx_hidden_RootMacroInstanceDefinition = v
+}
+
+func (x *MacroExpansionContext_Definition) SetReferencedTargetNameSuffixes(v []string) {
+	x.xxx_hidden_ReferencedTargetNameSuffixes = v
+}
+
+func (x *MacroExpansionContext_Definition) SetForbiddenTargetNameSuffixes(v []string) {
+	x.xxx_hidden_ForbiddenTargetNameSuffixes = v
+}
+
+func (x *MacroExpansionContext_Definition) SetNestedMacroInstances(v []*MacroInstance_Entry) {
+	x.xxx_hidden_NestedMacroInstances = &v
+}
+
+func (x *MacroExpansionContext_Definition) HasRootMacroInstanceDefinition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RootMacroInstanceDefinition != nil
+}
+
+func (x *MacroExpansionContext_Definition) ClearRootMacroInstanceDefinition() {
+	x.xxx_hidden_RootMacroInstanceDefinition = nil
+}
+
+type MacroExpansionContext_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RootMacroInstanceDefinition  *MacroInstance_Definition
+	ReferencedTargetNameSuffixes []string
+	ForbiddenTargetNameSuffixes  []string
+	NestedMacroInstances         []*MacroInstance_Entry
+}
+
+func (b0 MacroExpansionContext_Definition_builder) Build() *MacroExpansionContext_Definition {
+	m0 := &MacroExpansionContext_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RootMacroInstanceDefinition = b.RootMacroInstanceDefinition
+	x.xxx_hidden_ReferencedTargetNameSuffixes = b.ReferencedTargetNameSuffixes
+	x.xxx_hidden_ForbiddenTargetNameSuffixes = b.ForbiddenTargetNameSuffixes
+	x.xxx_hidden_NestedMacroInstances = &b.NestedMacroInstances
+	return m0
+}
+
 type MacroExpansionContext_Entry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*MacroExpansionContext_Entry_Leaf
-	//	*MacroExpansionContext_Entry_Parent_
-	Level         isMacroExpansionContext_Entry_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState              `protogen:"opaque.v1"`
+	xxx_hidden_Level isMacroExpansionContext_Entry_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MacroExpansionContext_Entry) Reset() {
@@ -5944,21 +10591,9 @@ func (x *MacroExpansionContext_Entry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroExpansionContext_Entry.ProtoReflect.Descriptor instead.
-func (*MacroExpansionContext_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19, 1}
-}
-
-func (x *MacroExpansionContext_Entry) GetLevel() isMacroExpansionContext_Entry_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *MacroExpansionContext_Entry) GetLeaf() *MacroExpansionContext {
 	if x != nil {
-		if x, ok := x.Level.(*MacroExpansionContext_Entry_Leaf); ok {
+		if x, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Leaf); ok {
 			return x.Leaf
 		}
 	}
@@ -5967,35 +10602,140 @@ func (x *MacroExpansionContext_Entry) GetLeaf() *MacroExpansionContext {
 
 func (x *MacroExpansionContext_Entry) GetParent() *MacroExpansionContext_Entry_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*MacroExpansionContext_Entry_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *MacroExpansionContext_Entry) SetLeaf(v *MacroExpansionContext) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &macroExpansionContext_Entry_Leaf{v}
+}
+
+func (x *MacroExpansionContext_Entry) SetParent(v *MacroExpansionContext_Entry_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &macroExpansionContext_Entry_Parent_{v}
+}
+
+func (x *MacroExpansionContext_Entry) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *MacroExpansionContext_Entry) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Leaf)
+	return ok
+}
+
+func (x *MacroExpansionContext_Entry) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Parent_)
+	return ok
+}
+
+func (x *MacroExpansionContext_Entry) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *MacroExpansionContext_Entry) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Leaf); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *MacroExpansionContext_Entry) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*macroExpansionContext_Entry_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const MacroExpansionContext_Entry_Level_not_set_case case_MacroExpansionContext_Entry_Level = 0
+const MacroExpansionContext_Entry_Leaf_case case_MacroExpansionContext_Entry_Level = 1
+const MacroExpansionContext_Entry_Parent_case case_MacroExpansionContext_Entry_Level = 2
+
+func (x *MacroExpansionContext_Entry) WhichLevel() case_MacroExpansionContext_Entry_Level {
+	if x == nil {
+		return MacroExpansionContext_Entry_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *macroExpansionContext_Entry_Leaf:
+		return MacroExpansionContext_Entry_Leaf_case
+	case *macroExpansionContext_Entry_Parent_:
+		return MacroExpansionContext_Entry_Parent_case
+	default:
+		return MacroExpansionContext_Entry_Level_not_set_case
+	}
+}
+
+type MacroExpansionContext_Entry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *MacroExpansionContext
+	Parent *MacroExpansionContext_Entry_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 MacroExpansionContext_Entry_builder) Build() *MacroExpansionContext_Entry {
+	m0 := &MacroExpansionContext_Entry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &macroExpansionContext_Entry_Leaf{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &macroExpansionContext_Entry_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_MacroExpansionContext_Entry_Level protoreflect.FieldNumber
+
+func (x case_MacroExpansionContext_Entry_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isMacroExpansionContext_Entry_Level interface {
 	isMacroExpansionContext_Entry_Level()
 }
 
-type MacroExpansionContext_Entry_Leaf struct {
-	Leaf *MacroExpansionContext `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type macroExpansionContext_Entry_Leaf struct {
+	Leaf *MacroExpansionContext `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type MacroExpansionContext_Entry_Parent_ struct {
-	Parent *MacroExpansionContext_Entry_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type macroExpansionContext_Entry_Parent_ struct {
+	Parent *MacroExpansionContext_Entry_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*MacroExpansionContext_Entry_Leaf) isMacroExpansionContext_Entry_Level() {}
+func (*macroExpansionContext_Entry_Leaf) isMacroExpansionContext_Entry_Level() {}
 
-func (*MacroExpansionContext_Entry_Parent_) isMacroExpansionContext_Entry_Level() {}
+func (*macroExpansionContext_Entry_Parent_) isMacroExpansionContext_Entry_Level() {}
 
 type MacroExpansionContext_Entry_Parent struct {
-	state           protoimpl.MessageState   `protogen:"open.v1"`
-	Reference       *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	FirstNameSuffix string                   `protobuf:"bytes,2,opt,name=first_name_suffix,json=firstNameSuffix,proto3" json:"first_name_suffix,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference       *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	xxx_hidden_FirstNameSuffix string                   `protobuf:"bytes,2,opt,name=first_name_suffix,json=firstNameSuffix"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *MacroExpansionContext_Entry_Parent) Reset() {
@@ -6023,33 +10763,63 @@ func (x *MacroExpansionContext_Entry_Parent) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroExpansionContext_Entry_Parent.ProtoReflect.Descriptor instead.
-func (*MacroExpansionContext_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{19, 1, 0}
-}
-
 func (x *MacroExpansionContext_Entry_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *MacroExpansionContext_Entry_Parent) GetFirstNameSuffix() string {
 	if x != nil {
-		return x.FirstNameSuffix
+		return x.xxx_hidden_FirstNameSuffix
 	}
 	return ""
 }
 
+func (x *MacroExpansionContext_Entry_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *MacroExpansionContext_Entry_Parent) SetFirstNameSuffix(v string) {
+	x.xxx_hidden_FirstNameSuffix = v
+}
+
+func (x *MacroExpansionContext_Entry_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *MacroExpansionContext_Entry_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type MacroExpansionContext_Entry_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference       *core.DecodableReference
+	FirstNameSuffix string
+}
+
+func (b0 MacroExpansionContext_Entry_Parent_builder) Build() *MacroExpansionContext_Entry_Parent {
+	m0 := &MacroExpansionContext_Entry_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_FirstNameSuffix = b.FirstNameSuffix
+	return m0
+}
+
 type MacroInstance_Definition struct {
-	state            protoimpl.MessageState        `protogen:"open.v1"`
-	MacroIdentifier  string                        `protobuf:"bytes,1,opt,name=macro_identifier,json=macroIdentifier,proto3" json:"macro_identifier,omitempty"`
-	PublicAttrValues []*RuleTarget_PublicAttrValue `protobuf:"bytes,2,rep,name=public_attr_values,json=publicAttrValues,proto3" json:"public_attr_values,omitempty"`
-	InheritableAttrs *InheritableAttrs             `protobuf:"bytes,3,opt,name=inheritable_attrs,json=inheritableAttrs,proto3" json:"inheritable_attrs,omitempty"`
-	Finalizer        MacroInstance_Finalizer       `protobuf:"varint,4,opt,name=finalizer,proto3,enum=bonanza.model.starlark.MacroInstance_Finalizer" json:"finalizer,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_MacroIdentifier  string                         `protobuf:"bytes,1,opt,name=macro_identifier,json=macroIdentifier"`
+	xxx_hidden_PublicAttrValues *[]*RuleTarget_PublicAttrValue `protobuf:"bytes,2,rep,name=public_attr_values,json=publicAttrValues"`
+	xxx_hidden_InheritableAttrs *InheritableAttrs              `protobuf:"bytes,3,opt,name=inheritable_attrs,json=inheritableAttrs"`
+	xxx_hidden_Finalizer        MacroInstance_Finalizer        `protobuf:"varint,4,opt,name=finalizer,enum=bonanza.model.starlark.MacroInstance_Finalizer"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *MacroInstance_Definition) Reset() {
@@ -6077,48 +10847,88 @@ func (x *MacroInstance_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroInstance_Definition.ProtoReflect.Descriptor instead.
-func (*MacroInstance_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 0}
-}
-
 func (x *MacroInstance_Definition) GetMacroIdentifier() string {
 	if x != nil {
-		return x.MacroIdentifier
+		return x.xxx_hidden_MacroIdentifier
 	}
 	return ""
 }
 
 func (x *MacroInstance_Definition) GetPublicAttrValues() []*RuleTarget_PublicAttrValue {
 	if x != nil {
-		return x.PublicAttrValues
+		if x.xxx_hidden_PublicAttrValues != nil {
+			return *x.xxx_hidden_PublicAttrValues
+		}
 	}
 	return nil
 }
 
 func (x *MacroInstance_Definition) GetInheritableAttrs() *InheritableAttrs {
 	if x != nil {
-		return x.InheritableAttrs
+		return x.xxx_hidden_InheritableAttrs
 	}
 	return nil
 }
 
 func (x *MacroInstance_Definition) GetFinalizer() MacroInstance_Finalizer {
 	if x != nil {
-		return x.Finalizer
+		return x.xxx_hidden_Finalizer
 	}
 	return MacroInstance_NOT_A_FINALIZER
 }
 
+func (x *MacroInstance_Definition) SetMacroIdentifier(v string) {
+	x.xxx_hidden_MacroIdentifier = v
+}
+
+func (x *MacroInstance_Definition) SetPublicAttrValues(v []*RuleTarget_PublicAttrValue) {
+	x.xxx_hidden_PublicAttrValues = &v
+}
+
+func (x *MacroInstance_Definition) SetInheritableAttrs(v *InheritableAttrs) {
+	x.xxx_hidden_InheritableAttrs = v
+}
+
+func (x *MacroInstance_Definition) SetFinalizer(v MacroInstance_Finalizer) {
+	x.xxx_hidden_Finalizer = v
+}
+
+func (x *MacroInstance_Definition) HasInheritableAttrs() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InheritableAttrs != nil
+}
+
+func (x *MacroInstance_Definition) ClearInheritableAttrs() {
+	x.xxx_hidden_InheritableAttrs = nil
+}
+
+type MacroInstance_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MacroIdentifier  string
+	PublicAttrValues []*RuleTarget_PublicAttrValue
+	InheritableAttrs *InheritableAttrs
+	Finalizer        MacroInstance_Finalizer
+}
+
+func (b0 MacroInstance_Definition_builder) Build() *MacroInstance_Definition {
+	m0 := &MacroInstance_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_MacroIdentifier = b.MacroIdentifier
+	x.xxx_hidden_PublicAttrValues = &b.PublicAttrValues
+	x.xxx_hidden_InheritableAttrs = b.InheritableAttrs
+	x.xxx_hidden_Finalizer = b.Finalizer
+	return m0
+}
+
 type MacroInstance_Entry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*MacroInstance_Entry_Leaf
-	//	*MacroInstance_Entry_Parent_
-	Level         isMacroInstance_Entry_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_Level isMacroInstance_Entry_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MacroInstance_Entry) Reset() {
@@ -6146,21 +10956,9 @@ func (x *MacroInstance_Entry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroInstance_Entry.ProtoReflect.Descriptor instead.
-func (*MacroInstance_Entry) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 1}
-}
-
-func (x *MacroInstance_Entry) GetLevel() isMacroInstance_Entry_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *MacroInstance_Entry) GetLeaf() *MacroInstance {
 	if x != nil {
-		if x, ok := x.Level.(*MacroInstance_Entry_Leaf); ok {
+		if x, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Leaf); ok {
 			return x.Leaf
 		}
 	}
@@ -6169,34 +10967,139 @@ func (x *MacroInstance_Entry) GetLeaf() *MacroInstance {
 
 func (x *MacroInstance_Entry) GetParent() *MacroInstance_Entry_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*MacroInstance_Entry_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *MacroInstance_Entry) SetLeaf(v *MacroInstance) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &macroInstance_Entry_Leaf{v}
+}
+
+func (x *MacroInstance_Entry) SetParent(v *MacroInstance_Entry_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &macroInstance_Entry_Parent_{v}
+}
+
+func (x *MacroInstance_Entry) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *MacroInstance_Entry) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Leaf)
+	return ok
+}
+
+func (x *MacroInstance_Entry) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Parent_)
+	return ok
+}
+
+func (x *MacroInstance_Entry) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *MacroInstance_Entry) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Leaf); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *MacroInstance_Entry) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*macroInstance_Entry_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const MacroInstance_Entry_Level_not_set_case case_MacroInstance_Entry_Level = 0
+const MacroInstance_Entry_Leaf_case case_MacroInstance_Entry_Level = 1
+const MacroInstance_Entry_Parent_case case_MacroInstance_Entry_Level = 2
+
+func (x *MacroInstance_Entry) WhichLevel() case_MacroInstance_Entry_Level {
+	if x == nil {
+		return MacroInstance_Entry_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *macroInstance_Entry_Leaf:
+		return MacroInstance_Entry_Leaf_case
+	case *macroInstance_Entry_Parent_:
+		return MacroInstance_Entry_Parent_case
+	default:
+		return MacroInstance_Entry_Level_not_set_case
+	}
+}
+
+type MacroInstance_Entry_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *MacroInstance
+	Parent *MacroInstance_Entry_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 MacroInstance_Entry_builder) Build() *MacroInstance_Entry {
+	m0 := &MacroInstance_Entry{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &macroInstance_Entry_Leaf{b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &macroInstance_Entry_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_MacroInstance_Entry_Level protoreflect.FieldNumber
+
+func (x case_MacroInstance_Entry_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isMacroInstance_Entry_Level interface {
 	isMacroInstance_Entry_Level()
 }
 
-type MacroInstance_Entry_Leaf struct {
-	Leaf *MacroInstance `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type macroInstance_Entry_Leaf struct {
+	Leaf *MacroInstance `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type MacroInstance_Entry_Parent_ struct {
-	Parent *MacroInstance_Entry_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type macroInstance_Entry_Parent_ struct {
+	Parent *MacroInstance_Entry_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*MacroInstance_Entry_Leaf) isMacroInstance_Entry_Level() {}
+func (*macroInstance_Entry_Leaf) isMacroInstance_Entry_Level() {}
 
-func (*MacroInstance_Entry_Parent_) isMacroInstance_Entry_Level() {}
+func (*macroInstance_Entry_Parent_) isMacroInstance_Entry_Level() {}
 
 type MacroInstance_Entry_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *MacroInstance_Entry_Parent) Reset() {
@@ -6224,24 +11127,48 @@ func (x *MacroInstance_Entry_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MacroInstance_Entry_Parent.ProtoReflect.Descriptor instead.
-func (*MacroInstance_Entry_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{20, 1, 0}
-}
-
 func (x *MacroInstance_Entry_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
+func (x *MacroInstance_Entry_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *MacroInstance_Entry_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *MacroInstance_Entry_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type MacroInstance_Entry_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+}
+
+func (b0 MacroInstance_Entry_Parent_builder) Build() *MacroInstance_Entry_Parent {
+	m0 := &MacroInstance_Entry_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	return m0
+}
+
 type ModuleExtension_NamedTagClass struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	TagClass      *TagClass              `protobuf:"bytes,2,opt,name=tag_class,json=tagClass,proto3" json:"tag_class,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name     string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_TagClass *TagClass              `protobuf:"bytes,2,opt,name=tag_class,json=tagClass"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ModuleExtension_NamedTagClass) Reset() {
@@ -6269,32 +11196,62 @@ func (x *ModuleExtension_NamedTagClass) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ModuleExtension_NamedTagClass.ProtoReflect.Descriptor instead.
-func (*ModuleExtension_NamedTagClass) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{21, 0}
-}
-
 func (x *ModuleExtension_NamedTagClass) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *ModuleExtension_NamedTagClass) GetTagClass() *TagClass {
 	if x != nil {
-		return x.TagClass
+		return x.xxx_hidden_TagClass
 	}
 	return nil
 }
 
+func (x *ModuleExtension_NamedTagClass) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *ModuleExtension_NamedTagClass) SetTagClass(v *TagClass) {
+	x.xxx_hidden_TagClass = v
+}
+
+func (x *ModuleExtension_NamedTagClass) HasTagClass() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_TagClass != nil
+}
+
+func (x *ModuleExtension_NamedTagClass) ClearTagClass() {
+	x.xxx_hidden_TagClass = nil
+}
+
+type ModuleExtension_NamedTagClass_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name     string
+	TagClass *TagClass
+}
+
+func (b0 ModuleExtension_NamedTagClass_builder) Build() *ModuleExtension_NamedTagClass {
+	m0 := &ModuleExtension_NamedTagClass{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_TagClass = b.TagClass
+	return m0
+}
+
 type PackageGroup_Package struct {
-	state          protoimpl.MessageState    `protogen:"open.v1"`
-	Component      string                    `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
-	IncludePackage bool                      `protobuf:"varint,2,opt,name=include_package,json=includePackage,proto3" json:"include_package,omitempty"`
-	Subpackages    *PackageGroup_Subpackages `protobuf:"bytes,3,opt,name=subpackages,proto3" json:"subpackages,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Component      string                    `protobuf:"bytes,1,opt,name=component"`
+	xxx_hidden_IncludePackage bool                      `protobuf:"varint,2,opt,name=include_package,json=includePackage"`
+	xxx_hidden_Subpackages    *PackageGroup_Subpackages `protobuf:"bytes,3,opt,name=subpackages"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *PackageGroup_Package) Reset() {
@@ -6322,42 +11279,74 @@ func (x *PackageGroup_Package) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PackageGroup_Package.ProtoReflect.Descriptor instead.
-func (*PackageGroup_Package) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23, 0}
-}
-
 func (x *PackageGroup_Package) GetComponent() string {
 	if x != nil {
-		return x.Component
+		return x.xxx_hidden_Component
 	}
 	return ""
 }
 
 func (x *PackageGroup_Package) GetIncludePackage() bool {
 	if x != nil {
-		return x.IncludePackage
+		return x.xxx_hidden_IncludePackage
 	}
 	return false
 }
 
 func (x *PackageGroup_Package) GetSubpackages() *PackageGroup_Subpackages {
 	if x != nil {
-		return x.Subpackages
+		return x.xxx_hidden_Subpackages
 	}
 	return nil
 }
 
+func (x *PackageGroup_Package) SetComponent(v string) {
+	x.xxx_hidden_Component = v
+}
+
+func (x *PackageGroup_Package) SetIncludePackage(v bool) {
+	x.xxx_hidden_IncludePackage = v
+}
+
+func (x *PackageGroup_Package) SetSubpackages(v *PackageGroup_Subpackages) {
+	x.xxx_hidden_Subpackages = v
+}
+
+func (x *PackageGroup_Package) HasSubpackages() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Subpackages != nil
+}
+
+func (x *PackageGroup_Package) ClearSubpackages() {
+	x.xxx_hidden_Subpackages = nil
+}
+
+type PackageGroup_Package_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Component      string
+	IncludePackage bool
+	Subpackages    *PackageGroup_Subpackages
+}
+
+func (b0 PackageGroup_Package_builder) Build() *PackageGroup_Package {
+	m0 := &PackageGroup_Package{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Component = b.Component
+	x.xxx_hidden_IncludePackage = b.IncludePackage
+	x.xxx_hidden_Subpackages = b.Subpackages
+	return m0
+}
+
 type PackageGroup_Subpackages struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	IncludeSubpackages bool                   `protobuf:"varint,1,opt,name=include_subpackages,json=includeSubpackages,proto3" json:"include_subpackages,omitempty"`
-	// Types that are valid to be assigned to Overrides:
-	//
-	//	*PackageGroup_Subpackages_OverridesExternal
-	//	*PackageGroup_Subpackages_OverridesInline
-	Overrides     isPackageGroup_Subpackages_Overrides `protobuf_oneof:"overrides"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                         protoimpl.MessageState               `protogen:"opaque.v1"`
+	xxx_hidden_IncludeSubpackages bool                                 `protobuf:"varint,1,opt,name=include_subpackages,json=includeSubpackages"`
+	xxx_hidden_Overrides          isPackageGroup_Subpackages_Overrides `protobuf_oneof:"overrides"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *PackageGroup_Subpackages) Reset() {
@@ -6385,28 +11374,16 @@ func (x *PackageGroup_Subpackages) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PackageGroup_Subpackages.ProtoReflect.Descriptor instead.
-func (*PackageGroup_Subpackages) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23, 1}
-}
-
 func (x *PackageGroup_Subpackages) GetIncludeSubpackages() bool {
 	if x != nil {
-		return x.IncludeSubpackages
+		return x.xxx_hidden_IncludeSubpackages
 	}
 	return false
 }
 
-func (x *PackageGroup_Subpackages) GetOverrides() isPackageGroup_Subpackages_Overrides {
-	if x != nil {
-		return x.Overrides
-	}
-	return nil
-}
-
 func (x *PackageGroup_Subpackages) GetOverridesExternal() *core.DecodableReference {
 	if x != nil {
-		if x, ok := x.Overrides.(*PackageGroup_Subpackages_OverridesExternal); ok {
+		if x, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesExternal); ok {
 			return x.OverridesExternal
 		}
 	}
@@ -6415,34 +11392,145 @@ func (x *PackageGroup_Subpackages) GetOverridesExternal() *core.DecodableReferen
 
 func (x *PackageGroup_Subpackages) GetOverridesInline() *PackageGroup_Subpackages_Overrides {
 	if x != nil {
-		if x, ok := x.Overrides.(*PackageGroup_Subpackages_OverridesInline); ok {
+		if x, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesInline); ok {
 			return x.OverridesInline
 		}
 	}
 	return nil
 }
 
+func (x *PackageGroup_Subpackages) SetIncludeSubpackages(v bool) {
+	x.xxx_hidden_IncludeSubpackages = v
+}
+
+func (x *PackageGroup_Subpackages) SetOverridesExternal(v *core.DecodableReference) {
+	if v == nil {
+		x.xxx_hidden_Overrides = nil
+		return
+	}
+	x.xxx_hidden_Overrides = &packageGroup_Subpackages_OverridesExternal{v}
+}
+
+func (x *PackageGroup_Subpackages) SetOverridesInline(v *PackageGroup_Subpackages_Overrides) {
+	if v == nil {
+		x.xxx_hidden_Overrides = nil
+		return
+	}
+	x.xxx_hidden_Overrides = &packageGroup_Subpackages_OverridesInline{v}
+}
+
+func (x *PackageGroup_Subpackages) HasOverrides() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Overrides != nil
+}
+
+func (x *PackageGroup_Subpackages) HasOverridesExternal() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesExternal)
+	return ok
+}
+
+func (x *PackageGroup_Subpackages) HasOverridesInline() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesInline)
+	return ok
+}
+
+func (x *PackageGroup_Subpackages) ClearOverrides() {
+	x.xxx_hidden_Overrides = nil
+}
+
+func (x *PackageGroup_Subpackages) ClearOverridesExternal() {
+	if _, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesExternal); ok {
+		x.xxx_hidden_Overrides = nil
+	}
+}
+
+func (x *PackageGroup_Subpackages) ClearOverridesInline() {
+	if _, ok := x.xxx_hidden_Overrides.(*packageGroup_Subpackages_OverridesInline); ok {
+		x.xxx_hidden_Overrides = nil
+	}
+}
+
+const PackageGroup_Subpackages_Overrides_not_set_case case_PackageGroup_Subpackages_Overrides = 0
+const PackageGroup_Subpackages_OverridesExternal_case case_PackageGroup_Subpackages_Overrides = 2
+const PackageGroup_Subpackages_OverridesInline_case case_PackageGroup_Subpackages_Overrides = 3
+
+func (x *PackageGroup_Subpackages) WhichOverrides() case_PackageGroup_Subpackages_Overrides {
+	if x == nil {
+		return PackageGroup_Subpackages_Overrides_not_set_case
+	}
+	switch x.xxx_hidden_Overrides.(type) {
+	case *packageGroup_Subpackages_OverridesExternal:
+		return PackageGroup_Subpackages_OverridesExternal_case
+	case *packageGroup_Subpackages_OverridesInline:
+		return PackageGroup_Subpackages_OverridesInline_case
+	default:
+		return PackageGroup_Subpackages_Overrides_not_set_case
+	}
+}
+
+type PackageGroup_Subpackages_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	IncludeSubpackages bool
+	// Fields of oneof xxx_hidden_Overrides:
+	OverridesExternal *core.DecodableReference
+	OverridesInline   *PackageGroup_Subpackages_Overrides
+	// -- end of xxx_hidden_Overrides
+}
+
+func (b0 PackageGroup_Subpackages_builder) Build() *PackageGroup_Subpackages {
+	m0 := &PackageGroup_Subpackages{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_IncludeSubpackages = b.IncludeSubpackages
+	if b.OverridesExternal != nil {
+		x.xxx_hidden_Overrides = &packageGroup_Subpackages_OverridesExternal{b.OverridesExternal}
+	}
+	if b.OverridesInline != nil {
+		x.xxx_hidden_Overrides = &packageGroup_Subpackages_OverridesInline{b.OverridesInline}
+	}
+	return m0
+}
+
+type case_PackageGroup_Subpackages_Overrides protoreflect.FieldNumber
+
+func (x case_PackageGroup_Subpackages_Overrides) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isPackageGroup_Subpackages_Overrides interface {
 	isPackageGroup_Subpackages_Overrides()
 }
 
-type PackageGroup_Subpackages_OverridesExternal struct {
-	OverridesExternal *core.DecodableReference `protobuf:"bytes,2,opt,name=overrides_external,json=overridesExternal,proto3,oneof"`
+type packageGroup_Subpackages_OverridesExternal struct {
+	OverridesExternal *core.DecodableReference `protobuf:"bytes,2,opt,name=overrides_external,json=overridesExternal,oneof"`
 }
 
-type PackageGroup_Subpackages_OverridesInline struct {
-	OverridesInline *PackageGroup_Subpackages_Overrides `protobuf:"bytes,3,opt,name=overrides_inline,json=overridesInline,proto3,oneof"`
+type packageGroup_Subpackages_OverridesInline struct {
+	OverridesInline *PackageGroup_Subpackages_Overrides `protobuf:"bytes,3,opt,name=overrides_inline,json=overridesInline,oneof"`
 }
 
-func (*PackageGroup_Subpackages_OverridesExternal) isPackageGroup_Subpackages_Overrides() {}
+func (*packageGroup_Subpackages_OverridesExternal) isPackageGroup_Subpackages_Overrides() {}
 
-func (*PackageGroup_Subpackages_OverridesInline) isPackageGroup_Subpackages_Overrides() {}
+func (*packageGroup_Subpackages_OverridesInline) isPackageGroup_Subpackages_Overrides() {}
 
 type PackageGroup_Subpackages_Overrides struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Packages      []*PackageGroup_Package `protobuf:"bytes,1,rep,name=packages,proto3" json:"packages,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Packages *[]*PackageGroup_Package `protobuf:"bytes,1,rep,name=packages"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PackageGroup_Subpackages_Overrides) Reset() {
@@ -6470,26 +11558,41 @@ func (x *PackageGroup_Subpackages_Overrides) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PackageGroup_Subpackages_Overrides.ProtoReflect.Descriptor instead.
-func (*PackageGroup_Subpackages_Overrides) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{23, 1, 0}
-}
-
 func (x *PackageGroup_Subpackages_Overrides) GetPackages() []*PackageGroup_Package {
 	if x != nil {
-		return x.Packages
+		if x.xxx_hidden_Packages != nil {
+			return *x.xxx_hidden_Packages
+		}
 	}
 	return nil
 }
 
+func (x *PackageGroup_Subpackages_Overrides) SetPackages(v []*PackageGroup_Package) {
+	x.xxx_hidden_Packages = &v
+}
+
+type PackageGroup_Subpackages_Overrides_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Packages []*PackageGroup_Package
+}
+
+func (b0 PackageGroup_Subpackages_Overrides_builder) Build() *PackageGroup_Subpackages_Overrides {
+	m0 := &PackageGroup_Subpackages_Overrides{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Packages = &b.Packages
+	return m0
+}
+
 type Provider_InstanceProperties struct {
-	state              protoimpl.MessageState                       `protogen:"open.v1"`
-	ProviderIdentifier string                                       `protobuf:"bytes,1,opt,name=provider_identifier,json=providerIdentifier,proto3" json:"provider_identifier,omitempty"`
-	DictLike           bool                                         `protobuf:"varint,2,opt,name=dict_like,json=dictLike,proto3" json:"dict_like,omitempty"`
-	ComputedFields     []*Provider_InstanceProperties_ComputedField `protobuf:"bytes,3,rep,name=computed_fields,json=computedFields,proto3" json:"computed_fields,omitempty"`
-	TypeName           string                                       `protobuf:"bytes,4,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState                        `protogen:"opaque.v1"`
+	xxx_hidden_ProviderIdentifier string                                        `protobuf:"bytes,1,opt,name=provider_identifier,json=providerIdentifier"`
+	xxx_hidden_DictLike           bool                                          `protobuf:"varint,2,opt,name=dict_like,json=dictLike"`
+	xxx_hidden_ComputedFields     *[]*Provider_InstanceProperties_ComputedField `protobuf:"bytes,3,rep,name=computed_fields,json=computedFields"`
+	xxx_hidden_TypeName           string                                        `protobuf:"bytes,4,opt,name=type_name,json=typeName"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Provider_InstanceProperties) Reset() {
@@ -6517,45 +11620,78 @@ func (x *Provider_InstanceProperties) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Provider_InstanceProperties.ProtoReflect.Descriptor instead.
-func (*Provider_InstanceProperties) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24, 0}
-}
-
 func (x *Provider_InstanceProperties) GetProviderIdentifier() string {
 	if x != nil {
-		return x.ProviderIdentifier
+		return x.xxx_hidden_ProviderIdentifier
 	}
 	return ""
 }
 
 func (x *Provider_InstanceProperties) GetDictLike() bool {
 	if x != nil {
-		return x.DictLike
+		return x.xxx_hidden_DictLike
 	}
 	return false
 }
 
 func (x *Provider_InstanceProperties) GetComputedFields() []*Provider_InstanceProperties_ComputedField {
 	if x != nil {
-		return x.ComputedFields
+		if x.xxx_hidden_ComputedFields != nil {
+			return *x.xxx_hidden_ComputedFields
+		}
 	}
 	return nil
 }
 
 func (x *Provider_InstanceProperties) GetTypeName() string {
 	if x != nil {
-		return x.TypeName
+		return x.xxx_hidden_TypeName
 	}
 	return ""
 }
 
+func (x *Provider_InstanceProperties) SetProviderIdentifier(v string) {
+	x.xxx_hidden_ProviderIdentifier = v
+}
+
+func (x *Provider_InstanceProperties) SetDictLike(v bool) {
+	x.xxx_hidden_DictLike = v
+}
+
+func (x *Provider_InstanceProperties) SetComputedFields(v []*Provider_InstanceProperties_ComputedField) {
+	x.xxx_hidden_ComputedFields = &v
+}
+
+func (x *Provider_InstanceProperties) SetTypeName(v string) {
+	x.xxx_hidden_TypeName = v
+}
+
+type Provider_InstanceProperties_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ProviderIdentifier string
+	DictLike           bool
+	ComputedFields     []*Provider_InstanceProperties_ComputedField
+	TypeName           string
+}
+
+func (b0 Provider_InstanceProperties_builder) Build() *Provider_InstanceProperties {
+	m0 := &Provider_InstanceProperties{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ProviderIdentifier = b.ProviderIdentifier
+	x.xxx_hidden_DictLike = b.DictLike
+	x.xxx_hidden_ComputedFields = &b.ComputedFields
+	x.xxx_hidden_TypeName = b.TypeName
+	return m0
+}
+
 type Provider_InstanceProperties_ComputedField struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Function      *Function              `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name     string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Function *Function              `protobuf:"bytes,2,opt,name=function"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Provider_InstanceProperties_ComputedField) Reset() {
@@ -6583,31 +11719,61 @@ func (x *Provider_InstanceProperties_ComputedField) ProtoReflect() protoreflect.
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Provider_InstanceProperties_ComputedField.ProtoReflect.Descriptor instead.
-func (*Provider_InstanceProperties_ComputedField) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{24, 0, 0}
-}
-
 func (x *Provider_InstanceProperties_ComputedField) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Provider_InstanceProperties_ComputedField) GetFunction() *Function {
 	if x != nil {
-		return x.Function
+		return x.xxx_hidden_Function
 	}
 	return nil
 }
 
+func (x *Provider_InstanceProperties_ComputedField) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Provider_InstanceProperties_ComputedField) SetFunction(v *Function) {
+	x.xxx_hidden_Function = v
+}
+
+func (x *Provider_InstanceProperties_ComputedField) HasFunction() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Function != nil
+}
+
+func (x *Provider_InstanceProperties_ComputedField) ClearFunction() {
+	x.xxx_hidden_Function = nil
+}
+
+type Provider_InstanceProperties_ComputedField_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name     string
+	Function *Function
+}
+
+func (b0 Provider_InstanceProperties_ComputedField_builder) Build() *Provider_InstanceProperties_ComputedField {
+	m0 := &Provider_InstanceProperties_ComputedField{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Function = b.Function
+	return m0
+}
+
 type Struct_Fields struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Keys          []string               `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
-	Values        []*List_Element        `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Keys   []string               `protobuf:"bytes,1,rep,name=keys"`
+	xxx_hidden_Values *[]*List_Element       `protobuf:"bytes,2,rep,name=values"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Struct_Fields) Reset() {
@@ -6635,31 +11801,52 @@ func (x *Struct_Fields) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Struct_Fields.ProtoReflect.Descriptor instead.
-func (*Struct_Fields) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{25, 0}
-}
-
 func (x *Struct_Fields) GetKeys() []string {
 	if x != nil {
-		return x.Keys
+		return x.xxx_hidden_Keys
 	}
 	return nil
 }
 
 func (x *Struct_Fields) GetValues() []*List_Element {
 	if x != nil {
-		return x.Values
+		if x.xxx_hidden_Values != nil {
+			return *x.xxx_hidden_Values
+		}
 	}
 	return nil
 }
 
+func (x *Struct_Fields) SetKeys(v []string) {
+	x.xxx_hidden_Keys = v
+}
+
+func (x *Struct_Fields) SetValues(v []*List_Element) {
+	x.xxx_hidden_Values = &v
+}
+
+type Struct_Fields_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Keys   []string
+	Values []*List_Element
+}
+
+func (b0 Struct_Fields_builder) Build() *Struct_Fields {
+	m0 := &Struct_Fields{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Keys = b.Keys
+	x.xxx_hidden_Values = &b.Values
+	return m0
+}
+
 type TargetReference_Configured struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
-	Providers     []*Struct              `protobuf:"bytes,2,rep,name=providers,proto3" json:"providers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Label     string                 `protobuf:"bytes,1,opt,name=label"`
+	xxx_hidden_Providers *[]*Struct             `protobuf:"bytes,2,rep,name=providers"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *TargetReference_Configured) Reset() {
@@ -6687,31 +11874,52 @@ func (x *TargetReference_Configured) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TargetReference_Configured.ProtoReflect.Descriptor instead.
-func (*TargetReference_Configured) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{27, 0}
-}
-
 func (x *TargetReference_Configured) GetLabel() string {
 	if x != nil {
-		return x.Label
+		return x.xxx_hidden_Label
 	}
 	return ""
 }
 
 func (x *TargetReference_Configured) GetProviders() []*Struct {
 	if x != nil {
-		return x.Providers
+		if x.xxx_hidden_Providers != nil {
+			return *x.xxx_hidden_Providers
+		}
 	}
 	return nil
 }
 
+func (x *TargetReference_Configured) SetLabel(v string) {
+	x.xxx_hidden_Label = v
+}
+
+func (x *TargetReference_Configured) SetProviders(v []*Struct) {
+	x.xxx_hidden_Providers = &v
+}
+
+type TargetReference_Configured_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Label     string
+	Providers []*Struct
+}
+
+func (b0 TargetReference_Configured_builder) Build() *TargetReference_Configured {
+	m0 := &TargetReference_Configured{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Label = b.Label
+	x.xxx_hidden_Providers = &b.Providers
+	return m0
+}
+
 type Repo_Definition struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	RepositoryRuleIdentifier string                 `protobuf:"bytes,1,opt,name=repository_rule_identifier,json=repositoryRuleIdentifier,proto3" json:"repository_rule_identifier,omitempty"`
-	AttrValues               *Struct_Fields         `protobuf:"bytes,2,opt,name=attr_values,json=attrValues,proto3" json:"attr_values,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RepositoryRuleIdentifier string                 `protobuf:"bytes,1,opt,name=repository_rule_identifier,json=repositoryRuleIdentifier"`
+	xxx_hidden_AttrValues               *Struct_Fields         `protobuf:"bytes,2,opt,name=attr_values,json=attrValues"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *Repo_Definition) Reset() {
@@ -6739,31 +11947,61 @@ func (x *Repo_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Repo_Definition.ProtoReflect.Descriptor instead.
-func (*Repo_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{33, 0}
-}
-
 func (x *Repo_Definition) GetRepositoryRuleIdentifier() string {
 	if x != nil {
-		return x.RepositoryRuleIdentifier
+		return x.xxx_hidden_RepositoryRuleIdentifier
 	}
 	return ""
 }
 
 func (x *Repo_Definition) GetAttrValues() *Struct_Fields {
 	if x != nil {
-		return x.AttrValues
+		return x.xxx_hidden_AttrValues
 	}
 	return nil
 }
 
+func (x *Repo_Definition) SetRepositoryRuleIdentifier(v string) {
+	x.xxx_hidden_RepositoryRuleIdentifier = v
+}
+
+func (x *Repo_Definition) SetAttrValues(v *Struct_Fields) {
+	x.xxx_hidden_AttrValues = v
+}
+
+func (x *Repo_Definition) HasAttrValues() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_AttrValues != nil
+}
+
+func (x *Repo_Definition) ClearAttrValues() {
+	x.xxx_hidden_AttrValues = nil
+}
+
+type Repo_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RepositoryRuleIdentifier string
+	AttrValues               *Struct_Fields
+}
+
+func (b0 Repo_Definition_builder) Build() *Repo_Definition {
+	m0 := &Repo_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RepositoryRuleIdentifier = b.RepositoryRuleIdentifier
+	x.xxx_hidden_AttrValues = b.AttrValues
+	return m0
+}
+
 type RepositoryRule_Definition struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Attrs          []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	Implementation *Function              `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attrs          *[]*NamedAttr          `protobuf:"bytes,1,rep,name=attrs"`
+	xxx_hidden_Implementation *Function              `protobuf:"bytes,2,opt,name=implementation"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *RepositoryRule_Definition) Reset() {
@@ -6791,38 +12029,70 @@ func (x *RepositoryRule_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RepositoryRule_Definition.ProtoReflect.Descriptor instead.
-func (*RepositoryRule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{34, 0}
-}
-
 func (x *RepositoryRule_Definition) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
 func (x *RepositoryRule_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
+func (x *RepositoryRule_Definition) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+func (x *RepositoryRule_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *RepositoryRule_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *RepositoryRule_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+type RepositoryRule_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs          []*NamedAttr
+	Implementation *Function
+}
+
+func (b0 RepositoryRule_Definition_builder) Build() *RepositoryRule_Definition {
+	m0 := &RepositoryRule_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	x.xxx_hidden_Implementation = b.Implementation
+	return m0
+}
+
 type Rule_Definition struct {
-	state              protoimpl.MessageState  `protogen:"open.v1"`
-	Attrs              []*NamedAttr            `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	BuildSetting       *BuildSetting           `protobuf:"bytes,2,opt,name=build_setting,json=buildSetting,proto3" json:"build_setting,omitempty"`
-	CfgTransition      *Transition_UserDefined `protobuf:"bytes,3,opt,name=cfg_transition,json=cfgTransition,proto3" json:"cfg_transition,omitempty"`
-	ExecGroups         []*NamedExecGroup       `protobuf:"bytes,4,rep,name=exec_groups,json=execGroups,proto3" json:"exec_groups,omitempty"`
-	Implementation     *Function               `protobuf:"bytes,5,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	Initializer        *Function               `protobuf:"bytes,6,opt,name=initializer,proto3" json:"initializer,omitempty"`
-	Provides           []string                `protobuf:"bytes,7,rep,name=provides,proto3" json:"provides,omitempty"`
-	Type               Rule_Definition_Type    `protobuf:"varint,8,opt,name=type,proto3,enum=bonanza.model.starlark.Rule_Definition_Type" json:"type,omitempty"`
-	SubruleIdentifiers []string                `protobuf:"bytes,9,rep,name=subrule_identifiers,json=subruleIdentifiers,proto3" json:"subrule_identifiers,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Attrs              *[]*NamedAttr           `protobuf:"bytes,1,rep,name=attrs"`
+	xxx_hidden_BuildSetting       *BuildSetting           `protobuf:"bytes,2,opt,name=build_setting,json=buildSetting"`
+	xxx_hidden_CfgTransition      *Transition_UserDefined `protobuf:"bytes,3,opt,name=cfg_transition,json=cfgTransition"`
+	xxx_hidden_ExecGroups         *[]*NamedExecGroup      `protobuf:"bytes,4,rep,name=exec_groups,json=execGroups"`
+	xxx_hidden_Implementation     *Function               `protobuf:"bytes,5,opt,name=implementation"`
+	xxx_hidden_Initializer        *Function               `protobuf:"bytes,6,opt,name=initializer"`
+	xxx_hidden_Provides           []string                `protobuf:"bytes,7,rep,name=provides"`
+	xxx_hidden_Type               Rule_Definition_Type    `protobuf:"varint,8,opt,name=type,enum=bonanza.model.starlark.Rule_Definition_Type"`
+	xxx_hidden_SubruleIdentifiers []string                `protobuf:"bytes,9,rep,name=subrule_identifiers,json=subruleIdentifiers"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Rule_Definition) Reset() {
@@ -6850,79 +12120,188 @@ func (x *Rule_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Rule_Definition.ProtoReflect.Descriptor instead.
-func (*Rule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{35, 0}
-}
-
 func (x *Rule_Definition) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetBuildSetting() *BuildSetting {
 	if x != nil {
-		return x.BuildSetting
+		return x.xxx_hidden_BuildSetting
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetCfgTransition() *Transition_UserDefined {
 	if x != nil {
-		return x.CfgTransition
+		return x.xxx_hidden_CfgTransition
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetExecGroups() []*NamedExecGroup {
 	if x != nil {
-		return x.ExecGroups
+		if x.xxx_hidden_ExecGroups != nil {
+			return *x.xxx_hidden_ExecGroups
+		}
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetInitializer() *Function {
 	if x != nil {
-		return x.Initializer
+		return x.xxx_hidden_Initializer
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetProvides() []string {
 	if x != nil {
-		return x.Provides
+		return x.xxx_hidden_Provides
 	}
 	return nil
 }
 
 func (x *Rule_Definition) GetType() Rule_Definition_Type {
 	if x != nil {
-		return x.Type
+		return x.xxx_hidden_Type
 	}
 	return Rule_Definition_NON_EXECUTABLE
 }
 
 func (x *Rule_Definition) GetSubruleIdentifiers() []string {
 	if x != nil {
-		return x.SubruleIdentifiers
+		return x.xxx_hidden_SubruleIdentifiers
 	}
 	return nil
 }
 
+func (x *Rule_Definition) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+func (x *Rule_Definition) SetBuildSetting(v *BuildSetting) {
+	x.xxx_hidden_BuildSetting = v
+}
+
+func (x *Rule_Definition) SetCfgTransition(v *Transition_UserDefined) {
+	x.xxx_hidden_CfgTransition = v
+}
+
+func (x *Rule_Definition) SetExecGroups(v []*NamedExecGroup) {
+	x.xxx_hidden_ExecGroups = &v
+}
+
+func (x *Rule_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *Rule_Definition) SetInitializer(v *Function) {
+	x.xxx_hidden_Initializer = v
+}
+
+func (x *Rule_Definition) SetProvides(v []string) {
+	x.xxx_hidden_Provides = v
+}
+
+func (x *Rule_Definition) SetType(v Rule_Definition_Type) {
+	x.xxx_hidden_Type = v
+}
+
+func (x *Rule_Definition) SetSubruleIdentifiers(v []string) {
+	x.xxx_hidden_SubruleIdentifiers = v
+}
+
+func (x *Rule_Definition) HasBuildSetting() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BuildSetting != nil
+}
+
+func (x *Rule_Definition) HasCfgTransition() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CfgTransition != nil
+}
+
+func (x *Rule_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *Rule_Definition) HasInitializer() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Initializer != nil
+}
+
+func (x *Rule_Definition) ClearBuildSetting() {
+	x.xxx_hidden_BuildSetting = nil
+}
+
+func (x *Rule_Definition) ClearCfgTransition() {
+	x.xxx_hidden_CfgTransition = nil
+}
+
+func (x *Rule_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+func (x *Rule_Definition) ClearInitializer() {
+	x.xxx_hidden_Initializer = nil
+}
+
+type Rule_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs              []*NamedAttr
+	BuildSetting       *BuildSetting
+	CfgTransition      *Transition_UserDefined
+	ExecGroups         []*NamedExecGroup
+	Implementation     *Function
+	Initializer        *Function
+	Provides           []string
+	Type               Rule_Definition_Type
+	SubruleIdentifiers []string
+}
+
+func (b0 Rule_Definition_builder) Build() *Rule_Definition {
+	m0 := &Rule_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	x.xxx_hidden_BuildSetting = b.BuildSetting
+	x.xxx_hidden_CfgTransition = b.CfgTransition
+	x.xxx_hidden_ExecGroups = &b.ExecGroups
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_Initializer = b.Initializer
+	x.xxx_hidden_Provides = b.Provides
+	x.xxx_hidden_Type = b.Type
+	x.xxx_hidden_SubruleIdentifiers = b.SubruleIdentifiers
+	return m0
+}
+
 type RuleTarget_PublicAttrValue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ValueParts    []*Select_Group        `protobuf:"bytes,2,rep,name=value_parts,json=valueParts,proto3" json:"value_parts,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ValueParts *[]*Select_Group       `protobuf:"bytes,2,rep,name=value_parts,json=valueParts"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *RuleTarget_PublicAttrValue) Reset() {
@@ -6950,25 +12329,40 @@ func (x *RuleTarget_PublicAttrValue) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RuleTarget_PublicAttrValue.ProtoReflect.Descriptor instead.
-func (*RuleTarget_PublicAttrValue) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 0}
-}
-
 func (x *RuleTarget_PublicAttrValue) GetValueParts() []*Select_Group {
 	if x != nil {
-		return x.ValueParts
+		if x.xxx_hidden_ValueParts != nil {
+			return *x.xxx_hidden_ValueParts
+		}
 	}
 	return nil
 }
 
+func (x *RuleTarget_PublicAttrValue) SetValueParts(v []*Select_Group) {
+	x.xxx_hidden_ValueParts = &v
+}
+
+type RuleTarget_PublicAttrValue_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ValueParts []*Select_Group
+}
+
+func (b0 RuleTarget_PublicAttrValue_builder) Build() *RuleTarget_PublicAttrValue {
+	m0 := &RuleTarget_PublicAttrValue{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ValueParts = &b.ValueParts
+	return m0
+}
+
 type RuleTarget_BuildSetting struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Default       *Value                 `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
-	Scope         *BuildSettingScope     `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
-	OnLeaveScope  *Value                 `protobuf:"bytes,3,opt,name=on_leave_scope,json=onLeaveScope,proto3" json:"on_leave_scope,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Default      *Value                 `protobuf:"bytes,1,opt,name=default"`
+	xxx_hidden_Scope        *BuildSettingScope     `protobuf:"bytes,2,opt,name=scope"`
+	xxx_hidden_OnLeaveScope *Value                 `protobuf:"bytes,3,opt,name=on_leave_scope,json=onLeaveScope"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *RuleTarget_BuildSetting) Reset() {
@@ -6996,42 +12390,100 @@ func (x *RuleTarget_BuildSetting) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RuleTarget_BuildSetting.ProtoReflect.Descriptor instead.
-func (*RuleTarget_BuildSetting) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 1}
-}
-
 func (x *RuleTarget_BuildSetting) GetDefault() *Value {
 	if x != nil {
-		return x.Default
+		return x.xxx_hidden_Default
 	}
 	return nil
 }
 
 func (x *RuleTarget_BuildSetting) GetScope() *BuildSettingScope {
 	if x != nil {
-		return x.Scope
+		return x.xxx_hidden_Scope
 	}
 	return nil
 }
 
 func (x *RuleTarget_BuildSetting) GetOnLeaveScope() *Value {
 	if x != nil {
-		return x.OnLeaveScope
+		return x.xxx_hidden_OnLeaveScope
 	}
 	return nil
 }
 
+func (x *RuleTarget_BuildSetting) SetDefault(v *Value) {
+	x.xxx_hidden_Default = v
+}
+
+func (x *RuleTarget_BuildSetting) SetScope(v *BuildSettingScope) {
+	x.xxx_hidden_Scope = v
+}
+
+func (x *RuleTarget_BuildSetting) SetOnLeaveScope(v *Value) {
+	x.xxx_hidden_OnLeaveScope = v
+}
+
+func (x *RuleTarget_BuildSetting) HasDefault() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Default != nil
+}
+
+func (x *RuleTarget_BuildSetting) HasScope() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Scope != nil
+}
+
+func (x *RuleTarget_BuildSetting) HasOnLeaveScope() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_OnLeaveScope != nil
+}
+
+func (x *RuleTarget_BuildSetting) ClearDefault() {
+	x.xxx_hidden_Default = nil
+}
+
+func (x *RuleTarget_BuildSetting) ClearScope() {
+	x.xxx_hidden_Scope = nil
+}
+
+func (x *RuleTarget_BuildSetting) ClearOnLeaveScope() {
+	x.xxx_hidden_OnLeaveScope = nil
+}
+
+type RuleTarget_BuildSetting_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Default      *Value
+	Scope        *BuildSettingScope
+	OnLeaveScope *Value
+}
+
+func (b0 RuleTarget_BuildSetting_builder) Build() *RuleTarget_BuildSetting {
+	m0 := &RuleTarget_BuildSetting{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Default = b.Default
+	x.xxx_hidden_Scope = b.Scope
+	x.xxx_hidden_OnLeaveScope = b.OnLeaveScope
+	return m0
+}
+
 type RuleTarget_Test struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Size          TestSize               `protobuf:"varint,1,opt,name=size,proto3,enum=bonanza.model.starlark.TestSize" json:"size,omitempty"`
-	Timeout       TestTimeout            `protobuf:"varint,2,opt,name=timeout,proto3,enum=bonanza.model.starlark.TestTimeout" json:"timeout,omitempty"`
-	Flaky         bool                   `protobuf:"varint,3,opt,name=flaky,proto3" json:"flaky,omitempty"`
-	Local         bool                   `protobuf:"varint,4,opt,name=local,proto3" json:"local,omitempty"`
-	ShardCount    []*Select_Group        `protobuf:"bytes,5,rep,name=shard_count,json=shardCount,proto3" json:"shard_count,omitempty"`
-	Args          []*Select_Group        `protobuf:"bytes,6,rep,name=args,proto3" json:"args,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Size       TestSize               `protobuf:"varint,1,opt,name=size,enum=bonanza.model.starlark.TestSize"`
+	xxx_hidden_Timeout    TestTimeout            `protobuf:"varint,2,opt,name=timeout,enum=bonanza.model.starlark.TestTimeout"`
+	xxx_hidden_Flaky      bool                   `protobuf:"varint,3,opt,name=flaky"`
+	xxx_hidden_Local      bool                   `protobuf:"varint,4,opt,name=local"`
+	xxx_hidden_ShardCount *[]*Select_Group       `protobuf:"bytes,5,rep,name=shard_count,json=shardCount"`
+	xxx_hidden_Args       *[]*Select_Group       `protobuf:"bytes,6,rep,name=args"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *RuleTarget_Test) Reset() {
@@ -7059,62 +12511,105 @@ func (x *RuleTarget_Test) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RuleTarget_Test.ProtoReflect.Descriptor instead.
-func (*RuleTarget_Test) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{36, 2}
-}
-
 func (x *RuleTarget_Test) GetSize() TestSize {
 	if x != nil {
-		return x.Size
+		return x.xxx_hidden_Size
 	}
 	return TestSize_SMALL
 }
 
 func (x *RuleTarget_Test) GetTimeout() TestTimeout {
 	if x != nil {
-		return x.Timeout
+		return x.xxx_hidden_Timeout
 	}
 	return TestTimeout_SHORT
 }
 
 func (x *RuleTarget_Test) GetFlaky() bool {
 	if x != nil {
-		return x.Flaky
+		return x.xxx_hidden_Flaky
 	}
 	return false
 }
 
 func (x *RuleTarget_Test) GetLocal() bool {
 	if x != nil {
-		return x.Local
+		return x.xxx_hidden_Local
 	}
 	return false
 }
 
 func (x *RuleTarget_Test) GetShardCount() []*Select_Group {
 	if x != nil {
-		return x.ShardCount
+		if x.xxx_hidden_ShardCount != nil {
+			return *x.xxx_hidden_ShardCount
+		}
 	}
 	return nil
 }
 
 func (x *RuleTarget_Test) GetArgs() []*Select_Group {
 	if x != nil {
-		return x.Args
+		if x.xxx_hidden_Args != nil {
+			return *x.xxx_hidden_Args
+		}
 	}
 	return nil
 }
 
+func (x *RuleTarget_Test) SetSize(v TestSize) {
+	x.xxx_hidden_Size = v
+}
+
+func (x *RuleTarget_Test) SetTimeout(v TestTimeout) {
+	x.xxx_hidden_Timeout = v
+}
+
+func (x *RuleTarget_Test) SetFlaky(v bool) {
+	x.xxx_hidden_Flaky = v
+}
+
+func (x *RuleTarget_Test) SetLocal(v bool) {
+	x.xxx_hidden_Local = v
+}
+
+func (x *RuleTarget_Test) SetShardCount(v []*Select_Group) {
+	x.xxx_hidden_ShardCount = &v
+}
+
+func (x *RuleTarget_Test) SetArgs(v []*Select_Group) {
+	x.xxx_hidden_Args = &v
+}
+
+type RuleTarget_Test_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Size       TestSize
+	Timeout    TestTimeout
+	Flaky      bool
+	Local      bool
+	ShardCount []*Select_Group
+	Args       []*Select_Group
+}
+
+func (b0 RuleTarget_Test_builder) Build() *RuleTarget_Test {
+	m0 := &RuleTarget_Test{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Size = b.Size
+	x.xxx_hidden_Timeout = b.Timeout
+	x.xxx_hidden_Flaky = b.Flaky
+	x.xxx_hidden_Local = b.Local
+	x.xxx_hidden_ShardCount = &b.ShardCount
+	x.xxx_hidden_Args = &b.Args
+	return m0
+}
+
 type TestSuite_Test struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Level:
-	//
-	//	*TestSuite_Test_Leaf
-	//	*TestSuite_Test_Parent_
-	Level         isTestSuite_Test_Level `protobuf_oneof:"level"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Level isTestSuite_Test_Level `protobuf_oneof:"level"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *TestSuite_Test) Reset() {
@@ -7142,21 +12637,9 @@ func (x *TestSuite_Test) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TestSuite_Test.ProtoReflect.Descriptor instead.
-func (*TestSuite_Test) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{37, 0}
-}
-
-func (x *TestSuite_Test) GetLevel() isTestSuite_Test_Level {
-	if x != nil {
-		return x.Level
-	}
-	return nil
-}
-
 func (x *TestSuite_Test) GetLeaf() string {
 	if x != nil {
-		if x, ok := x.Level.(*TestSuite_Test_Leaf); ok {
+		if x, ok := x.xxx_hidden_Level.(*testSuite_Test_Leaf); ok {
 			return x.Leaf
 		}
 	}
@@ -7165,34 +12648,135 @@ func (x *TestSuite_Test) GetLeaf() string {
 
 func (x *TestSuite_Test) GetParent() *TestSuite_Test_Parent {
 	if x != nil {
-		if x, ok := x.Level.(*TestSuite_Test_Parent_); ok {
+		if x, ok := x.xxx_hidden_Level.(*testSuite_Test_Parent_); ok {
 			return x.Parent
 		}
 	}
 	return nil
 }
 
+func (x *TestSuite_Test) SetLeaf(v string) {
+	x.xxx_hidden_Level = &testSuite_Test_Leaf{v}
+}
+
+func (x *TestSuite_Test) SetParent(v *TestSuite_Test_Parent) {
+	if v == nil {
+		x.xxx_hidden_Level = nil
+		return
+	}
+	x.xxx_hidden_Level = &testSuite_Test_Parent_{v}
+}
+
+func (x *TestSuite_Test) HasLevel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Level != nil
+}
+
+func (x *TestSuite_Test) HasLeaf() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*testSuite_Test_Leaf)
+	return ok
+}
+
+func (x *TestSuite_Test) HasParent() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Level.(*testSuite_Test_Parent_)
+	return ok
+}
+
+func (x *TestSuite_Test) ClearLevel() {
+	x.xxx_hidden_Level = nil
+}
+
+func (x *TestSuite_Test) ClearLeaf() {
+	if _, ok := x.xxx_hidden_Level.(*testSuite_Test_Leaf); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+func (x *TestSuite_Test) ClearParent() {
+	if _, ok := x.xxx_hidden_Level.(*testSuite_Test_Parent_); ok {
+		x.xxx_hidden_Level = nil
+	}
+}
+
+const TestSuite_Test_Level_not_set_case case_TestSuite_Test_Level = 0
+const TestSuite_Test_Leaf_case case_TestSuite_Test_Level = 1
+const TestSuite_Test_Parent_case case_TestSuite_Test_Level = 2
+
+func (x *TestSuite_Test) WhichLevel() case_TestSuite_Test_Level {
+	if x == nil {
+		return TestSuite_Test_Level_not_set_case
+	}
+	switch x.xxx_hidden_Level.(type) {
+	case *testSuite_Test_Leaf:
+		return TestSuite_Test_Leaf_case
+	case *testSuite_Test_Parent_:
+		return TestSuite_Test_Parent_case
+	default:
+		return TestSuite_Test_Level_not_set_case
+	}
+}
+
+type TestSuite_Test_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Level:
+	Leaf   *string
+	Parent *TestSuite_Test_Parent
+	// -- end of xxx_hidden_Level
+}
+
+func (b0 TestSuite_Test_builder) Build() *TestSuite_Test {
+	m0 := &TestSuite_Test{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Leaf != nil {
+		x.xxx_hidden_Level = &testSuite_Test_Leaf{*b.Leaf}
+	}
+	if b.Parent != nil {
+		x.xxx_hidden_Level = &testSuite_Test_Parent_{b.Parent}
+	}
+	return m0
+}
+
+type case_TestSuite_Test_Level protoreflect.FieldNumber
+
+func (x case_TestSuite_Test_Level) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isTestSuite_Test_Level interface {
 	isTestSuite_Test_Level()
 }
 
-type TestSuite_Test_Leaf struct {
-	Leaf string `protobuf:"bytes,1,opt,name=leaf,proto3,oneof"`
+type testSuite_Test_Leaf struct {
+	Leaf string `protobuf:"bytes,1,opt,name=leaf,oneof"`
 }
 
-type TestSuite_Test_Parent_ struct {
-	Parent *TestSuite_Test_Parent `protobuf:"bytes,2,opt,name=parent,proto3,oneof"`
+type testSuite_Test_Parent_ struct {
+	Parent *TestSuite_Test_Parent `protobuf:"bytes,2,opt,name=parent,oneof"`
 }
 
-func (*TestSuite_Test_Leaf) isTestSuite_Test_Level() {}
+func (*testSuite_Test_Leaf) isTestSuite_Test_Level() {}
 
-func (*TestSuite_Test_Parent_) isTestSuite_Test_Level() {}
+func (*testSuite_Test_Parent_) isTestSuite_Test_Level() {}
 
 type TestSuite_Test_Parent struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Reference     *core.DecodableReference `protobuf:"bytes,1,opt,name=reference,proto3" json:"reference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Reference *core.DecodableReference `protobuf:"bytes,1,opt,name=reference"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *TestSuite_Test_Parent) Reset() {
@@ -7220,24 +12804,48 @@ func (x *TestSuite_Test_Parent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TestSuite_Test_Parent.ProtoReflect.Descriptor instead.
-func (*TestSuite_Test_Parent) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{37, 0, 0}
-}
-
 func (x *TestSuite_Test_Parent) GetReference() *core.DecodableReference {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
+func (x *TestSuite_Test_Parent) SetReference(v *core.DecodableReference) {
+	x.xxx_hidden_Reference = v
+}
+
+func (x *TestSuite_Test_Parent) HasReference() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reference != nil
+}
+
+func (x *TestSuite_Test_Parent) ClearReference() {
+	x.xxx_hidden_Reference = nil
+}
+
+type TestSuite_Test_Parent_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Reference *core.DecodableReference
+}
+
+func (b0 TestSuite_Test_Parent_builder) Build() *TestSuite_Test_Parent {
+	m0 := &TestSuite_Test_Parent{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Reference = b.Reference
+	return m0
+}
+
 type Select_Condition struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	ConditionIdentifier string                 `protobuf:"bytes,1,opt,name=condition_identifier,json=conditionIdentifier,proto3" json:"condition_identifier,omitempty"`
-	Value               *Value                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ConditionIdentifier string                 `protobuf:"bytes,1,opt,name=condition_identifier,json=conditionIdentifier"`
+	xxx_hidden_Value               *Value                 `protobuf:"bytes,2,opt,name=value"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *Select_Condition) Reset() {
@@ -7265,35 +12873,61 @@ func (x *Select_Condition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Select_Condition.ProtoReflect.Descriptor instead.
-func (*Select_Condition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38, 0}
-}
-
 func (x *Select_Condition) GetConditionIdentifier() string {
 	if x != nil {
-		return x.ConditionIdentifier
+		return x.xxx_hidden_ConditionIdentifier
 	}
 	return ""
 }
 
 func (x *Select_Condition) GetValue() *Value {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return nil
 }
 
+func (x *Select_Condition) SetConditionIdentifier(v string) {
+	x.xxx_hidden_ConditionIdentifier = v
+}
+
+func (x *Select_Condition) SetValue(v *Value) {
+	x.xxx_hidden_Value = v
+}
+
+func (x *Select_Condition) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *Select_Condition) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+type Select_Condition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ConditionIdentifier string
+	Value               *Value
+}
+
+func (b0 Select_Condition_builder) Build() *Select_Condition {
+	m0 := &Select_Condition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ConditionIdentifier = b.ConditionIdentifier
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type Select_Group struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Conditions []*Select_Condition    `protobuf:"bytes,1,rep,name=conditions,proto3" json:"conditions,omitempty"`
-	// Types that are valid to be assigned to NoMatch:
-	//
-	//	*Select_Group_NoMatchValue
-	//	*Select_Group_NoMatchError
-	NoMatch       isSelect_Group_NoMatch `protobuf_oneof:"no_match"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Conditions *[]*Select_Condition   `protobuf:"bytes,1,rep,name=conditions"`
+	xxx_hidden_NoMatch    isSelect_Group_NoMatch `protobuf_oneof:"no_match"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Select_Group) Reset() {
@@ -7321,28 +12955,18 @@ func (x *Select_Group) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Select_Group.ProtoReflect.Descriptor instead.
-func (*Select_Group) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{38, 1}
-}
-
 func (x *Select_Group) GetConditions() []*Select_Condition {
 	if x != nil {
-		return x.Conditions
-	}
-	return nil
-}
-
-func (x *Select_Group) GetNoMatch() isSelect_Group_NoMatch {
-	if x != nil {
-		return x.NoMatch
+		if x.xxx_hidden_Conditions != nil {
+			return *x.xxx_hidden_Conditions
+		}
 	}
 	return nil
 }
 
 func (x *Select_Group) GetNoMatchValue() *Value {
 	if x != nil {
-		if x, ok := x.NoMatch.(*Select_Group_NoMatchValue); ok {
+		if x, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchValue); ok {
 			return x.NoMatchValue
 		}
 	}
@@ -7351,36 +12975,143 @@ func (x *Select_Group) GetNoMatchValue() *Value {
 
 func (x *Select_Group) GetNoMatchError() string {
 	if x != nil {
-		if x, ok := x.NoMatch.(*Select_Group_NoMatchError); ok {
+		if x, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchError); ok {
 			return x.NoMatchError
 		}
 	}
 	return ""
 }
 
+func (x *Select_Group) SetConditions(v []*Select_Condition) {
+	x.xxx_hidden_Conditions = &v
+}
+
+func (x *Select_Group) SetNoMatchValue(v *Value) {
+	if v == nil {
+		x.xxx_hidden_NoMatch = nil
+		return
+	}
+	x.xxx_hidden_NoMatch = &select_Group_NoMatchValue{v}
+}
+
+func (x *Select_Group) SetNoMatchError(v string) {
+	x.xxx_hidden_NoMatch = &select_Group_NoMatchError{v}
+}
+
+func (x *Select_Group) HasNoMatch() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_NoMatch != nil
+}
+
+func (x *Select_Group) HasNoMatchValue() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchValue)
+	return ok
+}
+
+func (x *Select_Group) HasNoMatchError() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchError)
+	return ok
+}
+
+func (x *Select_Group) ClearNoMatch() {
+	x.xxx_hidden_NoMatch = nil
+}
+
+func (x *Select_Group) ClearNoMatchValue() {
+	if _, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchValue); ok {
+		x.xxx_hidden_NoMatch = nil
+	}
+}
+
+func (x *Select_Group) ClearNoMatchError() {
+	if _, ok := x.xxx_hidden_NoMatch.(*select_Group_NoMatchError); ok {
+		x.xxx_hidden_NoMatch = nil
+	}
+}
+
+const Select_Group_NoMatch_not_set_case case_Select_Group_NoMatch = 0
+const Select_Group_NoMatchValue_case case_Select_Group_NoMatch = 2
+const Select_Group_NoMatchError_case case_Select_Group_NoMatch = 3
+
+func (x *Select_Group) WhichNoMatch() case_Select_Group_NoMatch {
+	if x == nil {
+		return Select_Group_NoMatch_not_set_case
+	}
+	switch x.xxx_hidden_NoMatch.(type) {
+	case *select_Group_NoMatchValue:
+		return Select_Group_NoMatchValue_case
+	case *select_Group_NoMatchError:
+		return Select_Group_NoMatchError_case
+	default:
+		return Select_Group_NoMatch_not_set_case
+	}
+}
+
+type Select_Group_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Conditions []*Select_Condition
+	// Fields of oneof xxx_hidden_NoMatch:
+	NoMatchValue *Value
+	NoMatchError *string
+	// -- end of xxx_hidden_NoMatch
+}
+
+func (b0 Select_Group_builder) Build() *Select_Group {
+	m0 := &Select_Group{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Conditions = &b.Conditions
+	if b.NoMatchValue != nil {
+		x.xxx_hidden_NoMatch = &select_Group_NoMatchValue{b.NoMatchValue}
+	}
+	if b.NoMatchError != nil {
+		x.xxx_hidden_NoMatch = &select_Group_NoMatchError{*b.NoMatchError}
+	}
+	return m0
+}
+
+type case_Select_Group_NoMatch protoreflect.FieldNumber
+
+func (x case_Select_Group_NoMatch) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[100].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isSelect_Group_NoMatch interface {
 	isSelect_Group_NoMatch()
 }
 
-type Select_Group_NoMatchValue struct {
-	NoMatchValue *Value `protobuf:"bytes,2,opt,name=no_match_value,json=noMatchValue,proto3,oneof"`
+type select_Group_NoMatchValue struct {
+	NoMatchValue *Value `protobuf:"bytes,2,opt,name=no_match_value,json=noMatchValue,oneof"`
 }
 
-type Select_Group_NoMatchError struct {
-	NoMatchError string `protobuf:"bytes,3,opt,name=no_match_error,json=noMatchError,proto3,oneof"`
+type select_Group_NoMatchError struct {
+	NoMatchError string `protobuf:"bytes,3,opt,name=no_match_error,json=noMatchError,oneof"`
 }
 
-func (*Select_Group_NoMatchValue) isSelect_Group_NoMatch() {}
+func (*select_Group_NoMatchValue) isSelect_Group_NoMatch() {}
 
-func (*Select_Group_NoMatchError) isSelect_Group_NoMatch() {}
+func (*select_Group_NoMatchError) isSelect_Group_NoMatch() {}
 
 type Subrule_Definition struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Attrs              []*NamedAttr           `protobuf:"bytes,1,rep,name=attrs,proto3" json:"attrs,omitempty"`
-	Implementation     *Function              `protobuf:"bytes,2,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	SubruleIdentifiers []string               `protobuf:"bytes,3,rep,name=subrule_identifiers,json=subruleIdentifiers,proto3" json:"subrule_identifiers,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attrs              *[]*NamedAttr          `protobuf:"bytes,1,rep,name=attrs"`
+	xxx_hidden_Implementation     *Function              `protobuf:"bytes,2,opt,name=implementation"`
+	xxx_hidden_SubruleIdentifiers []string               `protobuf:"bytes,3,rep,name=subrule_identifiers,json=subruleIdentifiers"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *Subrule_Definition) Reset() {
@@ -7408,46 +13139,75 @@ func (x *Subrule_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Subrule_Definition.ProtoReflect.Descriptor instead.
-func (*Subrule_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{41, 0}
-}
-
 func (x *Subrule_Definition) GetAttrs() []*NamedAttr {
 	if x != nil {
-		return x.Attrs
+		if x.xxx_hidden_Attrs != nil {
+			return *x.xxx_hidden_Attrs
+		}
 	}
 	return nil
 }
 
 func (x *Subrule_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *Subrule_Definition) GetSubruleIdentifiers() []string {
 	if x != nil {
-		return x.SubruleIdentifiers
+		return x.xxx_hidden_SubruleIdentifiers
 	}
 	return nil
 }
 
+func (x *Subrule_Definition) SetAttrs(v []*NamedAttr) {
+	x.xxx_hidden_Attrs = &v
+}
+
+func (x *Subrule_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *Subrule_Definition) SetSubruleIdentifiers(v []string) {
+	x.xxx_hidden_SubruleIdentifiers = v
+}
+
+func (x *Subrule_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *Subrule_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+type Subrule_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attrs              []*NamedAttr
+	Implementation     *Function
+	SubruleIdentifiers []string
+}
+
+func (b0 Subrule_Definition_builder) Build() *Subrule_Definition {
+	m0 := &Subrule_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attrs = &b.Attrs
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_SubruleIdentifiers = b.SubruleIdentifiers
+	return m0
+}
+
 type Target_Definition struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Target_Definition_Alias
-	//	*Target_Definition_LabelSetting
-	//	*Target_Definition_PackageGroup
-	//	*Target_Definition_PredeclaredOutputFileTarget
-	//	*Target_Definition_RuleTarget
-	//	*Target_Definition_SourceFileTarget
-	//	*Target_Definition_TestSuite
-	Kind          isTarget_Definition_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Kind isTarget_Definition_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Target_Definition) Reset() {
@@ -7475,21 +13235,9 @@ func (x *Target_Definition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Target_Definition.ProtoReflect.Descriptor instead.
-func (*Target_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{42, 0}
-}
-
-func (x *Target_Definition) GetKind() isTarget_Definition_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Target_Definition) GetAlias() *Alias {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_Alias); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_Alias); ok {
 			return x.Alias
 		}
 	}
@@ -7498,7 +13246,7 @@ func (x *Target_Definition) GetAlias() *Alias {
 
 func (x *Target_Definition) GetLabelSetting() *LabelSetting {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_LabelSetting); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_LabelSetting); ok {
 			return x.LabelSetting
 		}
 	}
@@ -7507,7 +13255,7 @@ func (x *Target_Definition) GetLabelSetting() *LabelSetting {
 
 func (x *Target_Definition) GetPackageGroup() *PackageGroup {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_PackageGroup); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_PackageGroup); ok {
 			return x.PackageGroup
 		}
 	}
@@ -7516,7 +13264,7 @@ func (x *Target_Definition) GetPackageGroup() *PackageGroup {
 
 func (x *Target_Definition) GetPredeclaredOutputFileTarget() *PredeclaredOutputFileTarget {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_PredeclaredOutputFileTarget); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_PredeclaredOutputFileTarget); ok {
 			return x.PredeclaredOutputFileTarget
 		}
 	}
@@ -7525,7 +13273,7 @@ func (x *Target_Definition) GetPredeclaredOutputFileTarget() *PredeclaredOutputF
 
 func (x *Target_Definition) GetRuleTarget() *RuleTarget {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_RuleTarget); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_RuleTarget); ok {
 			return x.RuleTarget
 		}
 	}
@@ -7534,7 +13282,7 @@ func (x *Target_Definition) GetRuleTarget() *RuleTarget {
 
 func (x *Target_Definition) GetSourceFileTarget() *SourceFileTarget {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_SourceFileTarget); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_SourceFileTarget); ok {
 			return x.SourceFileTarget
 		}
 	}
@@ -7543,68 +13291,314 @@ func (x *Target_Definition) GetSourceFileTarget() *SourceFileTarget {
 
 func (x *Target_Definition) GetTestSuite() *TestSuite {
 	if x != nil {
-		if x, ok := x.Kind.(*Target_Definition_TestSuite); ok {
+		if x, ok := x.xxx_hidden_Kind.(*target_Definition_TestSuite); ok {
 			return x.TestSuite
 		}
 	}
 	return nil
 }
 
+func (x *Target_Definition) SetAlias(v *Alias) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_Alias{v}
+}
+
+func (x *Target_Definition) SetLabelSetting(v *LabelSetting) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_LabelSetting{v}
+}
+
+func (x *Target_Definition) SetPackageGroup(v *PackageGroup) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_PackageGroup{v}
+}
+
+func (x *Target_Definition) SetPredeclaredOutputFileTarget(v *PredeclaredOutputFileTarget) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_PredeclaredOutputFileTarget{v}
+}
+
+func (x *Target_Definition) SetRuleTarget(v *RuleTarget) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_RuleTarget{v}
+}
+
+func (x *Target_Definition) SetSourceFileTarget(v *SourceFileTarget) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_SourceFileTarget{v}
+}
+
+func (x *Target_Definition) SetTestSuite(v *TestSuite) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &target_Definition_TestSuite{v}
+}
+
+func (x *Target_Definition) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Target_Definition) HasAlias() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_Alias)
+	return ok
+}
+
+func (x *Target_Definition) HasLabelSetting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_LabelSetting)
+	return ok
+}
+
+func (x *Target_Definition) HasPackageGroup() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_PackageGroup)
+	return ok
+}
+
+func (x *Target_Definition) HasPredeclaredOutputFileTarget() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_PredeclaredOutputFileTarget)
+	return ok
+}
+
+func (x *Target_Definition) HasRuleTarget() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_RuleTarget)
+	return ok
+}
+
+func (x *Target_Definition) HasSourceFileTarget() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_SourceFileTarget)
+	return ok
+}
+
+func (x *Target_Definition) HasTestSuite() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*target_Definition_TestSuite)
+	return ok
+}
+
+func (x *Target_Definition) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Target_Definition) ClearAlias() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_Alias); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearLabelSetting() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_LabelSetting); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearPackageGroup() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_PackageGroup); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearPredeclaredOutputFileTarget() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_PredeclaredOutputFileTarget); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearRuleTarget() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_RuleTarget); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearSourceFileTarget() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_SourceFileTarget); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Target_Definition) ClearTestSuite() {
+	if _, ok := x.xxx_hidden_Kind.(*target_Definition_TestSuite); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Target_Definition_Kind_not_set_case case_Target_Definition_Kind = 0
+const Target_Definition_Alias_case case_Target_Definition_Kind = 1
+const Target_Definition_LabelSetting_case case_Target_Definition_Kind = 2
+const Target_Definition_PackageGroup_case case_Target_Definition_Kind = 3
+const Target_Definition_PredeclaredOutputFileTarget_case case_Target_Definition_Kind = 4
+const Target_Definition_RuleTarget_case case_Target_Definition_Kind = 5
+const Target_Definition_SourceFileTarget_case case_Target_Definition_Kind = 6
+const Target_Definition_TestSuite_case case_Target_Definition_Kind = 7
+
+func (x *Target_Definition) WhichKind() case_Target_Definition_Kind {
+	if x == nil {
+		return Target_Definition_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *target_Definition_Alias:
+		return Target_Definition_Alias_case
+	case *target_Definition_LabelSetting:
+		return Target_Definition_LabelSetting_case
+	case *target_Definition_PackageGroup:
+		return Target_Definition_PackageGroup_case
+	case *target_Definition_PredeclaredOutputFileTarget:
+		return Target_Definition_PredeclaredOutputFileTarget_case
+	case *target_Definition_RuleTarget:
+		return Target_Definition_RuleTarget_case
+	case *target_Definition_SourceFileTarget:
+		return Target_Definition_SourceFileTarget_case
+	case *target_Definition_TestSuite:
+		return Target_Definition_TestSuite_case
+	default:
+		return Target_Definition_Kind_not_set_case
+	}
+}
+
+type Target_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Alias                       *Alias
+	LabelSetting                *LabelSetting
+	PackageGroup                *PackageGroup
+	PredeclaredOutputFileTarget *PredeclaredOutputFileTarget
+	RuleTarget                  *RuleTarget
+	SourceFileTarget            *SourceFileTarget
+	TestSuite                   *TestSuite
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Target_Definition_builder) Build() *Target_Definition {
+	m0 := &Target_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Alias != nil {
+		x.xxx_hidden_Kind = &target_Definition_Alias{b.Alias}
+	}
+	if b.LabelSetting != nil {
+		x.xxx_hidden_Kind = &target_Definition_LabelSetting{b.LabelSetting}
+	}
+	if b.PackageGroup != nil {
+		x.xxx_hidden_Kind = &target_Definition_PackageGroup{b.PackageGroup}
+	}
+	if b.PredeclaredOutputFileTarget != nil {
+		x.xxx_hidden_Kind = &target_Definition_PredeclaredOutputFileTarget{b.PredeclaredOutputFileTarget}
+	}
+	if b.RuleTarget != nil {
+		x.xxx_hidden_Kind = &target_Definition_RuleTarget{b.RuleTarget}
+	}
+	if b.SourceFileTarget != nil {
+		x.xxx_hidden_Kind = &target_Definition_SourceFileTarget{b.SourceFileTarget}
+	}
+	if b.TestSuite != nil {
+		x.xxx_hidden_Kind = &target_Definition_TestSuite{b.TestSuite}
+	}
+	return m0
+}
+
+type case_Target_Definition_Kind protoreflect.FieldNumber
+
+func (x case_Target_Definition_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[102].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isTarget_Definition_Kind interface {
 	isTarget_Definition_Kind()
 }
 
-type Target_Definition_Alias struct {
-	Alias *Alias `protobuf:"bytes,1,opt,name=alias,proto3,oneof"`
+type target_Definition_Alias struct {
+	Alias *Alias `protobuf:"bytes,1,opt,name=alias,oneof"`
 }
 
-type Target_Definition_LabelSetting struct {
-	LabelSetting *LabelSetting `protobuf:"bytes,2,opt,name=label_setting,json=labelSetting,proto3,oneof"`
+type target_Definition_LabelSetting struct {
+	LabelSetting *LabelSetting `protobuf:"bytes,2,opt,name=label_setting,json=labelSetting,oneof"`
 }
 
-type Target_Definition_PackageGroup struct {
-	PackageGroup *PackageGroup `protobuf:"bytes,3,opt,name=package_group,json=packageGroup,proto3,oneof"`
+type target_Definition_PackageGroup struct {
+	PackageGroup *PackageGroup `protobuf:"bytes,3,opt,name=package_group,json=packageGroup,oneof"`
 }
 
-type Target_Definition_PredeclaredOutputFileTarget struct {
-	PredeclaredOutputFileTarget *PredeclaredOutputFileTarget `protobuf:"bytes,4,opt,name=predeclared_output_file_target,json=predeclaredOutputFileTarget,proto3,oneof"`
+type target_Definition_PredeclaredOutputFileTarget struct {
+	PredeclaredOutputFileTarget *PredeclaredOutputFileTarget `protobuf:"bytes,4,opt,name=predeclared_output_file_target,json=predeclaredOutputFileTarget,oneof"`
 }
 
-type Target_Definition_RuleTarget struct {
-	RuleTarget *RuleTarget `protobuf:"bytes,5,opt,name=rule_target,json=ruleTarget,proto3,oneof"`
+type target_Definition_RuleTarget struct {
+	RuleTarget *RuleTarget `protobuf:"bytes,5,opt,name=rule_target,json=ruleTarget,oneof"`
 }
 
-type Target_Definition_SourceFileTarget struct {
-	SourceFileTarget *SourceFileTarget `protobuf:"bytes,6,opt,name=source_file_target,json=sourceFileTarget,proto3,oneof"`
+type target_Definition_SourceFileTarget struct {
+	SourceFileTarget *SourceFileTarget `protobuf:"bytes,6,opt,name=source_file_target,json=sourceFileTarget,oneof"`
 }
 
-type Target_Definition_TestSuite struct {
-	TestSuite *TestSuite `protobuf:"bytes,7,opt,name=test_suite,json=testSuite,proto3,oneof"`
+type target_Definition_TestSuite struct {
+	TestSuite *TestSuite `protobuf:"bytes,7,opt,name=test_suite,json=testSuite,oneof"`
 }
 
-func (*Target_Definition_Alias) isTarget_Definition_Kind() {}
+func (*target_Definition_Alias) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_LabelSetting) isTarget_Definition_Kind() {}
+func (*target_Definition_LabelSetting) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_PackageGroup) isTarget_Definition_Kind() {}
+func (*target_Definition_PackageGroup) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_PredeclaredOutputFileTarget) isTarget_Definition_Kind() {}
+func (*target_Definition_PredeclaredOutputFileTarget) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_RuleTarget) isTarget_Definition_Kind() {}
+func (*target_Definition_RuleTarget) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_SourceFileTarget) isTarget_Definition_Kind() {}
+func (*target_Definition_SourceFileTarget) isTarget_Definition_Kind() {}
 
-func (*Target_Definition_TestSuite) isTarget_Definition_Kind() {}
+func (*target_Definition_TestSuite) isTarget_Definition_Kind() {}
 
 type Transition_UserDefined struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*Transition_UserDefined_Identifier
-	//	*Transition_UserDefined_Definition_
-	Kind          isTransition_UserDefined_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_Kind isTransition_UserDefined_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Transition_UserDefined) Reset() {
@@ -7632,21 +13626,9 @@ func (x *Transition_UserDefined) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Transition_UserDefined.ProtoReflect.Descriptor instead.
-func (*Transition_UserDefined) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{43, 0}
-}
-
-func (x *Transition_UserDefined) GetKind() isTransition_UserDefined_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *Transition_UserDefined) GetIdentifier() string {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_UserDefined_Identifier); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Identifier); ok {
 			return x.Identifier
 		}
 	}
@@ -7655,37 +13637,138 @@ func (x *Transition_UserDefined) GetIdentifier() string {
 
 func (x *Transition_UserDefined) GetDefinition() *Transition_UserDefined_Definition {
 	if x != nil {
-		if x, ok := x.Kind.(*Transition_UserDefined_Definition_); ok {
+		if x, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Definition_); ok {
 			return x.Definition
 		}
 	}
 	return nil
 }
 
+func (x *Transition_UserDefined) SetIdentifier(v string) {
+	x.xxx_hidden_Kind = &transition_UserDefined_Identifier{v}
+}
+
+func (x *Transition_UserDefined) SetDefinition(v *Transition_UserDefined_Definition) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &transition_UserDefined_Definition_{v}
+}
+
+func (x *Transition_UserDefined) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *Transition_UserDefined) HasIdentifier() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Identifier)
+	return ok
+}
+
+func (x *Transition_UserDefined) HasDefinition() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Definition_)
+	return ok
+}
+
+func (x *Transition_UserDefined) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *Transition_UserDefined) ClearIdentifier() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Identifier); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+func (x *Transition_UserDefined) ClearDefinition() {
+	if _, ok := x.xxx_hidden_Kind.(*transition_UserDefined_Definition_); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const Transition_UserDefined_Kind_not_set_case case_Transition_UserDefined_Kind = 0
+const Transition_UserDefined_Identifier_case case_Transition_UserDefined_Kind = 1
+const Transition_UserDefined_Definition_case case_Transition_UserDefined_Kind = 2
+
+func (x *Transition_UserDefined) WhichKind() case_Transition_UserDefined_Kind {
+	if x == nil {
+		return Transition_UserDefined_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *transition_UserDefined_Identifier:
+		return Transition_UserDefined_Identifier_case
+	case *transition_UserDefined_Definition_:
+		return Transition_UserDefined_Definition_case
+	default:
+		return Transition_UserDefined_Kind_not_set_case
+	}
+}
+
+type Transition_UserDefined_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Identifier *string
+	Definition *Transition_UserDefined_Definition
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 Transition_UserDefined_builder) Build() *Transition_UserDefined {
+	m0 := &Transition_UserDefined{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Identifier != nil {
+		x.xxx_hidden_Kind = &transition_UserDefined_Identifier{*b.Identifier}
+	}
+	if b.Definition != nil {
+		x.xxx_hidden_Kind = &transition_UserDefined_Definition_{b.Definition}
+	}
+	return m0
+}
+
+type case_Transition_UserDefined_Kind protoreflect.FieldNumber
+
+func (x case_Transition_UserDefined_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[103].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isTransition_UserDefined_Kind interface {
 	isTransition_UserDefined_Kind()
 }
 
-type Transition_UserDefined_Identifier struct {
-	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3,oneof"`
+type transition_UserDefined_Identifier struct {
+	Identifier string `protobuf:"bytes,1,opt,name=identifier,oneof"`
 }
 
-type Transition_UserDefined_Definition_ struct {
-	Definition *Transition_UserDefined_Definition `protobuf:"bytes,2,opt,name=definition,proto3,oneof"`
+type transition_UserDefined_Definition_ struct {
+	Definition *Transition_UserDefined_Definition `protobuf:"bytes,2,opt,name=definition,oneof"`
 }
 
-func (*Transition_UserDefined_Identifier) isTransition_UserDefined_Kind() {}
+func (*transition_UserDefined_Identifier) isTransition_UserDefined_Kind() {}
 
-func (*Transition_UserDefined_Definition_) isTransition_UserDefined_Kind() {}
+func (*transition_UserDefined_Definition_) isTransition_UserDefined_Kind() {}
 
 type Transition_UserDefined_Definition struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Implementation   *Function              `protobuf:"bytes,1,opt,name=implementation,proto3" json:"implementation,omitempty"`
-	Inputs           []string               `protobuf:"bytes,2,rep,name=inputs,proto3" json:"inputs,omitempty"`
-	Outputs          []string               `protobuf:"bytes,3,rep,name=outputs,proto3" json:"outputs,omitempty"`
-	CanonicalPackage string                 `protobuf:"bytes,4,opt,name=canonical_package,json=canonicalPackage,proto3" json:"canonical_package,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Implementation   *Function              `protobuf:"bytes,1,opt,name=implementation"`
+	xxx_hidden_Inputs           []string               `protobuf:"bytes,2,rep,name=inputs"`
+	xxx_hidden_Outputs          []string               `protobuf:"bytes,3,rep,name=outputs"`
+	xxx_hidden_CanonicalPackage string                 `protobuf:"bytes,4,opt,name=canonical_package,json=canonicalPackage"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *Transition_UserDefined_Definition) Reset() {
@@ -7713,37 +13796,79 @@ func (x *Transition_UserDefined_Definition) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Transition_UserDefined_Definition.ProtoReflect.Descriptor instead.
-func (*Transition_UserDefined_Definition) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP(), []int{43, 0, 0}
-}
-
 func (x *Transition_UserDefined_Definition) GetImplementation() *Function {
 	if x != nil {
-		return x.Implementation
+		return x.xxx_hidden_Implementation
 	}
 	return nil
 }
 
 func (x *Transition_UserDefined_Definition) GetInputs() []string {
 	if x != nil {
-		return x.Inputs
+		return x.xxx_hidden_Inputs
 	}
 	return nil
 }
 
 func (x *Transition_UserDefined_Definition) GetOutputs() []string {
 	if x != nil {
-		return x.Outputs
+		return x.xxx_hidden_Outputs
 	}
 	return nil
 }
 
 func (x *Transition_UserDefined_Definition) GetCanonicalPackage() string {
 	if x != nil {
-		return x.CanonicalPackage
+		return x.xxx_hidden_CanonicalPackage
 	}
 	return ""
+}
+
+func (x *Transition_UserDefined_Definition) SetImplementation(v *Function) {
+	x.xxx_hidden_Implementation = v
+}
+
+func (x *Transition_UserDefined_Definition) SetInputs(v []string) {
+	x.xxx_hidden_Inputs = v
+}
+
+func (x *Transition_UserDefined_Definition) SetOutputs(v []string) {
+	x.xxx_hidden_Outputs = v
+}
+
+func (x *Transition_UserDefined_Definition) SetCanonicalPackage(v string) {
+	x.xxx_hidden_CanonicalPackage = v
+}
+
+func (x *Transition_UserDefined_Definition) HasImplementation() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Implementation != nil
+}
+
+func (x *Transition_UserDefined_Definition) ClearImplementation() {
+	x.xxx_hidden_Implementation = nil
+}
+
+type Transition_UserDefined_Definition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Implementation   *Function
+	Inputs           []string
+	Outputs          []string
+	CanonicalPackage string
+}
+
+func (b0 Transition_UserDefined_Definition_builder) Build() *Transition_UserDefined_Definition {
+	m0 := &Transition_UserDefined_Definition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Implementation = b.Implementation
+	x.xxx_hidden_Inputs = b.Inputs
+	x.xxx_hidden_Outputs = b.Outputs
+	x.xxx_hidden_CanonicalPackage = b.CanonicalPackage
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_starlark_starlark_proto protoreflect.FileDescriptor
@@ -8029,16 +14154,16 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\aproject\x18\x02 \x01(\v2\x16.google.protobuf.EmptyH\x00R\aproject\x126\n" +
 	"\tuniversal\x18\x03 \x01(\v2\x16.google.protobuf.EmptyH\x00R\tuniversal\x12\x14\n" +
 	"\x04exec\x18\x04 \x01(\tH\x00R\x04execB\x06\n" +
-	"\x04kind\"\xeb\x02\n" +
+	"\x04kind\"\xed\x02\n" +
 	"\x04List\x12@\n" +
-	"\belements\x18\x01 \x03(\v2$.bonanza.model.starlark.List.ElementR\belements\x1a\xa0\x02\n" +
+	"\belements\x18\x01 \x03(\v2$.bonanza.model.starlark.List.ElementR\belements\x1a\xa2\x02\n" +
 	"\aElement\x123\n" +
 	"\x04leaf\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.ValueH\x00R\x04leaf\x12E\n" +
 	"\x06parent\x18\x02 \x01(\v2+.bonanza.model.starlark.List.Element.ParentH\x00R\x06parent\x1a\x8f\x01\n" +
 	"\x06Parent\x12o\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB)\xea\xd7 %\x1a#bonanza.model.starlark.List.ElementR\treference\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x04R\x05countB\a\n" +
-	"\x05level\"\xab\x02\n" +
+	"\x05levelX\x02\"\xab\x02\n" +
 	"\x05Macro\x12\x1e\n" +
 	"\treference\x18\x01 \x01(\tH\x00R\treference\x12J\n" +
 	"\n" +
@@ -8049,26 +14174,26 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\x12H\n" +
 	"\x0eimplementation\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementation\x12\x1c\n" +
 	"\tfinalizer\x18\x03 \x01(\bR\tfinalizerB\x06\n" +
-	"\x04kind\"\xec\x06\n" +
+	"\x04kind\"\xf0\x06\n" +
 	"\x15MacroExpansionContext\x12\x1f\n" +
 	"\vname_suffix\x18\x01 \x01(\tR\n" +
 	"nameSuffix\x12X\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v28.bonanza.model.starlark.MacroExpansionContext.DefinitionR\n" +
-	"definition\x1a\xf2\x02\n" +
+	"definition\x1a\xf4\x02\n" +
 	"\n" +
 	"Definition\x12u\n" +
 	"\x1eroot_macro_instance_definition\x18\x01 \x01(\v20.bonanza.model.starlark.MacroInstance.DefinitionR\x1brootMacroInstanceDefinition\x12E\n" +
 	"\x1freferenced_target_name_suffixes\x18\x02 \x03(\tR\x1creferencedTargetNameSuffixes\x12C\n" +
 	"\x1eforbidden_target_name_suffixes\x18\x03 \x03(\tR\x1bforbiddenTargetNameSuffixes\x12a\n" +
-	"\x16nested_macro_instances\x18\x04 \x03(\v2+.bonanza.model.starlark.MacroInstance.EntryR\x14nestedMacroInstances\x1a\xe2\x02\n" +
+	"\x16nested_macro_instances\x18\x04 \x03(\v2+.bonanza.model.starlark.MacroInstance.EntryR\x14nestedMacroInstancesX\x02\x1a\xe4\x02\n" +
 	"\x05Entry\x12C\n" +
 	"\x04leaf\x18\x01 \x01(\v2-.bonanza.model.starlark.MacroExpansionContextH\x00R\x04leaf\x12T\n" +
 	"\x06parent\x18\x02 \x01(\v2:.bonanza.model.starlark.MacroExpansionContext.Entry.ParentH\x00R\x06parent\x1a\xb4\x01\n" +
 	"\x06Parent\x12~\n" +
 	"\treference\x18\x01 \x01(\v2&.bonanza.model.core.DecodableReferenceB8\xea\xd7 4\x1a2bonanza.model.starlark.MacroExpansionContext.EntryR\treference\x12*\n" +
 	"\x11first_name_suffix\x18\x02 \x01(\tR\x0ffirstNameSuffixB\a\n" +
-	"\x05level\"\xaf\x06\n" +
+	"\x05levelX\x02\"\xaf\x06\n" +
 	"\rMacroInstance\x12\x1f\n" +
 	"\vname_suffix\x18\x01 \x01(\tR\n" +
 	"nameSuffix\x12P\n" +
@@ -8125,13 +14250,13 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\ttype_name\x18\x04 \x01(\tR\btypeName\x1aa\n" +
 	"\rComputedField\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
-	"\bfunction\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\bfunction\"\x9a\x02\n" +
+	"\bfunction\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\bfunction\"\x9c\x02\n" +
 	"\x06Struct\x12=\n" +
 	"\x06fields\x18\x01 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\x06fields\x12u\n" +
-	"\x1cprovider_instance_properties\x18\x02 \x01(\v23.bonanza.model.starlark.Provider.InstancePropertiesR\x1aproviderInstanceProperties\x1aZ\n" +
+	"\x1cprovider_instance_properties\x18\x02 \x01(\v23.bonanza.model.starlark.Provider.InstancePropertiesR\x1aproviderInstanceProperties\x1a\\\n" +
 	"\x06Fields\x12\x12\n" +
 	"\x04keys\x18\x01 \x03(\tR\x04keys\x12<\n" +
-	"\x06values\x18\x02 \x03(\v2$.bonanza.model.starlark.List.ElementR\x06values\"C\n" +
+	"\x06values\x18\x02 \x03(\v2$.bonanza.model.starlark.List.ElementR\x06valuesX\x02\"C\n" +
 	"\bTagClass\x127\n" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\"\xee\x01\n" +
 	"\x0fTargetReference\x12%\n" +
@@ -8156,17 +14281,17 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x0eNamedExecGroup\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12@\n" +
 	"\n" +
-	"exec_group\x18\x02 \x01(\v2!.bonanza.model.starlark.ExecGroupR\texecGroup\"\xf8\x01\n" +
+	"exec_group\x18\x02 \x01(\v2!.bonanza.model.starlark.ExecGroupR\texecGroup\"\xfa\x01\n" +
 	"\x04Repo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12G\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v2'.bonanza.model.starlark.Repo.DefinitionR\n" +
-	"definition\x1a\x92\x01\n" +
+	"definition\x1a\x94\x01\n" +
 	"\n" +
 	"Definition\x12<\n" +
 	"\x1arepository_rule_identifier\x18\x01 \x01(\tR\x18repositoryRuleIdentifier\x12F\n" +
 	"\vattr_values\x18\x02 \x01(\v2%.bonanza.model.starlark.Struct.FieldsR\n" +
-	"attrValues\"\x9f\x02\n" +
+	"attrValuesX\x02\"\x9f\x02\n" +
 	"\x0eRepositoryRule\x12\x1e\n" +
 	"\treference\x18\x01 \x01(\tH\x00R\treference\x12S\n" +
 	"\n" +
@@ -8274,12 +14399,12 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x05attrs\x18\x01 \x03(\v2!.bonanza.model.starlark.NamedAttrR\x05attrs\x12H\n" +
 	"\x0eimplementation\x18\x02 \x01(\v2 .bonanza.model.starlark.FunctionR\x0eimplementation\x12/\n" +
 	"\x13subrule_identifiers\x18\x03 \x03(\tR\x12subruleIdentifiersB\x06\n" +
-	"\x04kind\"\xb0\x05\n" +
+	"\x04kind\"\xb2\x05\n" +
 	"\x06Target\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12I\n" +
 	"\n" +
 	"definition\x18\x02 \x01(\v2).bonanza.model.starlark.Target.DefinitionR\n" +
-	"definition\x1a\xc6\x04\n" +
+	"definition\x1a\xc8\x04\n" +
 	"\n" +
 	"Definition\x125\n" +
 	"\x05alias\x18\x01 \x01(\v2\x1d.bonanza.model.starlark.AliasH\x00R\x05alias\x12K\n" +
@@ -8291,7 +14416,7 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x12source_file_target\x18\x06 \x01(\v2(.bonanza.model.starlark.SourceFileTargetH\x00R\x10sourceFileTarget\x12B\n" +
 	"\n" +
 	"test_suite\x18\a \x01(\v2!.bonanza.model.starlark.TestSuiteH\x00R\ttestSuiteB\x06\n" +
-	"\x04kind\"\xf7\x04\n" +
+	"\x04kindX\x02\"\xf7\x04\n" +
 	"\n" +
 	"Transition\x12\x1f\n" +
 	"\n" +
@@ -8325,19 +14450,7 @@ const file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc = "" +
 	"\x05SHORT\x10\x00\x12\f\n" +
 	"\bMODERATE\x10\x01\x12\b\n" +
 	"\x04LONG\x10\x02\x12\v\n" +
-	"\aETERNAL\x10\x03B(Z&bonanza.build/pkg/proto/model/starlarkb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_starlark_starlark_proto_rawDescData
-}
+	"\aETERNAL\x10\x03B-Z&bonanza.build/pkg/proto/model/starlark\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
 var file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes = make([]protoimpl.MessageInfo, 105)
@@ -8677,140 +14790,140 @@ func file_bonanza_build_pkg_proto_model_starlark_starlark_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[1].OneofWrappers = []any{
-		(*Value_Aspect)(nil),
-		(*Value_Attr)(nil),
-		(*Value_Bool)(nil),
-		(*Value_Builtin)(nil),
-		(*Value_Bytes)(nil),
-		(*Value_Depset)(nil),
-		(*Value_Dict)(nil),
-		(*Value_ExecGroup)(nil),
-		(*Value_File)(nil),
-		(*Value_Function)(nil),
-		(*Value_Int)(nil),
-		(*Value_Label)(nil),
-		(*Value_List)(nil),
-		(*Value_Macro)(nil),
-		(*Value_ModuleExtension)(nil),
-		(*Value_None)(nil),
-		(*Value_Provider)(nil),
-		(*Value_RepositoryRule)(nil),
-		(*Value_Rule)(nil),
-		(*Value_Select)(nil),
-		(*Value_Set)(nil),
-		(*Value_Str)(nil),
-		(*Value_Struct)(nil),
-		(*Value_Subrule)(nil),
-		(*Value_TagClass)(nil),
-		(*Value_TargetReference)(nil),
-		(*Value_ToolchainType)(nil),
-		(*Value_Transition)(nil),
-		(*Value_Tuple)(nil),
+		(*value_Aspect)(nil),
+		(*value_Attr)(nil),
+		(*value_Bool)(nil),
+		(*value_Builtin)(nil),
+		(*value_Bytes)(nil),
+		(*value_Depset)(nil),
+		(*value_Dict)(nil),
+		(*value_ExecGroup)(nil),
+		(*value_File)(nil),
+		(*value_Function)(nil),
+		(*value_Int)(nil),
+		(*value_Label)(nil),
+		(*value_List)(nil),
+		(*value_Macro)(nil),
+		(*value_ModuleExtension)(nil),
+		(*value_None)(nil),
+		(*value_Provider)(nil),
+		(*value_RepositoryRule)(nil),
+		(*value_Rule)(nil),
+		(*value_Select)(nil),
+		(*value_Set)(nil),
+		(*value_Str)(nil),
+		(*value_Struct)(nil),
+		(*value_Subrule)(nil),
+		(*value_TagClass)(nil),
+		(*value_TargetReference)(nil),
+		(*value_ToolchainType)(nil),
+		(*value_Transition)(nil),
+		(*value_Tuple)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[3].OneofWrappers = []any{
-		(*Aspect_Reference)(nil),
-		(*Aspect_Definition_)(nil),
+		(*aspect_Reference)(nil),
+		(*aspect_Definition_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[6].OneofWrappers = []any{
-		(*Attr_Bool)(nil),
-		(*Attr_Int)(nil),
-		(*Attr_IntList)(nil),
-		(*Attr_Label)(nil),
-		(*Attr_LabelKeyedStringDict)(nil),
-		(*Attr_LabelList)(nil),
-		(*Attr_Output)(nil),
-		(*Attr_OutputList)(nil),
-		(*Attr_String_)(nil),
-		(*Attr_StringDict)(nil),
-		(*Attr_StringList)(nil),
-		(*Attr_StringKeyedLabelDict)(nil),
-		(*Attr_StringListDict)(nil),
+		(*attr_Bool)(nil),
+		(*attr_Int)(nil),
+		(*attr_IntList)(nil),
+		(*attr_Label)(nil),
+		(*attr_LabelKeyedStringDict)(nil),
+		(*attr_LabelList)(nil),
+		(*attr_Output)(nil),
+		(*attr_OutputList)(nil),
+		(*attr_String_)(nil),
+		(*attr_StringDict)(nil),
+		(*attr_StringList)(nil),
+		(*attr_StringKeyedLabelDict)(nil),
+		(*attr_StringListDict)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[7].OneofWrappers = []any{
-		(*BuildSetting_Bool)(nil),
-		(*BuildSetting_Int)(nil),
-		(*BuildSetting_LabelList)(nil),
-		(*BuildSetting_String_)(nil),
-		(*BuildSetting_StringList)(nil),
+		(*buildSetting_Bool)(nil),
+		(*buildSetting_Int)(nil),
+		(*buildSetting_LabelList)(nil),
+		(*buildSetting_String_)(nil),
+		(*buildSetting_StringList)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[16].OneofWrappers = []any{
-		(*BuildSettingScope_Target)(nil),
-		(*BuildSettingScope_Project)(nil),
-		(*BuildSettingScope_Universal)(nil),
-		(*BuildSettingScope_Exec)(nil),
+		(*buildSettingScope_Target)(nil),
+		(*buildSettingScope_Project)(nil),
+		(*buildSettingScope_Universal)(nil),
+		(*buildSettingScope_Exec)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[18].OneofWrappers = []any{
-		(*Macro_Reference)(nil),
-		(*Macro_Definition_)(nil),
+		(*macro_Reference)(nil),
+		(*macro_Definition_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[34].OneofWrappers = []any{
-		(*RepositoryRule_Reference)(nil),
-		(*RepositoryRule_Definition_)(nil),
+		(*repositoryRule_Reference)(nil),
+		(*repositoryRule_Definition_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[35].OneofWrappers = []any{
-		(*Rule_Reference)(nil),
-		(*Rule_Definition_)(nil),
+		(*rule_Reference)(nil),
+		(*rule_Definition_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[41].OneofWrappers = []any{
-		(*Subrule_Reference)(nil),
-		(*Subrule_Definition_)(nil),
+		(*subrule_Reference)(nil),
+		(*subrule_Definition_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[43].OneofWrappers = []any{
-		(*Transition_ExecGroup)(nil),
-		(*Transition_None)(nil),
-		(*Transition_Target)(nil),
-		(*Transition_UserDefined_)(nil),
-		(*Transition_Unconfigured)(nil),
+		(*transition_ExecGroup)(nil),
+		(*transition_None)(nil),
+		(*transition_Target)(nil),
+		(*transition_UserDefined_)(nil),
+		(*transition_Unconfigured)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[44].OneofWrappers = []any{
-		(*CompiledProgram_FunctionEntry_Leaf_)(nil),
-		(*CompiledProgram_FunctionEntry_Parent_)(nil),
+		(*compiledProgram_FunctionEntry_Leaf_)(nil),
+		(*compiledProgram_FunctionEntry_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[47].OneofWrappers = []any{
-		(*Aspect_PropagationEdges_Fixed_)(nil),
-		(*Aspect_PropagationEdges_All)(nil),
-		(*Aspect_PropagationEdges_Function)(nil),
+		(*aspect_PropagationEdges_Fixed_)(nil),
+		(*aspect_PropagationEdges_All)(nil),
+		(*aspect_PropagationEdges_Function)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[66].OneofWrappers = []any{
-		(*Dict_Entry_Leaf_)(nil),
-		(*Dict_Entry_Parent_)(nil),
+		(*dict_Entry_Leaf_)(nil),
+		(*dict_Entry_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[74].OneofWrappers = []any{
-		(*List_Element_Leaf)(nil),
-		(*List_Element_Parent_)(nil),
+		(*list_Element_Leaf)(nil),
+		(*list_Element_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[78].OneofWrappers = []any{
-		(*MacroExpansionContext_Entry_Leaf)(nil),
-		(*MacroExpansionContext_Entry_Parent_)(nil),
+		(*macroExpansionContext_Entry_Leaf)(nil),
+		(*macroExpansionContext_Entry_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[81].OneofWrappers = []any{
-		(*MacroInstance_Entry_Leaf)(nil),
-		(*MacroInstance_Entry_Parent_)(nil),
+		(*macroInstance_Entry_Leaf)(nil),
+		(*macroInstance_Entry_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[85].OneofWrappers = []any{
-		(*PackageGroup_Subpackages_OverridesExternal)(nil),
-		(*PackageGroup_Subpackages_OverridesInline)(nil),
+		(*packageGroup_Subpackages_OverridesExternal)(nil),
+		(*packageGroup_Subpackages_OverridesInline)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[97].OneofWrappers = []any{
-		(*TestSuite_Test_Leaf)(nil),
-		(*TestSuite_Test_Parent_)(nil),
+		(*testSuite_Test_Leaf)(nil),
+		(*testSuite_Test_Parent_)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[100].OneofWrappers = []any{
-		(*Select_Group_NoMatchValue)(nil),
-		(*Select_Group_NoMatchError)(nil),
+		(*select_Group_NoMatchValue)(nil),
+		(*select_Group_NoMatchError)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[102].OneofWrappers = []any{
-		(*Target_Definition_Alias)(nil),
-		(*Target_Definition_LabelSetting)(nil),
-		(*Target_Definition_PackageGroup)(nil),
-		(*Target_Definition_PredeclaredOutputFileTarget)(nil),
-		(*Target_Definition_RuleTarget)(nil),
-		(*Target_Definition_SourceFileTarget)(nil),
-		(*Target_Definition_TestSuite)(nil),
+		(*target_Definition_Alias)(nil),
+		(*target_Definition_LabelSetting)(nil),
+		(*target_Definition_PackageGroup)(nil),
+		(*target_Definition_PredeclaredOutputFileTarget)(nil),
+		(*target_Definition_RuleTarget)(nil),
+		(*target_Definition_SourceFileTarget)(nil),
+		(*target_Definition_TestSuite)(nil),
 	}
 	file_bonanza_build_pkg_proto_model_starlark_starlark_proto_msgTypes[103].OneofWrappers = []any{
-		(*Transition_UserDefined_Identifier)(nil),
-		(*Transition_UserDefined_Definition_)(nil),
+		(*transition_UserDefined_Identifier)(nil),
+		(*transition_UserDefined_Definition_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

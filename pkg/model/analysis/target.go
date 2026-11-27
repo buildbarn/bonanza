@@ -14,6 +14,8 @@ import (
 	model_analysis_pb "bonanza.build/pkg/proto/model/analysis"
 	model_core_pb "bonanza.build/pkg/proto/model/core"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(ctx context.Context, analysisReaders *Readers[TReference], targetList model_core.Message[[]*model_analysis_pb.Package_Value_Target, TReference], targetName label.TargetName) (model_core.Message[*model_starlark_pb.Target_Definition, TReference], error) {
@@ -23,11 +25,11 @@ func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(c
 		analysisReaders.PackageValueTarget,
 		targetList,
 		func(entry model_core.Message[*model_analysis_pb.Package_Value_Target, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
+			switch entry.Message.GetLevel().(type) {
 			case *model_analysis_pb.Package_Value_Target_Leaf:
-				return strings.Compare(targetNameStr, level.Leaf.Name), nil
+				return strings.Compare(targetNameStr, entry.Message.GetLeaf().GetName()), nil
 			case *model_analysis_pb.Package_Value_Target_Parent_:
-				return strings.Compare(targetNameStr, level.Parent.FirstName), level.Parent.Reference
+				return strings.Compare(targetNameStr, entry.Message.GetParent().GetFirstName()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -40,11 +42,11 @@ func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(c
 		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, nil
 	}
 
-	level, ok := target.Message.Level.(*model_analysis_pb.Package_Value_Target_Leaf)
-	if !ok {
+	level := target.Message.GetLeaf()
+	if level == nil {
 		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, errors.New("target list has an unknown level type")
 	}
-	definition := level.Leaf.Definition
+	definition := level.GetDefinition()
 	if definition == nil {
 		return model_core.Message[*model_starlark_pb.Target_Definition, TReference]{}, errors.New("target does not have a definition")
 	}
@@ -54,7 +56,7 @@ func (*baseComputer[TReference, TMetadata]) lookupTargetDefinitionInTargetList(c
 func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Context, key *model_analysis_pb.Target_Key, e TargetEnvironment[TReference, TMetadata]) (PatchedTargetValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	targetLabel, err := label.NewCanonicalLabel(key.Label)
+	targetLabel, err := label.NewCanonicalLabel(key.GetLabel())
 	if err != nil {
 		return PatchedTargetValue[TMetadata]{}, fmt.Errorf("invalid target label: %w", err)
 	}
@@ -93,7 +95,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		if !packageValue.IsSet() {
 			return PatchedTargetValue[TMetadata]{}, evaluation.ErrMissingDependency
 		}
-		definition, err := c.lookupTargetDefinitionInTargetList(ctx, analysisReaders, model_core.Nested(packageValue, packageValue.Message.Targets), targetName)
+		definition, err := c.lookupTargetDefinitionInTargetList(ctx, analysisReaders, model_core.Nested(packageValue, packageValue.Message.GetTargets()), targetName)
 		if err != nil {
 			return PatchedTargetValue[TMetadata]{}, err
 		}
@@ -112,17 +114,17 @@ func (c *baseComputer[TReference, TMetadata]) ComputeTargetValue(ctx context.Con
 		if _, err := btree.Find(
 			ctx,
 			analysisReaders.MacroExpansionContextEntry,
-			model_core.Nested(packageValue, packageValue.Message.MacroExpansionContexts),
+			model_core.Nested(packageValue, packageValue.Message.GetMacroExpansionContexts()),
 			func(entry model_core.Message[*model_starlark_pb.MacroExpansionContext_Entry, TReference]) (int, *model_core_pb.DecodableReference) {
-				switch level := entry.Message.Level.(type) {
-				case *model_starlark_pb.MacroExpansionContext_Entry_Leaf:
-					r := model_starlark.CompareMacroInstanceNames(nameSuffix, level.Leaf.NameSuffix)
+				switch entry.Message.WhichLevel() {
+				case model_starlark_pb.MacroExpansionContext_Entry_Leaf_case:
+					r := model_starlark.CompareMacroInstanceNames(nameSuffix, entry.Message.GetLeaf().GetNameSuffix())
 					if r >= 0 {
-						precedingNameSuffix = &level.Leaf.NameSuffix
+						precedingNameSuffix = proto.String(entry.Message.GetLeaf().GetNameSuffix())
 					}
 					return r, nil
-				case *model_starlark_pb.MacroExpansionContext_Entry_Parent_:
-					return model_starlark.CompareMacroInstanceNames(nameSuffix, level.Parent.FirstNameSuffix), level.Parent.Reference
+				case model_starlark_pb.MacroExpansionContext_Entry_Parent_case:
+					return model_starlark.CompareMacroInstanceNames(nameSuffix, entry.Message.GetParent().GetFirstNameSuffix()), entry.Message.GetParent().GetReference()
 				default:
 					return 0, nil
 				}

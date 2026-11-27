@@ -12,29 +12,28 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestAttrValueBuilder(t *testing.T) {
 	str := func(s string) *model_starlark_pb.Value { return newStringValue(s) }
 	labelValue := func(s string) *model_starlark_pb.Value {
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Label{Label: s}}
+		return model_starlark_pb.Value_builder{Label: proto.String(s)}.Build()
 	}
 	list := func(values ...*model_starlark_pb.Value) *model_starlark_pb.Value {
 		elements := make([]*model_starlark_pb.List_Element, 0, len(values))
 		for _, value := range values {
-			elements = append(elements, &model_starlark_pb.List_Element{Level: &model_starlark_pb.List_Element_Leaf{Leaf: value}})
+			elements = append(elements, model_starlark_pb.List_Element_builder{Leaf: proto.ValueOrDefault(value)}.Build())
 		}
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{Elements: elements}}}
+		return model_starlark_pb.Value_builder{List: model_starlark_pb.List_builder{Elements: elements}.Build()}.Build()
 	}
 	dict := func(keysAndValues ...*model_starlark_pb.Value) *model_starlark_pb.Value {
 		var entries []*model_starlark_pb.Dict_Entry
 		for i := 0; i < len(keysAndValues); i += 2 {
-			entries = append(entries, &model_starlark_pb.Dict_Entry{Level: &model_starlark_pb.Dict_Entry_Leaf_{
-				Leaf: &model_starlark_pb.Dict_Entry_Leaf{Key: keysAndValues[i], Value: keysAndValues[i+1]},
-			}})
+			entries = append(entries, model_starlark_pb.Dict_Entry_builder{Leaf: model_starlark_pb.Dict_Entry_Leaf_builder{Key: keysAndValues[i], Value: keysAndValues[i+1]}.Build()}.Build())
 		}
-		return &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_Dict{Dict: &model_starlark_pb.Dict{Entries: entries}}}
+		return model_starlark_pb.Value_builder{Dict: model_starlark_pb.Dict_builder{Entries: entries}.Build()}.Build()
 	}
 
 	threadOptions := &model_starlark.ValueDecodingOptions[object.LocalReference]{
@@ -149,7 +148,7 @@ func TestAttrValueBuilder(t *testing.T) {
 
 	t.Run("AsList", func(t *testing.T) {
 		thread := newThread()
-		none := &model_starlark_pb.Value{Kind: &model_starlark_pb.Value_None{None: &emptypb.Empty{}}}
+		none := model_starlark_pb.Value_builder{None: &emptypb.Empty{}}.Build()
 
 		for _, tc := range []struct {
 			value    *model_starlark_pb.Value

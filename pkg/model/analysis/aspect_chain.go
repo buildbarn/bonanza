@@ -16,7 +16,7 @@ import (
 )
 
 func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.Context, key *model_analysis_pb.AspectChain_Key, e AspectChainEnvironment[TReference, TMetadata]) (PatchedAspectChainValue[TMetadata], error) {
-	aspectIdentifiers := key.AspectIdentifiers
+	aspectIdentifiers := key.GetAspectIdentifiers()
 	if len(aspectIdentifiers) == 0 {
 		return PatchedAspectChainValue[TMetadata]{}, errors.New("no aspects provided")
 	}
@@ -54,8 +54,9 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 	// require them, and obtain their indices.
 	requiredAspectIndices := make([][]uint32, 0, len(aspectDefinitions))
 	for i, aspectDefinition := range aspectDefinitions {
-		indices := make([]uint32, 0, len(aspectDefinition.Requires))
-		for _, requiredAspectIdentifier := range aspectDefinition.Requires {
+		requiredAspectIdentifiers := aspectDefinition.GetRequires()
+		indices := make([]uint32, 0, len(requiredAspectIdentifiers))
+		for _, requiredAspectIdentifier := range requiredAspectIdentifiers {
 			requiredAspectIndex, ok := aspectIndicesByIdentifier[requiredAspectIdentifier]
 			if !ok || requiredAspectIndex >= uint32(i) {
 				return PatchedAspectChainValue[TMetadata]{}, fmt.Errorf("aspect %#v requires aspect %#v, which is not applied before it", aspectIdentifiers[i], requiredAspectIdentifier)
@@ -72,7 +73,7 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 		requiredAspectIndices,
 		"attr_aspects",
 		func(aspectDefinition *model_starlark_pb.Aspect_Definition) *model_starlark_pb.Aspect_PropagationEdges {
-			return aspectDefinition.AttrAspects
+			return aspectDefinition.GetAttrAspects()
 		},
 	)
 	if err != nil {
@@ -86,7 +87,7 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 		requiredAspectIndices,
 		"toolchains_aspects",
 		func(aspectDefinition *model_starlark_pb.Aspect_Definition) *model_starlark_pb.Aspect_PropagationEdges {
-			return aspectDefinition.ToolchainsAspects
+			return aspectDefinition.GetToolchainsAspects()
 		},
 	)
 	if err != nil {
@@ -98,7 +99,7 @@ func (baseComputer[TReference, TMetadata]) ComputeAspectChainValue(ctx context.C
 	lastAspectDefinition := aspectDefinitions[len(aspectDefinitions)-1]
 	var visibleAspectIndices []uint32
 	for i, aspectDefinition := range aspectDefinitions[:len(aspectDefinitions)-1] {
-		if model_starlark.ProviderSetsSatisfiedBy(lastAspectDefinition.RequiredAspectProviders, aspectDefinition.Provides) {
+		if model_starlark.ProviderSetsSatisfiedBy(lastAspectDefinition.GetRequiredAspectProviders(), aspectDefinition.GetProvides()) {
 			visibleAspectIndices = append(visibleAspectIndices, uint32(i))
 		}
 	}
@@ -138,9 +139,9 @@ func computePropagatingAspects(
 	edgeAspects := map[string]map[uint32]struct{}{}
 	for i, aspectDefinition := range aspectDefinitions {
 		if propagationEdges := getPropagationEdges(aspectDefinition); propagationEdges != nil {
-			switch kind := propagationEdges.Kind.(type) {
-			case *model_starlark_pb.Aspect_PropagationEdges_Fixed_:
-				for _, name := range kind.Fixed.Names {
+			switch propagationEdges.WhichKind() {
+			case model_starlark_pb.Aspect_PropagationEdges_Fixed_case:
+				for _, name := range propagationEdges.GetFixed().GetNames() {
 					aspectIndices, ok := edgeAspects[name]
 					if !ok {
 						aspectIndices = map[uint32]struct{}{}
@@ -148,9 +149,9 @@ func computePropagatingAspects(
 					}
 					addWithRequiredAspects(aspectIndices, uint32(i))
 				}
-			case *model_starlark_pb.Aspect_PropagationEdges_All:
+			case model_starlark_pb.Aspect_PropagationEdges_All_case:
 				addWithRequiredAspects(allAspects, uint32(i))
-			case *model_starlark_pb.Aspect_PropagationEdges_Function:
+			case model_starlark_pb.Aspect_PropagationEdges_Function_case:
 				// TODO: Add support for this feature. This
 				// requires invoking the function for every
 				// target to which the aspect is applied.

@@ -15,6 +15,8 @@ import (
 	"bonanza.build/pkg/starlark/compile"
 	"bonanza.build/pkg/starlark/eval"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // getGlobalsReferencedByFunctions returns the names of the globals of
@@ -75,11 +77,9 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 			}
 			globalsKeys = append(globalsKeys, name)
 			if err := globalsValuesBuilder.PushChild(model_core.NewPatchedMessage(
-				&model_starlark_pb.List_Element{
-					Level: &model_starlark_pb.List_Element_Leaf{
-						Leaf: encodedValue.Message,
-					},
-				},
+				model_starlark_pb.List_Element_builder{
+					Leaf: proto.ValueOrDefault(encodedValue.Message),
+				}.Build(),
 				encodedValue.Patcher,
 			)); err != nil {
 				return model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]{}, err
@@ -103,7 +103,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 			inlinedtree.AlwaysInline(
 				model_core.NewReferenceMessagePatcher[TMetadata](),
 				func(compiledProgram model_core.PatchedMessage[*model_starlark_pb.CompiledProgram, TMetadata]) {
-					compiledProgram.Message.TopLevelFunctionLines = lines
+					compiledProgram.Message.SetTopLevelFunctionLines(lines)
 				},
 			),
 			// Fields that can be stored externally if needed.
@@ -123,10 +123,10 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 					if err != nil {
 						return err
 					}
-					compiledProgram.Message.Globals = &model_starlark_pb.Struct_Fields{
+					compiledProgram.Message.SetGlobals(model_starlark_pb.Struct_Fields_builder{
 						Keys:   globalsKeys,
 						Values: values,
-					}
+					}.Build())
 					return nil
 				},
 			},
@@ -146,7 +146,7 @@ func EncodeCompiledProgram[TReference any, TMetadata model_core.ReferenceMetadat
 					if err != nil {
 						return err
 					}
-					compiledProgram.Message.Functions = entries
+					compiledProgram.Message.SetFunctions(entries)
 					return nil
 				},
 			},
@@ -162,26 +162,24 @@ func computeFunctionEntryParentNode[TMetadata model_core.ReferenceMetadata](
 	childNodes model_core.Message[[]*model_starlark_pb.CompiledProgram_FunctionEntry, object.LocalReference],
 ) model_core.PatchedMessage[*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata] {
 	var firstName *model_starlark_pb.Function_Name
-	switch level := childNodes.Message[0].Level.(type) {
-	case *model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_:
-		firstName = level.Leaf.Name
-	case *model_starlark_pb.CompiledProgram_FunctionEntry_Parent_:
-		firstName = level.Parent.FirstName
+	switch childNodes.Message[0].WhichLevel() {
+	case model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_case:
+		firstName = childNodes.Message[0].GetLeaf().GetName()
+	case model_starlark_pb.CompiledProgram_FunctionEntry_Parent_case:
+		firstName = childNodes.Message[0].GetParent().GetFirstName()
 	}
 	functionCount := uint32(0)
 	for _, childNode := range childNodes.Message {
 		functionCount += uint32(getFunctionEntryCount(childNode))
 	}
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.CompiledProgram_FunctionEntry {
-		return &model_starlark_pb.CompiledProgram_FunctionEntry{
-			Level: &model_starlark_pb.CompiledProgram_FunctionEntry_Parent_{
-				Parent: &model_starlark_pb.CompiledProgram_FunctionEntry_Parent{
-					Reference:     patcher.AddDecodableReference(createdObject),
-					FirstName:     firstName,
-					FunctionCount: functionCount,
-				},
-			},
-		}
+		return model_starlark_pb.CompiledProgram_FunctionEntry_builder{
+			Parent: model_starlark_pb.CompiledProgram_FunctionEntry_Parent_builder{
+				Reference:     patcher.AddDecodableReference(createdObject),
+				FirstName:     firstName,
+				FunctionCount: functionCount,
+			}.Build(),
+		}.Build()
 	})
 }
 
@@ -222,16 +220,12 @@ func encodeCompiledProgramFunctions[TReference any, TMetadata model_core.Referen
 		if err != nil {
 			return model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata]{}, nil, fmt.Errorf("function %#v: %w", f.funcode.Name, err)
 		}
-		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](
-			&model_starlark_pb.CompiledProgram_FunctionEntry{
-				Level: &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_{
-					Leaf: &model_starlark_pb.CompiledProgram_FunctionEntry_Leaf{
-						Name: encodeFunctionName(f.name),
-						Code: encodedFuncode,
-					},
-				},
-			},
-		)); err != nil {
+		if err := treeBuilder.PushChild(model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.CompiledProgram_FunctionEntry_builder{
+			Leaf: model_starlark_pb.CompiledProgram_FunctionEntry_Leaf_builder{
+				Name: encodeFunctionName(f.name),
+				Code: encodedFuncode,
+			}.Build(),
+		}.Build())); err != nil {
 			return model_core.PatchedMessage[[]*model_starlark_pb.CompiledProgram_FunctionEntry, TMetadata]{}, nil, err
 		}
 	}
@@ -278,54 +272,54 @@ func DecodeGlobals[TReference object.BasicReference, TMetadata model_core.Refere
 // DecodeAttrType extracts the type of a rule attribute from a rule
 // attribute's Protobuf message.
 func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](attr model_core.Message[*model_starlark_pb.Attr, TReference]) (AttrType[TReference, TMetadata], error) {
-	switch attrTypeInfo := attr.Message.Type.(type) {
-	case *model_starlark_pb.Attr_Bool:
+	switch attr.Message.WhichType() {
+	case model_starlark_pb.Attr_Bool_case:
 		return NewBoolAttrType[TReference, TMetadata](), nil
-	case *model_starlark_pb.Attr_Int:
-		return NewIntAttrType[TReference, TMetadata](attrTypeInfo.Int.Values), nil
-	case *model_starlark_pb.Attr_IntList:
-		return NewIntListAttrType[TReference, TMetadata](attrTypeInfo.IntList.ListOptions.GetAllowEmpty()), nil
-	case *model_starlark_pb.Attr_Label:
-		valueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.Label.ValueOptions))
+	case model_starlark_pb.Attr_Int_case:
+		return NewIntAttrType[TReference, TMetadata](attr.Message.GetInt().GetValues()), nil
+	case model_starlark_pb.Attr_IntList_case:
+		return NewIntListAttrType[TReference, TMetadata](attr.Message.GetIntList().GetListOptions().GetAllowEmpty()), nil
+	case model_starlark_pb.Attr_Label_case:
+		valueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attr.Message.GetLabel().GetValueOptions()))
 		if err != nil {
 			return nil, fmt.Errorf("value options: %w", err)
 		}
 		return NewLabelAttrType[TReference, TMetadata](
-			attrTypeInfo.Label.AllowNone,
-			attrTypeInfo.Label.AllowSingleFile,
-			attrTypeInfo.Label.Executable,
+			attr.Message.GetLabel().GetAllowNone(),
+			attr.Message.GetLabel().GetAllowSingleFile(),
+			attr.Message.GetLabel().GetExecutable(),
 			valueOptions,
 		), nil
-	case *model_starlark_pb.Attr_LabelKeyedStringDict:
-		dictKeyOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.LabelKeyedStringDict.DictKeyOptions))
+	case model_starlark_pb.Attr_LabelKeyedStringDict_case:
+		dictKeyOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attr.Message.GetLabelKeyedStringDict().GetDictKeyOptions()))
 		if err != nil {
 			return nil, fmt.Errorf("dict key options: %w", err)
 		}
-		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](attrTypeInfo.LabelKeyedStringDict.DictOptions.GetAllowEmpty(), dictKeyOptions), nil
-	case *model_starlark_pb.Attr_LabelList:
-		listValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.LabelList.ListValueOptions))
+		return NewLabelKeyedStringDictAttrType[TReference, TMetadata](attr.Message.GetLabelKeyedStringDict().GetDictOptions().GetAllowEmpty(), dictKeyOptions), nil
+	case model_starlark_pb.Attr_LabelList_case:
+		listValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attr.Message.GetLabelList().GetListValueOptions()))
 		if err != nil {
 			return nil, fmt.Errorf("list value options: %w", err)
 		}
-		return NewLabelListAttrType[TReference, TMetadata](attrTypeInfo.LabelList.ListOptions.GetAllowEmpty(), listValueOptions), nil
-	case *model_starlark_pb.Attr_Output:
-		return NewOutputAttrType[TReference, TMetadata](attrTypeInfo.Output.FilenameTemplate), nil
-	case *model_starlark_pb.Attr_OutputList:
-		return NewOutputListAttrType[TReference, TMetadata](attrTypeInfo.OutputList.ListOptions.GetAllowEmpty()), nil
-	case *model_starlark_pb.Attr_String_:
-		return NewStringAttrType[TReference, TMetadata](attrTypeInfo.String_.Values), nil
-	case *model_starlark_pb.Attr_StringDict:
-		return NewStringDictAttrType[TReference, TMetadata](attrTypeInfo.StringDict.DictOptions.GetAllowEmpty()), nil
-	case *model_starlark_pb.Attr_StringKeyedLabelDict:
-		dictValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attrTypeInfo.StringKeyedLabelDict.DictValueOptions))
+		return NewLabelListAttrType[TReference, TMetadata](attr.Message.GetLabelList().GetListOptions().GetAllowEmpty(), listValueOptions), nil
+	case model_starlark_pb.Attr_Output_case:
+		return NewOutputAttrType[TReference, TMetadata](attr.Message.GetOutput().GetFilenameTemplate()), nil
+	case model_starlark_pb.Attr_OutputList_case:
+		return NewOutputListAttrType[TReference, TMetadata](attr.Message.GetOutputList().GetListOptions().GetAllowEmpty()), nil
+	case model_starlark_pb.Attr_String__case:
+		return NewStringAttrType[TReference, TMetadata](attr.Message.GetString().GetValues()), nil
+	case model_starlark_pb.Attr_StringDict_case:
+		return NewStringDictAttrType[TReference, TMetadata](attr.Message.GetStringDict().GetDictOptions().GetAllowEmpty()), nil
+	case model_starlark_pb.Attr_StringKeyedLabelDict_case:
+		dictValueOptions, err := DecodeLabelOptions[TReference, TMetadata](model_core.Nested(attr, attr.Message.GetStringKeyedLabelDict().GetDictValueOptions()))
 		if err != nil {
 			return nil, fmt.Errorf("dict value options: %w", err)
 		}
-		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](attrTypeInfo.StringKeyedLabelDict.DictOptions.GetAllowEmpty(), dictValueOptions), nil
-	case *model_starlark_pb.Attr_StringList:
-		return NewStringListAttrType[TReference, TMetadata](attrTypeInfo.StringList.ListOptions.GetAllowEmpty()), nil
-	case *model_starlark_pb.Attr_StringListDict:
-		return NewStringListDictAttrType[TReference, TMetadata](attrTypeInfo.StringListDict.DictOptions.GetAllowEmpty()), nil
+		return NewStringKeyedLabelDictAttrType[TReference, TMetadata](attr.Message.GetStringKeyedLabelDict().GetDictOptions().GetAllowEmpty(), dictValueOptions), nil
+	case model_starlark_pb.Attr_StringList_case:
+		return NewStringListAttrType[TReference, TMetadata](attr.Message.GetStringList().GetListOptions().GetAllowEmpty()), nil
+	case model_starlark_pb.Attr_StringListDict_case:
+		return NewStringListDictAttrType[TReference, TMetadata](attr.Message.GetStringListDict().GetDictOptions().GetAllowEmpty()), nil
 	default:
 		return nil, errors.New("unknown attribute type")
 	}
@@ -334,17 +328,17 @@ func DecodeAttrType[TReference object.BasicReference, TMetadata model_core.Refer
 // DecodeBuildSettingType extracts the type of a build setting from a
 // build setting's Protobuf message.
 func DecodeBuildSettingType[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata](buildSetting *model_starlark_pb.BuildSetting) (BuildSettingType[TReference, TMetadata], error) {
-	switch buildSettingTypeInfo := buildSetting.Type.(type) {
-	case *model_starlark_pb.BuildSetting_Bool:
+	switch buildSetting.WhichType() {
+	case model_starlark_pb.BuildSetting_Bool_case:
 		return NewBoolBuildSettingType[TReference, TMetadata](), nil
-	case *model_starlark_pb.BuildSetting_Int:
+	case model_starlark_pb.BuildSetting_Int_case:
 		return NewIntBuildSettingType[TReference, TMetadata](), nil
-	case *model_starlark_pb.BuildSetting_LabelList:
-		return NewLabelListBuildSettingType[TReference, TMetadata](buildSettingTypeInfo.LabelList.Repeatable), nil
-	case *model_starlark_pb.BuildSetting_String_:
+	case model_starlark_pb.BuildSetting_LabelList_case:
+		return NewLabelListBuildSettingType[TReference, TMetadata](buildSetting.GetLabelList().GetRepeatable()), nil
+	case model_starlark_pb.BuildSetting_String__case:
 		return NewStringBuildSettingType[TReference, TMetadata](), nil
-	case *model_starlark_pb.BuildSetting_StringList:
-		return NewStringListBuildSettingType[TReference, TMetadata](buildSettingTypeInfo.StringList.Repeatable), nil
+	case model_starlark_pb.BuildSetting_StringList_case:
+		return NewStringListBuildSettingType[TReference, TMetadata](buildSetting.GetStringList().GetRepeatable()), nil
 	default:
 		return nil, errors.New("unknown build setting type")
 	}
@@ -355,5 +349,5 @@ func decodeBuildSetting[TReference object.BasicReference, TMetadata model_core.R
 	if err != nil {
 		return nil, err
 	}
-	return NewBuildSetting(buildSettingType, buildSetting.Flag), nil
+	return NewBuildSetting(buildSettingType, buildSetting.GetFlag()), nil
 }

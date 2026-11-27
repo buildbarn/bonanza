@@ -14,6 +14,7 @@ import (
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -59,11 +60,11 @@ func (BuildSetting[TReference, TMetadata]) Truth(*eval.Thread) (bool, error) {
 // Encode a Starlark build setting object to a Protobuf message, so that
 // it can be written to storage.
 func (bs *BuildSetting[TReference, TMetadata]) Encode() *model_starlark_pb.BuildSetting {
-	buildSetting := model_starlark_pb.BuildSetting{
+	buildSetting := model_starlark_pb.BuildSetting_builder{
 		Flag: bs.flag,
-	}
-	bs.buildSettingType.Encode(&buildSetting)
-	return &buildSetting
+	}.Build()
+	bs.buildSettingType.Encode(buildSetting)
+	return buildSetting
 }
 
 // BuildSettingType represents the type of a build setting that is
@@ -107,9 +108,7 @@ func (boolBuildSettingType[TReference, TMetadata]) Type() string {
 }
 
 func (boolBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
-	out.Type = &model_starlark_pb.BuildSetting_Bool{
-		Bool: &emptypb.Empty{},
-	}
+	out.SetBool(&emptypb.Empty{})
 }
 
 func (boolBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
@@ -163,9 +162,7 @@ func (intBuildSettingType[TReference, TMetadata]) Type() string {
 }
 
 func (intBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
-	out.Type = &model_starlark_pb.BuildSetting_Int{
-		Int: &emptypb.Empty{},
-	}
+	out.SetInt(&emptypb.Empty{})
 }
 
 func (intBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
@@ -261,11 +258,9 @@ func (labelListBuildSettingType[TReference, TMetadata]) Type() string {
 }
 
 func (bst labelListBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
-	out.Type = &model_starlark_pb.BuildSetting_LabelList{
-		LabelList: &model_starlark_pb.BuildSetting_ListType{
-			Repeatable: bst.repeatable,
-		},
-	}
+	out.SetLabelList(model_starlark_pb.BuildSetting_ListType_builder{
+		Repeatable: bst.repeatable,
+	}.Build())
 }
 
 func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
@@ -278,7 +273,7 @@ func (bst labelListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(cur
 
 func (labelListBuildSettingType[TReference, TMetadata]) GetAttrType() AttrType[TReference, TMetadata] {
 	return NewLabelListAttrType( /* allowEmpty = */ true, LabelOptions[TReference, TMetadata]{
-		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](&TargetTransition)),
+		Cfg:       NewProtoTransitionDefinition[TReference, TMetadata](model_core.NewSimpleMessage[TReference](TargetTransition)),
 		Providers: anyProviderSets,
 	})
 }
@@ -307,9 +302,7 @@ func (stringBuildSettingType[TReference, TMetadata]) Type() string {
 }
 
 func (stringBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
-	out.Type = &model_starlark_pb.BuildSetting_String_{
-		String_: &emptypb.Empty{},
-	}
+	out.SetString(&emptypb.Empty{})
 }
 
 func (stringBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
@@ -347,11 +340,9 @@ func (stringListBuildSettingType[TReference, TMetadata]) Type() string {
 }
 
 func (bst stringListBuildSettingType[TReference, TMetadata]) Encode(out *model_starlark_pb.BuildSetting) {
-	out.Type = &model_starlark_pb.BuildSetting_StringList{
-		StringList: &model_starlark_pb.BuildSetting_ListType{
-			Repeatable: bst.repeatable,
-		},
-	}
+	out.SetStringList(model_starlark_pb.BuildSetting_ListType_builder{
+		Repeatable: bst.repeatable,
+	}.Build())
 }
 
 func (bst stringListBuildSettingType[TReference, TMetadata]) GetCanonicalizer(currentPackage pg_label.CanonicalPackage) BuildSettingCanonicalizer {
@@ -411,19 +402,19 @@ func (ui *buildSettingScopeUnpackerInto[TReference, TMetadata]) UnpackInto(threa
 	}
 	switch scope {
 	case "target":
-		*dst = &model_starlark_pb.BuildSettingScope{
-			Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
-		}
+		*dst = model_starlark_pb.BuildSettingScope_builder{
+			Target: &emptypb.Empty{},
+		}.Build()
 		return nil
 	case "project":
-		*dst = &model_starlark_pb.BuildSettingScope{
-			Kind: &model_starlark_pb.BuildSettingScope_Project{Project: &emptypb.Empty{}},
-		}
+		*dst = model_starlark_pb.BuildSettingScope_builder{
+			Project: &emptypb.Empty{},
+		}.Build()
 		return nil
 	case "universal":
-		*dst = &model_starlark_pb.BuildSettingScope{
-			Kind: &model_starlark_pb.BuildSettingScope_Universal{Universal: &emptypb.Empty{}},
-		}
+		*dst = model_starlark_pb.BuildSettingScope_builder{
+			Universal: &emptypb.Empty{},
+		}.Build()
 		return nil
 	}
 	if flag, ok := strings.CutPrefix(scope, "exec:--"); ok {
@@ -431,9 +422,9 @@ func (ui *buildSettingScopeUnpackerInto[TReference, TMetadata]) UnpackInto(threa
 		if err := NewLabelOrStringUnpackerInto[TReference, TMetadata](ui.currentPackage).UnpackInto(thread, eval.String(flag), &resolvedFlag); err != nil {
 			return fmt.Errorf("invalid build setting scope %#v: %w", scope, err)
 		}
-		*dst = &model_starlark_pb.BuildSettingScope{
-			Kind: &model_starlark_pb.BuildSettingScope_Exec{Exec: resolvedFlag.String()},
-		}
+		*dst = model_starlark_pb.BuildSettingScope_builder{
+			Exec: proto.String(resolvedFlag.String()),
+		}.Build()
 		return nil
 	}
 	return fmt.Errorf("invalid build setting scope %#v", scope)
@@ -457,23 +448,23 @@ func (buildSettingScopeUnpackerInto[TReference, TMetadata]) GetConcatenationOper
 
 // defaultBuildSettingScope is the scope of build settings whose "scope"
 // attribute is not set.
-var defaultBuildSettingScope = &model_starlark_pb.BuildSettingScope{
-	Kind: &model_starlark_pb.BuildSettingScope_Target{Target: &emptypb.Empty{}},
-}
+var defaultBuildSettingScope = model_starlark_pb.BuildSettingScope_builder{
+	Target: &emptypb.Empty{},
+}.Build()
 
 // FormatBuildSettingScope converts the Protobuf message representation
 // of a build setting scope back to the value of the "scope" attribute
 // of a build setting (e.g., "universal" or "exec:--@@foo+//:bar").
 func FormatBuildSettingScope(scope *model_starlark_pb.BuildSettingScope) (string, error) {
-	switch kind := scope.GetKind().(type) {
-	case *model_starlark_pb.BuildSettingScope_Target:
+	switch scope.WhichKind() {
+	case model_starlark_pb.BuildSettingScope_Target_case:
 		return "target", nil
-	case *model_starlark_pb.BuildSettingScope_Project:
+	case model_starlark_pb.BuildSettingScope_Project_case:
 		return "project", nil
-	case *model_starlark_pb.BuildSettingScope_Universal:
+	case model_starlark_pb.BuildSettingScope_Universal_case:
 		return "universal", nil
-	case *model_starlark_pb.BuildSettingScope_Exec:
-		return "exec:--" + kind.Exec, nil
+	case model_starlark_pb.BuildSettingScope_Exec_case:
+		return "exec:--" + scope.GetExec(), nil
 	default:
 		return "", errors.New("invalid build setting scope")
 	}

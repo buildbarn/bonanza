@@ -18,16 +18,16 @@ func TestCheckRequiredProviders(t *testing.T) {
 	newProviderInstances := func(providerIdentifiers ...string) []*model_starlark_pb.Struct {
 		providerInstances := make([]*model_starlark_pb.Struct, 0, len(providerIdentifiers))
 		for _, providerIdentifier := range providerIdentifiers {
-			providerInstances = append(providerInstances, &model_starlark_pb.Struct{
-				ProviderInstanceProperties: &model_starlark_pb.Provider_InstanceProperties{
+			providerInstances = append(providerInstances, model_starlark_pb.Struct_builder{
+				ProviderInstanceProperties: model_starlark_pb.Provider_InstanceProperties_builder{
 					ProviderIdentifier: providerIdentifier,
-				},
-			})
+				}.Build(),
+			}.Build())
 		}
 		return providerInstances
 	}
 	newProviderSet := func(providerIdentifiers ...string) *model_starlark_pb.ProviderSet {
-		return &model_starlark_pb.ProviderSet{ProviderIdentifiers: providerIdentifiers}
+		return model_starlark_pb.ProviderSet_builder{ProviderIdentifiers: providerIdentifiers}.Build()
 	}
 
 	t.Run("EmptySet", func(t *testing.T) {

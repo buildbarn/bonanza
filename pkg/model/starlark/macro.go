@@ -17,6 +17,8 @@ import (
 	"bonanza.build/pkg/starlark/syntax"
 	"bonanza.build/pkg/starlark/unpack"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type macro[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -170,10 +172,9 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *eval.Thread, args ev
 			return nil, err
 		}
 		publicAttrValues = append(
-			publicAttrValues,
-			&model_starlark_pb.RuleTarget_PublicAttrValue{
+			publicAttrValues, model_starlark_pb.RuleTarget_PublicAttrValue_builder{
 				ValueParts: encodedGroups.Message,
-			},
+			}.Build(),
 		)
 		patcher.Merge(encodedGroups.Patcher)
 
@@ -207,19 +208,19 @@ func (m *macro[TReference, TMetadata]) CallInternal(thread *eval.Thread, args ev
 	return eval.None, targetRegistrar.registerMacroInstance(
 		name,
 		model_core.NewPatchedMessage(
-			&model_starlark_pb.MacroInstance_Definition{
+			model_starlark_pb.MacroInstance_Definition_builder{
 				MacroIdentifier:  m.Identifier.String(),
 				PublicAttrValues: publicAttrValues,
 				Finalizer:        finalizerKind,
-				InheritableAttrs: &model_starlark_pb.InheritableAttrs{
+				InheritableAttrs: model_starlark_pb.InheritableAttrs_builder{
 					Deprecation:      defaultInheritableAttrs.GetDeprecation(),
 					DisabledFeatures: defaultInheritableAttrs.GetDisabledFeatures(),
 					EnabledFeatures:  defaultInheritableAttrs.GetEnabledFeatures(),
 					PackageMetadata:  defaultInheritableAttrs.GetPackageMetadata(),
 					Testonly:         defaultInheritableAttrs.GetTestonly(),
 					Visibility:       visibilityPackageGroup.Message,
-				},
-			},
+				}.Build(),
+			}.Build(),
 			patcher,
 		),
 	)
@@ -232,15 +233,11 @@ func (m *macro[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []e
 	if currentIdentifier == nil || *currentIdentifier != *m.Identifier {
 		// Not the canonical identifier under which this macro
 		// is known. Emit a reference.
-		return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Macro{
-				Macro: &model_starlark_pb.Macro{
-					Kind: &model_starlark_pb.Macro_Reference{
-						Reference: m.Identifier.String(),
-					},
-				},
-			},
-		}), nil
+		return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.Value_builder{
+			Macro: model_starlark_pb.Macro_builder{
+				Reference: proto.String(m.Identifier.String()),
+			}.Build(),
+		}.Build()), nil
 	}
 
 	definition, err := m.definition.Encode(thread, path, options)
@@ -248,15 +245,11 @@ func (m *macro[TReference, TMetadata]) EncodeValue(thread *eval.Thread, path []e
 		return model_core.PatchedMessage[*model_starlark_pb.Value, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Value{
-			Kind: &model_starlark_pb.Value_Macro{
-				Macro: &model_starlark_pb.Macro{
-					Kind: &model_starlark_pb.Macro_Definition_{
-						Definition: definition.Message,
-					},
-				},
-			},
-		},
+		model_starlark_pb.Value_builder{
+			Macro: model_starlark_pb.Macro_builder{
+				Definition: proto.ValueOrDefault(definition.Message),
+			}.Build(),
+		}.Build(),
 		definition.Patcher,
 	), nil
 }
@@ -381,11 +374,11 @@ func (md *starlarkMacroDefinition[TReference, TMetadata]) Encode(thread *eval.Th
 		return model_core.PatchedMessage[*model_starlark_pb.Macro_Definition, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.Macro_Definition{
+		model_starlark_pb.Macro_Definition_builder{
 			Attrs:          namedAttrs.Merge(patcher),
 			Implementation: implementation.Merge(patcher),
 			Finalizer:      md.finalizer,
-		},
+		}.Build(),
 		patcher,
 	), nil
 }
@@ -419,11 +412,11 @@ func (*protoMacroDefinition[TReference, TMetadata]) Encode(thread *eval.Thread, 
 }
 
 func (md *protoMacroDefinition[TReference, TMetadata]) GetAttrsCheap(thread *eval.Thread) (map[pg_label.StarlarkIdentifier]*Attr[TReference, TMetadata], error) {
-	return md.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(md.message, md.message.Message.Attrs))
+	return md.protoAttrsCache.getAttrsCheap(thread, model_core.Nested(md.message, md.message.Message.GetAttrs()))
 }
 
 func (md *protoMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *eval.Thread) (bool, error) {
-	return md.message.Message.Finalizer, nil
+	return md.message.Message.GetFinalizer(), nil
 }
 
 type reloadingMacroDefinition[TReference object.BasicReference, TMetadata model_core.ReferenceMetadata] struct {
@@ -482,15 +475,15 @@ func (md *reloadingMacroDefinition[TReference, TMetadata]) IsFinalizer(thread *e
 // GetMacroDefinition extracts the definition of a macro from a
 // Starlark value that was previously written to storage.
 func GetMacroDefinition[TReference any](value model_core.Message[*model_starlark_pb.Value, TReference]) (model_core.Message[*model_starlark_pb.Macro_Definition, TReference], error) {
-	valueKind, ok := value.Message.GetKind().(*model_starlark_pb.Value_Macro)
-	if !ok {
+	valueKind := value.Message.GetMacro()
+	if valueKind == nil {
 		return model_core.Message[*model_starlark_pb.Macro_Definition, TReference]{}, errors.New("value is not a macro")
 	}
-	macroKind, ok := valueKind.Macro.Kind.(*model_starlark_pb.Macro_Definition_)
-	if !ok {
+	macroKind := valueKind.GetDefinition()
+	if macroKind == nil {
 		return model_core.Message[*model_starlark_pb.Macro_Definition, TReference]{}, errors.New("macro does not have a definition")
 	}
-	return model_core.Nested(value, macroKind.Definition), nil
+	return model_core.Nested(value, macroKind), nil
 }
 
 // packageTargetName is the target name that is used to refer to all
@@ -549,21 +542,19 @@ func CompareMacroInstanceNames(a, b string) int {
 
 func computeMacroExpansionContextListParentNode[TMetadata model_core.ReferenceMetadata](createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_starlark_pb.MacroExpansionContext_Entry, object.LocalReference]) model_core.PatchedMessage[*model_starlark_pb.MacroExpansionContext_Entry, TMetadata] {
 	var firstNameSuffix string
-	switch firstEntry := childNodes.Message[0].Level.(type) {
-	case *model_starlark_pb.MacroExpansionContext_Entry_Leaf:
-		firstNameSuffix = firstEntry.Leaf.NameSuffix
-	case *model_starlark_pb.MacroExpansionContext_Entry_Parent_:
-		firstNameSuffix = firstEntry.Parent.FirstNameSuffix
+	switch childNodes.Message[0].WhichLevel() {
+	case model_starlark_pb.MacroExpansionContext_Entry_Leaf_case:
+		firstNameSuffix = childNodes.Message[0].GetLeaf().GetNameSuffix()
+	case model_starlark_pb.MacroExpansionContext_Entry_Parent_case:
+		firstNameSuffix = childNodes.Message[0].GetParent().GetFirstNameSuffix()
 	}
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.MacroExpansionContext_Entry {
-		return &model_starlark_pb.MacroExpansionContext_Entry{
-			Level: &model_starlark_pb.MacroExpansionContext_Entry_Parent_{
-				Parent: &model_starlark_pb.MacroExpansionContext_Entry_Parent{
-					Reference:       patcher.AddDecodableReference(createdObject),
-					FirstNameSuffix: firstNameSuffix,
-				},
-			},
-		}
+		return model_starlark_pb.MacroExpansionContext_Entry_builder{
+			Parent: model_starlark_pb.MacroExpansionContext_Entry_Parent_builder{
+				Reference:       patcher.AddDecodableReference(createdObject),
+				FirstNameSuffix: firstNameSuffix,
+			}.Build(),
+		}.Build()
 	})
 }
 
@@ -582,13 +573,11 @@ func NewMacroExpansionContextListBuilder[TReference any, TMetadata model_core.Re
 
 func computeMacroInstanceListParentNode[TMetadata model_core.ReferenceMetadata](createdObject model_core.Decodable[model_core.MetadataEntry[TMetadata]], childNodes model_core.Message[[]*model_starlark_pb.MacroInstance_Entry, object.LocalReference]) model_core.PatchedMessage[*model_starlark_pb.MacroInstance_Entry, TMetadata] {
 	return model_core.MustBuildPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[TMetadata]) *model_starlark_pb.MacroInstance_Entry {
-		return &model_starlark_pb.MacroInstance_Entry{
-			Level: &model_starlark_pb.MacroInstance_Entry_Parent_{
-				Parent: &model_starlark_pb.MacroInstance_Entry_Parent{
-					Reference: patcher.AddDecodableReference(createdObject),
-				},
-			},
-		}
+		return model_starlark_pb.MacroInstance_Entry_builder{
+			Parent: model_starlark_pb.MacroInstance_Entry_Parent_builder{
+				Reference: patcher.AddDecodableReference(createdObject),
+			}.Build(),
+		}.Build()
 	})
 }
 

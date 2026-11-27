@@ -170,15 +170,15 @@ func TestFileRoot(t *testing.T) {
 		return model_format.NewProtoList[model_analysis_pb.BuildSettingOverride]().NewMarshaler([]*model_analysis_pb.BuildSettingOverride{{
 			Level: &model_analysis_pb.BuildSettingOverride_Leaf_{Leaf: &model_analysis_pb.BuildSettingOverride_Leaf{
 				Label: "@@bazel_tools+//command_line_option:platforms",
-				Value: &model_starlark_pb.Value{
-					Kind: &model_starlark_pb.Value_List{List: &model_starlark_pb.List{
-						Elements: []*model_starlark_pb.List_Element{{
-							Level: &model_starlark_pb.List_Element_Leaf{Leaf: &model_starlark_pb.Value{
-								Kind: &model_starlark_pb.Value_Label{Label: "@@platforms+//host"},
-							}},
-						}},
-					}},
-				},
+				Value: model_starlark_pb.Value_builder{
+					List: model_starlark_pb.List_builder{
+						Elements: []*model_starlark_pb.List_Element{model_starlark_pb.List_Element_builder{
+							Leaf: model_starlark_pb.Value_builder{
+								Label: proto.String("@@platforms+//host"),
+							}.Build(),
+						}.Build()},
+					}.Build(),
+				}.Build(),
 			}},
 		}})
 	})
@@ -208,9 +208,9 @@ func TestFileRoot(t *testing.T) {
 			model_core.NewSimpleMessage[model_core.CreatedObjectTree](
 				&model_analysis_pb.FileRoot_Key{
 					DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-					File: &model_starlark_pb.File{
+					File: model_starlark_pb.File_builder{
 						Label: "this is not a valid label",
-					},
+					}.Build(),
 				},
 			),
 			e,
@@ -252,9 +252,9 @@ func TestFileRoot(t *testing.T) {
 				model_core.NewSimpleMessage[model_core.CreatedObjectTree](
 					&model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:foo",
-						},
+						}.Build(),
 					},
 				),
 				e,
@@ -303,9 +303,9 @@ func TestFileRoot(t *testing.T) {
 					model_core.NewSimpleMessage[model_core.CreatedObjectTree](
 						&model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
-							},
+							}.Build(),
 						},
 					),
 					e,
@@ -453,9 +453,9 @@ func TestFileRoot(t *testing.T) {
 					model_core.NewSimpleMessage[model_core.CreatedObjectTree](
 						&model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:dir1",
-							},
+							}.Build(),
 						},
 					),
 					e,
@@ -560,7 +560,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:foo",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "foo.o",
 						}
 					}),
@@ -579,7 +579,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionResult_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:foo",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0x7a, 0xb1, 0x08, 0xae, 0x94, 0x2d, 0x7d, 0xab,
 									0x16, 0x25, 0xd8, 0xbd, 0xc6, 0xd8, 0xdf, 0x27,
@@ -631,14 +631,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:foo.o",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "foo",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -728,7 +728,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:generate_dir",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "mydir",
 						}
 					}),
@@ -747,7 +747,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionResult_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:generate_dir",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0x50, 0x6f, 0x44, 0xb5, 0x80, 0xf9, 0xc0, 0xcc,
 									0x53, 0xd4, 0x08, 0xe0, 0x6a, 0x32, 0xde, 0x87,
@@ -796,14 +796,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:mydir",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "generate_dir",
 									Type:       model_starlark_pb.File_Owner_DIRECTORY,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -883,7 +883,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:foo",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "bar",
 						}
 					}),
@@ -902,7 +902,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionResult_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:foo",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
@@ -945,14 +945,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "foo",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -1034,7 +1034,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:foo",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "bar",
 						}
 					}),
@@ -1053,7 +1053,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionResult_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:foo",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
@@ -1090,7 +1090,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionInputRoot_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:foo",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xbd, 0x2a, 0x68, 0x4f, 0x61, 0xf0, 0xa6, 0xd3,
 									0x86, 0xae, 0xf0, 0x7a, 0xb1, 0x05, 0x6c, 0x61,
@@ -1137,14 +1137,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:bar",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "foo",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -1227,7 +1227,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:foo",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "dir1",
 						}
 					}),
@@ -1246,7 +1246,7 @@ func TestFileRoot(t *testing.T) {
 						return &model_analysis_pb.TargetActionResult_Key{
 							Id: &model_analysis_pb.TargetActionId{
 								Label:   "@@myrepo+//:foo",
-								Variant: &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Variant: model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								ActionId: []byte{
 									0xe6, 0x95, 0x9c, 0xa9, 0xe5, 0x33, 0x68, 0xff,
 									0x95, 0xbd, 0x21, 0x56, 0xdb, 0xcc, 0xfd, 0x9a,
@@ -1301,14 +1301,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:dir1",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "foo",
 									Type:       model_starlark_pb.File_Owner_DIRECTORY,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -1425,7 +1425,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:generate",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "output",
 						}
 					}),
@@ -1433,9 +1433,9 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
 							Source: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate_{ExpandTemplate: &model_analysis_pb.TargetOutputDefinition_ExpandTemplate{
-								Template: &model_starlark_pb.File{
+								Template: model_starlark_pb.File_builder{
 									Label: "@@myrepo+//:template",
-								},
+								}.Build(),
 								IsExecutable: true,
 								Substitutions: []*model_analysis_pb.TargetOutputDefinition_ExpandTemplate_Substitution{
 									{Needle: []byte("{{first_name}}"), Replacement: []byte("Albert")},
@@ -1449,9 +1449,9 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:template",
-							},
+							}.Build(),
 						}
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
@@ -1487,14 +1487,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:output",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "generate",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -1594,7 +1594,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:create_symlink",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "passwd",
 						}
 					}),
@@ -1620,14 +1620,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:passwd",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "create_symlink",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,
@@ -1705,7 +1705,7 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
 						Label:               "@@myrepo+//:create_symlink",
-						Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
 					}
 				}),
@@ -1713,9 +1713,9 @@ func TestFileRoot(t *testing.T) {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
 						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-							Target: &model_starlark_pb.File{
+							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
-							},
+							}.Build(),
 						}},
 					},
 				}
@@ -1724,9 +1724,9 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
-						},
+						}.Build(),
 					}
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
@@ -1753,14 +1753,14 @@ func TestFileRoot(t *testing.T) {
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
-							Owner: &model_starlark_pb.File_Owner{
-								Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Owner: model_starlark_pb.File_Owner_builder{
+								Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								TargetName: "create_symlink",
 								Type:       model_starlark_pb.File_Owner_DIRECTORY,
-							},
-						},
+							}.Build(),
+						}.Build(),
 					}
 				}),
 				e,
@@ -1780,7 +1780,7 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
 						Label:               "@@myrepo+//:create_symlink",
-						Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
 					}
 				}),
@@ -1788,9 +1788,9 @@ func TestFileRoot(t *testing.T) {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
 						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-							Target: &model_starlark_pb.File{
+							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
-							},
+							}.Build(),
 						}},
 					},
 				}
@@ -1799,9 +1799,9 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
-						},
+						}.Build(),
 					}
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
@@ -1824,14 +1824,14 @@ func TestFileRoot(t *testing.T) {
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
-							Owner: &model_starlark_pb.File_Owner{
-								Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Owner: model_starlark_pb.File_Owner_builder{
+								Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								TargetName: "create_symlink",
 								Type:       model_starlark_pb.File_Owner_FILE,
-							},
-						},
+							}.Build(),
+						}.Build(),
 					}
 				}),
 				e,
@@ -1851,7 +1851,7 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 					return &model_analysis_pb.TargetOutput_Key{
 						Label:               "@@myrepo+//:create_symlink",
-						Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+						Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 						PackageRelativePath: "b",
 					}
 				}),
@@ -1859,9 +1859,9 @@ func TestFileRoot(t *testing.T) {
 				return &model_analysis_pb.TargetOutput_Value{
 					Definition: &model_analysis_pb.TargetOutputDefinition{
 						Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-							Target: &model_starlark_pb.File{
+							Target: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
-							},
+							}.Build(),
 							IsExecutable: true,
 						}},
 					},
@@ -1871,9 +1871,9 @@ func TestFileRoot(t *testing.T) {
 				eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:a",
-						},
+						}.Build(),
 					}
 				}),
 			).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
@@ -1900,14 +1900,14 @@ func TestFileRoot(t *testing.T) {
 				newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 					return &model_analysis_pb.FileRoot_Key{
 						DirectoryLayout: model_analysis_pb.DirectoryLayout_INPUT_ROOT,
-						File: &model_starlark_pb.File{
+						File: model_starlark_pb.File_builder{
 							Label: "@@myrepo+//:b",
-							Owner: &model_starlark_pb.File_Owner{
-								Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Owner: model_starlark_pb.File_Owner_builder{
+								Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 								TargetName: "create_symlink",
 								Type:       model_starlark_pb.File_Owner_FILE,
-							},
-						},
+							}.Build(),
+						}.Build(),
 					}
 				}),
 				e,
@@ -1932,7 +1932,7 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.TargetOutput_Key {
 						return &model_analysis_pb.TargetOutput_Key{
 							Label:               "@@myrepo+//:create_symlink",
-							Variant:             &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+							Variant:             model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 							PackageRelativePath: "b",
 						}
 					}),
@@ -1940,9 +1940,9 @@ func TestFileRoot(t *testing.T) {
 					return &model_analysis_pb.TargetOutput_Value{
 						Definition: &model_analysis_pb.TargetOutputDefinition{
 							Source: &model_analysis_pb.TargetOutputDefinition_Symlink_{Symlink: &model_analysis_pb.TargetOutputDefinition_Symlink{
-								Target: &model_starlark_pb.File{
+								Target: model_starlark_pb.File_builder{
 									Label: "@@myrepo+//:a",
-								},
+								}.Build(),
 							}},
 						},
 					}
@@ -1951,9 +1951,9 @@ func TestFileRoot(t *testing.T) {
 					eqPatchedMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:a",
-							},
+							}.Build(),
 						}
 					}),
 				).Return(newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Value {
@@ -1967,14 +1967,14 @@ func TestFileRoot(t *testing.T) {
 					newMessage(func(patcher *model_core.ReferenceMessagePatcher[model_core.CreatedObjectTree]) *model_analysis_pb.FileRoot_Key {
 						return &model_analysis_pb.FileRoot_Key{
 							DirectoryLayout: directoryLayout,
-							File: &model_starlark_pb.File{
+							File: model_starlark_pb.File_builder{
 								Label: "@@myrepo+//:b",
-								Owner: &model_starlark_pb.File_Owner{
-									Variant:    &model_starlark_pb.TargetVariant{ConfigurationReference: attachObject(patcher, exampleConfiguration)},
+								Owner: model_starlark_pb.File_Owner_builder{
+									Variant:    model_starlark_pb.TargetVariant_builder{ConfigurationReference: attachObject(patcher, exampleConfiguration)}.Build(),
 									TargetName: "create_symlink",
 									Type:       model_starlark_pb.File_Owner_FILE,
-								},
-							},
+								}.Build(),
+							}.Build(),
 						}
 					}),
 					e,

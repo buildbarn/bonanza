@@ -17,6 +17,8 @@ import (
 	model_parser "bonanza.build/pkg/model/parser"
 	model_starlark_pb "bonanza.build/pkg/proto/model/starlark"
 	"bonanza.build/pkg/storage/object"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // packageGroupNode is a simplified representation of the
@@ -74,15 +76,13 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context
 	inlineCandidates = append(inlineCandidates, inlinedtree.AlwaysInline(
 		model_core.NewReferenceMessagePatcher[TMetadata](),
 		func(subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]) {
-			subpackages.Message.IncludeSubpackages = n.includeSubpackages
+			subpackages.Message.SetIncludeSubpackages(n.includeSubpackages)
 		},
 	))
 
 	// If one or more subpackages are present, set the overrides field.
 	if len(n.subpackages) > 0 {
-		overrides := model_starlark_pb.PackageGroup_Subpackages_Overrides{
-			Packages: make([]*model_starlark_pb.PackageGroup_Package, 0, len(n.subpackages)),
-		}
+		packages := make([]*model_starlark_pb.PackageGroup_Package, 0, len(n.subpackages))
 		patcher := model_core.NewReferenceMessagePatcher[TMetadata]()
 		for _, component := range slices.Sorted(maps.Keys(n.subpackages)) {
 			nChild := n.subpackages[component]
@@ -90,29 +90,28 @@ func packageGroupNodeToProto[TMetadata model_core.ReferenceMetadata](ctx context
 			if err != nil {
 				return model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{}, err
 			}
-			overrides.Packages = append(overrides.Packages, &model_starlark_pb.PackageGroup_Package{
+			packages = append(packages, model_starlark_pb.PackageGroup_Package_builder{
 				Component:      component,
 				IncludePackage: nChild.includePackage,
 				Subpackages:    subpackages.Message,
-			})
+			}.Build())
 			patcher.Merge(subpackages.Patcher)
 		}
+		overrides := model_starlark_pb.PackageGroup_Subpackages_Overrides_builder{
+			Packages: packages,
+		}.Build()
 
 		inlineCandidates = append(inlineCandidates, inlinedtree.Candidate[*model_starlark_pb.PackageGroup_Subpackages, TMetadata]{
-			ExternalMessage: model_core.NewPatchedMessage(model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(&overrides), patcher),
+			ExternalMessage: model_core.NewPatchedMessage(model_format.NewProto[model_starlark_pb.PackageGroup_Subpackages_Overrides]().NewMarshaler(overrides), patcher),
 			Encoder:         encoder,
 			ParentAppender: inlinedtree.Capturing(ctx, objectCapturer, func(
 				subpackages model_core.PatchedMessage[*model_starlark_pb.PackageGroup_Subpackages, TMetadata],
 				externalObject *model_core.Decodable[model_core.MetadataEntry[TMetadata]],
 			) {
 				if externalObject == nil {
-					subpackages.Message.Overrides = &model_starlark_pb.PackageGroup_Subpackages_OverridesInline{
-						OverridesInline: &overrides,
-					}
+					subpackages.Message.SetOverridesInline(overrides)
 				} else {
-					subpackages.Message.Overrides = &model_starlark_pb.PackageGroup_Subpackages_OverridesExternal{
-						OverridesExternal: subpackages.Patcher.AddDecodableReference(*externalObject),
-					}
+					subpackages.Message.SetOverridesExternal(proto.ValueOrDefault(subpackages.Patcher.AddDecodableReference(*externalObject)))
 				}
 			}),
 		})
@@ -154,18 +153,18 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx c
 				if len(visibility) > 1 {
 					return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, errors.New("//visibility:private may not be combined with other labels")
 				}
-				return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.PackageGroup{
+				return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.PackageGroup_builder{
 					Tree: &model_starlark_pb.PackageGroup_Subpackages{},
-				}), nil
+				}.Build()), nil
 			case "public":
 				if len(visibility) > 1 {
 					return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, errors.New("//visibility:public may not be combined with other labels")
 				}
-				return model_core.NewSimplePatchedMessage[TMetadata](&model_starlark_pb.PackageGroup{
-					Tree: &model_starlark_pb.PackageGroup_Subpackages{
+				return model_core.NewSimplePatchedMessage[TMetadata](model_starlark_pb.PackageGroup_builder{
+					Tree: model_starlark_pb.PackageGroup_Subpackages_builder{
 						IncludeSubpackages: true,
-					},
-				}), nil
+					}.Build(),
+				}.Build()), nil
 			}
 		}
 
@@ -197,10 +196,10 @@ func NewPackageGroupFromVisibility[TMetadata model_core.ReferenceMetadata](ctx c
 
 	sort.Strings(includePackageGroups)
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.PackageGroup{
+		model_starlark_pb.PackageGroup_builder{
 			Tree:                 treeProto.Message,
 			IncludePackageGroups: slices.Compact(includePackageGroups),
-		},
+		}.Build(),
 		treeProto.Patcher,
 	), nil
 }
@@ -221,27 +220,27 @@ func decodePackageGroupNode[TReference any](
 	}
 
 	var overrides model_core.Message[*model_starlark_pb.PackageGroup_Subpackages_Overrides, TReference]
-	switch o := subpackages.Message.GetOverrides().(type) {
-	case *model_starlark_pb.PackageGroup_Subpackages_OverridesInline:
-		overrides = model_core.Nested(subpackages, o.OverridesInline)
-	case *model_starlark_pb.PackageGroup_Subpackages_OverridesExternal:
+	switch subpackages.Message.WhichOverrides() {
+	case model_starlark_pb.PackageGroup_Subpackages_OverridesInline_case:
+		overrides = model_core.Nested(subpackages, subpackages.Message.GetOverridesInline())
+	case model_starlark_pb.PackageGroup_Subpackages_OverridesExternal_case:
 		var err error
-		overrides, err = model_parser.Dereference(ctx, overridesReader, model_core.Nested(subpackages, o.OverridesExternal))
+		overrides, err = model_parser.Dereference(ctx, overridesReader, model_core.Nested(subpackages, subpackages.Message.GetOverridesExternal()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to load overrides: %w", err)
 		}
-	case nil:
+	case 0:
 		return n, nil
 	default:
 		return nil, errors.New("invalid overrides type")
 	}
 
-	for _, p := range overrides.Message.Packages {
-		child, err := decodePackageGroupNode(ctx, overridesReader, model_core.Nested(overrides, p.Subpackages), p.IncludePackage)
+	for _, p := range overrides.Message.GetPackages() {
+		child, err := decodePackageGroupNode(ctx, overridesReader, model_core.Nested(overrides, p.GetSubpackages()), p.GetIncludePackage())
 		if err != nil {
-			return nil, fmt.Errorf("package %#v: %w", p.Component, err)
+			return nil, fmt.Errorf("package %#v: %w", p.GetComponent(), err)
 		}
-		n.subpackages[p.Component] = child
+		n.subpackages[p.GetComponent()] = child
 	}
 	return n, nil
 }
@@ -278,10 +277,10 @@ func AddPackageToPackageGroup[TReference object.BasicReference, TMetadata model_
 		return model_core.PatchedMessage[*model_starlark_pb.PackageGroup, TMetadata]{}, err
 	}
 	return model_core.NewPatchedMessage(
-		&model_starlark_pb.PackageGroup{
+		model_starlark_pb.PackageGroup_builder{
 			Tree:                 treeProto.Message,
 			IncludePackageGroups: packageGroup.Message.GetIncludePackageGroups(),
-		},
+		}.Build(),
 		treeProto.Patcher,
 	), nil
 }

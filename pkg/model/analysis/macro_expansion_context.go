@@ -18,7 +18,8 @@ import (
 func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ctx context.Context, key *model_analysis_pb.MacroExpansionContext_Key, e MacroExpansionContextEnvironment[TReference, TMetadata]) (PatchedMacroExpansionContextValue[TMetadata], error) {
 	analysisReaders, gotAnalysisReaders := getAnalysisReaders(e)
 
-	if len(key.MacroInstanceName) == 0 {
+	macroInstanceName := key.GetMacroInstanceName()
+	if len(macroInstanceName) == 0 {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, errors.New("no macro instance name provided")
 	}
 
@@ -28,23 +29,23 @@ func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ct
 	// only the last element of the macro instance name needs to be
 	// compared.
 	parentValue := e.GetPackageValue(&model_analysis_pb.Package_Key{
-		Label:             key.Package,
-		MacroInstanceName: key.MacroInstanceName[:len(key.MacroInstanceName)-1],
+		Label:             key.GetPackage(),
+		MacroInstanceName: macroInstanceName[:len(macroInstanceName)-1],
 	})
 	if !parentValue.IsSet() || !gotAnalysisReaders {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	nameSuffix := key.MacroInstanceName[len(key.MacroInstanceName)-1]
+	nameSuffix := macroInstanceName[len(macroInstanceName)-1]
 	macroExpansionContext, err := btree.Find(
 		ctx,
 		analysisReaders.MacroExpansionContextEntry,
-		model_core.Nested(parentValue, parentValue.Message.MacroExpansionContexts),
+		model_core.Nested(parentValue, parentValue.Message.GetMacroExpansionContexts()),
 		func(entry model_core.Message[*model_starlark_pb.MacroExpansionContext_Entry, TReference]) (int, *model_core_pb.DecodableReference) {
-			switch level := entry.Message.Level.(type) {
-			case *model_starlark_pb.MacroExpansionContext_Entry_Leaf:
-				return model_starlark.CompareMacroInstanceNames(nameSuffix, level.Leaf.NameSuffix), nil
-			case *model_starlark_pb.MacroExpansionContext_Entry_Parent_:
-				return model_starlark.CompareMacroInstanceNames(nameSuffix, level.Parent.FirstNameSuffix), level.Parent.Reference
+			switch entry.Message.WhichLevel() {
+			case model_starlark_pb.MacroExpansionContext_Entry_Leaf_case:
+				return model_starlark.CompareMacroInstanceNames(nameSuffix, entry.Message.GetLeaf().GetNameSuffix()), nil
+			case model_starlark_pb.MacroExpansionContext_Entry_Parent_case:
+				return model_starlark.CompareMacroInstanceNames(nameSuffix, entry.Message.GetParent().GetFirstNameSuffix()), entry.Message.GetParent().GetReference()
 			default:
 				return 0, nil
 			}
@@ -53,14 +54,14 @@ func (*baseComputer[TReference, TMetadata]) ComputeMacroExpansionContextValue(ct
 	if err != nil {
 		return PatchedMacroExpansionContextValue[TMetadata]{}, err
 	}
-	level, ok := macroExpansionContext.Message.GetLevel().(*model_starlark_pb.MacroExpansionContext_Entry_Leaf)
-	if !ok {
-		return PatchedMacroExpansionContextValue[TMetadata]{}, fmt.Errorf("macro instance %#v does not exist", strings.Join(key.MacroInstanceName, ""))
+	level := macroExpansionContext.Message.GetLeaf()
+	if level == nil {
+		return PatchedMacroExpansionContextValue[TMetadata]{}, fmt.Errorf("macro instance %#v does not exist", strings.Join(macroInstanceName, ""))
 	}
 	return model_core.Patch(
 		e,
 		model_core.Nested(macroExpansionContext, &model_analysis_pb.MacroExpansionContext_Value{
-			Definition: level.Leaf.Definition,
+			Definition: level.GetDefinition(),
 		}),
 	), nil
 }
