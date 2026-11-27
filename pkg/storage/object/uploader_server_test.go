@@ -13,7 +13,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -31,16 +30,16 @@ func TestUploaderServer(t *testing.T) {
 		object.NewWatermark(clock, time.Minute, []byte("incarnation"), []byte("hash"), func() {}),
 		func() (time.Time, time.Time) { return time.Unix(1700000000, 0), time.Unix(1700001000, 0) },
 	)
-	leaseValidationContext := &object_pb.LeaseValidationContext{
-		Watermark: &object_pb.Watermark{
+	leaseValidationContext := object_pb.LeaseValidationContext_builder{
+		Watermark: object_pb.Watermark_builder{
 			ObtainedAt: &timestamppb.Timestamp{Seconds: 1700001000},
-		},
+		}.Build(),
 		IncarnationsHash:    []byte("hash"),
 		ExpectedIncarnation: []byte("incarnation"),
-	}
+	}.Build()
 
 	t.Run("InvalidNamespace", func(t *testing.T) {
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
 			Reference: []byte{
 				// SHA-256 hash.
@@ -57,17 +56,17 @@ func TestUploaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid namespace: No message provided"), err)
 	})
 
 	t.Run("InvalidReference", func(t *testing.T) {
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x59, 0x6b, 0x9a, 0x92, 0x27, 0xec, 0xbe, 0xd4,
@@ -83,17 +82,17 @@ func TestUploaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid reference: Degree is 0 and height is 1, while both either have to be zero or non-zero"), err)
 	})
 
 	t.Run("InvalidContents", func(t *testing.T) {
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x0d, 0x85, 0x7e, 0x7a, 0xfd, 0xe4, 0x4e, 0x5c,
@@ -110,17 +109,17 @@ func TestUploaderServer(t *testing.T) {
 				0x00, 0x00,
 			},
 			Contents: []byte("Hello"),
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid object contents: Data has SHA-256 hash 185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969, while 0d857e7afde44e5c401d510ee25302a0f7d09dc725ff684231c9587c79eb1f5b was expected"), err)
 	})
 
 	t.Run("InvalidLeasesCount", func(t *testing.T) {
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xba, 0xec, 0x0e, 0xab, 0x58, 0x9d, 0x71, 0xd8,
@@ -140,7 +139,7 @@ func TestUploaderServer(t *testing.T) {
 				nil,
 				{1, 2, 3},
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Client provided 2 leases, even though the object has a degree of 12"), err)
 	})
 
@@ -149,12 +148,12 @@ func TestUploaderServer(t *testing.T) {
 		// object's contents as part of UploadObject(), and at
 		// the same time ask for a copy of the contents when the
 		// object is incomplete. This only wastes bandwidth.
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x8b, 0x5a, 0xaa, 0xd9, 0x0e, 0x51, 0x1b, 0x29,
@@ -189,7 +188,7 @@ func TestUploaderServer(t *testing.T) {
 				0x48, 0x65, 0x6c, 0x6c, 0x6f,
 			},
 			WantContentsIfIncomplete: true,
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Client requested the object's contents, even though it is already in possession of them"), err)
 	})
 
@@ -198,12 +197,12 @@ func TestUploaderServer(t *testing.T) {
 		// go into an incomplete state, as they don't depend on
 		// any leases. This means that setting
 		// want_contents_if_incomplete is meaningless.
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x47, 0x9a, 0x9e, 0x91, 0x76, 0x71, 0x22, 0x06,
@@ -220,7 +219,7 @@ func TestUploaderServer(t *testing.T) {
 				0x00, 0x00,
 			},
 			WantContentsIfIncomplete: true,
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Client requested the object's contents, even though the object does not have any outgoing references"), err)
 	})
 
@@ -238,12 +237,12 @@ func TestUploaderServer(t *testing.T) {
 			Lease: []byte{7, 8, 9},
 		}, nil)
 
-		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		response, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x86, 0x93, 0xe4, 0x33, 0xb9, 0x85, 0xca, 0xef,
@@ -263,15 +262,13 @@ func TestUploaderServer(t *testing.T) {
 				{1, 2, 3},
 				{4, 5, 6},
 			},
-		})
+		}.Build())
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Complete_{
-				Complete: &object_pb.UploadObjectResponse_Complete{
-					Lease: []byte{7, 8, 9},
-				},
-			},
-		}, response)
+		testutil.RequireEqualProto(t, object_pb.UploadObjectResponse_builder{
+			Complete: object_pb.UploadObjectResponse_Complete_builder{
+				Lease: []byte{7, 8, 9},
+			}.Build(),
+		}.Build(), response)
 	})
 
 	t.Run("SuccessIncompleteWithoutContents", func(t *testing.T) {
@@ -285,12 +282,12 @@ func TestUploaderServer(t *testing.T) {
 			WantOutgoingReferencesLeases: []int{0, 1},
 		}, nil)
 
-		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		response, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x20, 0x46, 0xe1, 0x3f, 0xaa, 0x09, 0xce, 0xb3,
@@ -306,15 +303,13 @@ func TestUploaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x01,
 			},
-		})
+		}.Build())
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					WantOutgoingReferencesLeases: []uint32{0, 1},
-				},
-			},
-		}, response)
+		testutil.RequireEqualProto(t, object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				WantOutgoingReferencesLeases: []uint32{0, 1},
+			}.Build(),
+		}.Build(), response)
 	})
 
 	t.Run("SuccessIncompleteWithContents", func(t *testing.T) {
@@ -335,12 +330,12 @@ func TestUploaderServer(t *testing.T) {
 			),
 		}, nil)
 
-		response, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		response, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x78, 0x46, 0x4d, 0x06, 0xcd, 0x7f, 0xa7, 0x08,
@@ -357,33 +352,31 @@ func TestUploaderServer(t *testing.T) {
 				0x00, 0x00,
 			},
 			WantContentsIfIncomplete: true,
-		})
+		}.Build())
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					Contents: []byte{
-						// SHA-256 hash.
-						0x41, 0xb1, 0x61, 0x20, 0xa7, 0xfd, 0x00, 0x40,
-						0x8e, 0x2a, 0x13, 0x3f, 0xe2, 0x9e, 0x87, 0x8e,
-						0x51, 0x0b, 0x48, 0xae, 0xcb, 0x0e, 0xa1, 0xed,
-						0xad, 0xd0, 0x25, 0x88, 0xd9, 0xbf, 0x4c, 0x04,
-						// Size in bytes.
-						0xb4, 0x25, 0x00,
-						// Height.
-						0x00,
-						// Degree.
-						0x00, 0x00,
-						// Maximum parents total size in bytes.
-						0x00, 0x00,
+		testutil.RequireEqualProto(t, object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				Contents: []byte{
+					// SHA-256 hash.
+					0x41, 0xb1, 0x61, 0x20, 0xa7, 0xfd, 0x00, 0x40,
+					0x8e, 0x2a, 0x13, 0x3f, 0xe2, 0x9e, 0x87, 0x8e,
+					0x51, 0x0b, 0x48, 0xae, 0xcb, 0x0e, 0xa1, 0xed,
+					0xad, 0xd0, 0x25, 0x88, 0xd9, 0xbf, 0x4c, 0x04,
+					// Size in bytes.
+					0xb4, 0x25, 0x00,
+					// Height.
+					0x00,
+					// Degree.
+					0x00, 0x00,
+					// Maximum parents total size in bytes.
+					0x00, 0x00,
 
-						// Payload.
-						0x48, 0x65, 0x6c, 0x6c, 0x6f,
-					},
-					WantOutgoingReferencesLeases: []uint32{0},
+					// Payload.
+					0x48, 0x65, 0x6c, 0x6c, 0x6f,
 				},
-			},
-		}, response)
+				WantOutgoingReferencesLeases: []uint32{0},
+			}.Build(),
+		}.Build(), response)
 	})
 
 	t.Run("SuccessMissing", func(t *testing.T) {
@@ -398,12 +391,12 @@ func TestUploaderServer(t *testing.T) {
 			/* wantContentsIfIncomplete = */ false,
 		).Return(object.UploadObjectMissing[[]byte]{}, nil)
 
-		_, err := server.UploadObject(ctx, &object_pb.UploadObjectRequest{
+		_, err := server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
 			LeaseValidationContext: leaseValidationContext,
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xa9, 0x66, 0xf3, 0x95, 0x98, 0xfc, 0x9a, 0x54,
@@ -419,7 +412,7 @@ func TestUploaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.NotFound, "Object not found"), err)
 	})
 }
@@ -439,56 +432,56 @@ func TestUploaderServerWatermark(t *testing.T) {
 
 		response, err := server.GetWatermark(ctx, &emptypb.Empty{})
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &object_pb.GetWatermarkResponse{
-			Watermark: &object_pb.Watermark{
+		testutil.RequireEqualProto(t, object_pb.GetWatermarkResponse_builder{
+			Watermark: object_pb.Watermark_builder{
 				Watermark:  &timestamppb.Timestamp{Seconds: 1700000000},
 				ObtainedAt: &timestamppb.Timestamp{Seconds: 1700001000},
-			},
+			}.Build(),
 			Incarnation: []byte("incarnation"),
-		}, response)
+		}.Build(), response)
 
 		// Requests without a lease validation context, or
 		// intended for another incarnation, should be rejected.
 		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{})
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid lease validation context: No lease validation context provided"), err)
-		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			LeaseValidationContext: &object_pb.LeaseValidationContext{
-				Watermark: &object_pb.Watermark{
+		_, err = server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
+			LeaseValidationContext: object_pb.LeaseValidationContext_builder{
+				Watermark: object_pb.Watermark_builder{
 					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
-				},
+				}.Build(),
 				IncarnationsHash:    []byte("hash"),
 				ExpectedIncarnation: []byte("other"),
-			},
-		})
+			}.Build(),
+		}.Build())
 		require.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 		// The cluster watermark provided by clients should be
 		// tracked, even if the request is invalid otherwise.
-		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			LeaseValidationContext: &object_pb.LeaseValidationContext{
-				Watermark: &object_pb.Watermark{
+		_, err = server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
+			LeaseValidationContext: object_pb.LeaseValidationContext_builder{
+				Watermark: object_pb.Watermark_builder{
 					Watermark:  &timestamppb.Timestamp{Seconds: 1700000500},
 					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000990},
-				},
+				}.Build(),
 				IncarnationsHash:    []byte("hash"),
 				ExpectedIncarnation: []byte("incarnation"),
-			},
-		})
+			}.Build(),
+		}.Build())
 		require.Error(t, err)
 		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
 
 		// Cluster watermarks that are too old should cause
 		// requests to be rejected.
-		_, err = server.UploadObject(ctx, &object_pb.UploadObjectRequest{
-			LeaseValidationContext: &object_pb.LeaseValidationContext{
-				Watermark: &object_pb.Watermark{
+		_, err = server.UploadObject(ctx, object_pb.UploadObjectRequest_builder{
+			LeaseValidationContext: object_pb.LeaseValidationContext_builder{
+				Watermark: object_pb.Watermark_builder{
 					Watermark:  &timestamppb.Timestamp{Seconds: 1700000900},
 					ObtainedAt: &timestamppb.Timestamp{Seconds: 1700000939},
-				},
+				}.Build(),
 				IncarnationsHash:    []byte("hash"),
 				ExpectedIncarnation: []byte("incarnation"),
-			},
-		})
+			}.Build(),
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.Unavailable, "Invalid lease validation context: Watermark of the cluster was obtained 1m1s ago, which exceeds the maximum permitted age of 1m0s, meaning data may have been lost in the meantime"), err)
 		require.Equal(t, time.Unix(1700000500, 0), clusterWatermark.Get())
 	})

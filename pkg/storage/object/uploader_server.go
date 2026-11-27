@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -37,32 +38,32 @@ func NewUploaderServer(uploader Uploader[GlobalReference, []byte], clusterWaterm
 }
 
 func (s *uploaderServer) UploadObject(ctx context.Context, request *object.UploadObjectRequest) (*object.UploadObjectResponse, error) {
-	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.LeaseValidationContext); err != nil {
+	if err := s.clusterWatermark.ProcessLeaseValidationContext(request.GetLeaseValidationContext()); err != nil {
 		return nil, util.StatusWrap(err, "Invalid lease validation context")
 	}
 
-	namespace, err := NewNamespace(request.Namespace)
+	namespace, err := NewNamespace(request.GetNamespace())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")
 	}
-	reference, err := namespace.NewGlobalReference(request.Reference)
+	reference, err := namespace.NewGlobalReference(request.GetReference())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid reference")
 	}
 	var contents *Contents
-	if len(request.Contents) > 0 {
-		contents, err = NewContentsFromFullData(reference.LocalReference, request.Contents)
+	if data := request.GetContents(); len(data) > 0 {
+		contents, err = NewContentsFromFullData(reference.LocalReference, data)
 		if err != nil {
 			return nil, util.StatusWrap(err, "Invalid object contents")
 		}
 	}
 
 	degree := reference.GetDegree()
-	if l := len(request.OutgoingReferencesLeases); l != 0 && l != degree {
+	if l := len(request.GetOutgoingReferencesLeases()); l != 0 && l != degree {
 		return nil, status.Errorf(codes.InvalidArgument, "Client provided %d leases, even though the object has a degree of %d", l, degree)
 	}
 
-	if request.WantContentsIfIncomplete {
+	if request.GetWantContentsIfIncomplete() {
 		if contents != nil {
 			return nil, status.Error(codes.InvalidArgument, "Client requested the object's contents, even though it is already in possession of them")
 		}
@@ -75,8 +76,8 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 		ctx,
 		reference,
 		contents,
-		request.OutgoingReferencesLeases,
-		request.WantContentsIfIncomplete,
+		request.GetOutgoingReferencesLeases(),
+		request.GetWantContentsIfIncomplete(),
 	)
 	if err != nil {
 		return nil, err
@@ -84,13 +85,11 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 
 	switch resultData := result.(type) {
 	case UploadObjectComplete[[]byte]:
-		return &object.UploadObjectResponse{
-			Type: &object.UploadObjectResponse_Complete_{
-				Complete: &object.UploadObjectResponse_Complete{
-					Lease: resultData.Lease,
-				},
-			},
-		}, nil
+		uc := &object.UploadObjectResponse_Complete{}
+		uc.SetLease(resultData.Lease)
+		uor := &object.UploadObjectResponse{}
+		uor.SetComplete(proto.ValueOrDefault(uc))
+		return uor, nil
 	case UploadObjectIncomplete[[]byte]:
 		var contents []byte
 		if resultData.Contents != nil {
@@ -100,14 +99,12 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 		for _, lease := range resultData.WantOutgoingReferencesLeases {
 			wantLeases = append(wantLeases, uint32(lease))
 		}
-		return &object.UploadObjectResponse{
-			Type: &object.UploadObjectResponse_Incomplete_{
-				Incomplete: &object.UploadObjectResponse_Incomplete{
-					Contents:                     contents,
-					WantOutgoingReferencesLeases: wantLeases,
-				},
-			},
-		}, nil
+		ui := &object.UploadObjectResponse_Incomplete{}
+		ui.SetContents(contents)
+		ui.SetWantOutgoingReferencesLeases(wantLeases)
+		uor := &object.UploadObjectResponse{}
+		uor.SetIncomplete(proto.ValueOrDefault(ui))
+		return uor, nil
 	case UploadObjectMissing[[]byte]:
 		return nil, status.Error(codes.NotFound, "Object not found")
 	default:
@@ -117,14 +114,14 @@ func (s *uploaderServer) UploadObject(ctx context.Context, request *object.Uploa
 
 func (s *uploaderServer) GetWatermark(ctx context.Context, request *emptypb.Empty) (*object.GetWatermarkResponse, error) {
 	watermark, obtainedAt := s.getWatermark()
-	response := &object.Watermark{
+	response := object.Watermark_builder{
 		ObtainedAt: timestamppb.New(obtainedAt),
-	}
+	}.Build()
 	if !watermark.IsZero() {
-		response.Watermark = timestamppb.New(watermark)
+		response.SetWatermark(timestamppb.New(watermark))
 	}
-	return &object.GetWatermarkResponse{
+	return object.GetWatermarkResponse_builder{
 		Watermark:   response,
 		Incarnation: s.clusterWatermark.GetIncarnation(),
-	}, nil
+	}.Build(), nil
 }

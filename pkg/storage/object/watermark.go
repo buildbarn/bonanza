@@ -186,20 +186,20 @@ func (w *Watermark) ProcessLeaseValidationContext(m *object_pb.LeaseValidationCo
 	if m == nil {
 		return status.Error(codes.InvalidArgument, "No lease validation context provided")
 	}
-	if !bytes.Equal(m.ExpectedIncarnation, w.incarnation) {
-		return status.Errorf(codes.FailedPrecondition, "Request was intended for incarnation %x of the storage server, while its current incarnation is %x", m.ExpectedIncarnation, w.incarnation)
+	if !bytes.Equal(m.GetExpectedIncarnation(), w.incarnation) {
+		return status.Errorf(codes.FailedPrecondition, "Request was intended for incarnation %x of the storage server, while its current incarnation is %x", m.GetExpectedIncarnation(), w.incarnation)
 	}
 
-	watermark := m.Watermark
+	watermark := m.GetWatermark()
 	if err := watermark.GetObtainedAt().CheckValid(); err != nil {
 		return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid time at which the watermark was obtained")
 	}
 	now := w.clock.Now()
-	if age := now.Sub(watermark.ObtainedAt.AsTime()); age > w.maximumAge {
+	if age := now.Sub(watermark.GetObtainedAt().AsTime()); age > w.maximumAge {
 		return status.Errorf(codes.Unavailable, "Watermark of the cluster was obtained %s ago, which exceeds the maximum permitted age of %s, meaning data may have been lost in the meantime", age, w.maximumAge)
 	}
-	if watermark.Watermark != nil {
-		if err := watermark.Watermark.CheckValid(); err != nil {
+	if watermarkWatermark := watermark.GetWatermark(); watermarkWatermark != nil {
+		if err := watermarkWatermark.CheckValid(); err != nil {
 			return util.StatusWrapWithCode(err, codes.InvalidArgument, "Invalid watermark")
 		}
 	}
@@ -212,18 +212,18 @@ func (w *Watermark) ProcessLeaseValidationContext(m *object_pb.LeaseValidationCo
 	// Only update the last incarnations hash afterwards, so that
 	// requests observing the new value without acquiring the lock
 	// can proceed safely.
-	if !bytes.Equal(m.IncarnationsHash, *w.lastIncarnationsHash.Load()) {
+	if !bytes.Equal(m.GetIncarnationsHash(), *w.lastIncarnationsHash.Load()) {
 		w.invalidationLock.Lock()
-		if !bytes.Equal(m.IncarnationsHash, *w.lastIncarnationsHash.Load()) {
+		if !bytes.Equal(m.GetIncarnationsHash(), *w.lastIncarnationsHash.Load()) {
 			w.invalidateLeases()
-			newIncarnationsHash := bytes.Clone(m.IncarnationsHash)
+			newIncarnationsHash := bytes.Clone(m.GetIncarnationsHash())
 			w.lastIncarnationsHash.Store(&newIncarnationsHash)
 		}
 		w.invalidationLock.Unlock()
 	}
 
-	if watermark.Watermark != nil {
-		w.Raise(watermark.Watermark.AsTime())
+	if watermark2 := watermark.GetWatermark(); watermark2 != nil {
+		w.Raise(watermark2.AsTime())
 	}
 	return nil
 }

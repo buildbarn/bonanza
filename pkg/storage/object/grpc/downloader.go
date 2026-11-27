@@ -24,14 +24,14 @@ func NewDownloader(client object_pb.DownloaderClient) object.Downloader[object.G
 }
 
 func (d *downloader) DownloadObject(ctx context.Context, reference object.GlobalReference) (*object.Contents, error) {
-	response, err := d.client.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
+	response, err := d.client.DownloadObject(ctx, object_pb.DownloadObjectRequest_builder{
 		Namespace: reference.GetNamespace().ToProto(),
 		Reference: reference.GetRawReference(),
-	})
+	}.Build())
 	if err != nil {
 		return nil, err
 	}
-	contents, err := object.NewContentsFromFullData(reference.LocalReference, response.Contents)
+	contents, err := object.NewContentsFromFullData(reference.LocalReference, response.GetContents())
 	if err != nil {
 		return nil, util.StatusWrapWithCode(err, codes.Internal, "Server returned invalid object contents")
 	}

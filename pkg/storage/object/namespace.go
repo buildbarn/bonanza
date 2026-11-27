@@ -25,11 +25,11 @@ func NewNamespace(namespaceMessage *object.Namespace) (Namespace, error) {
 	if namespaceMessage == nil {
 		return Namespace{}, status.Error(codes.InvalidArgument, "No message provided")
 	}
-	instanceName, err := NewInstanceName(namespaceMessage.InstanceName)
+	instanceName, err := NewInstanceName(namespaceMessage.GetInstanceName())
 	if err != nil {
-		return Namespace{}, util.StatusWrapf(err, "Invalid instance name %#v", namespaceMessage.InstanceName)
+		return Namespace{}, util.StatusWrapf(err, "Invalid instance name %#v", namespaceMessage.GetInstanceName())
 	}
-	referenceFormat, err := NewReferenceFormat(namespaceMessage.ReferenceFormat)
+	referenceFormat, err := NewReferenceFormat(namespaceMessage.GetReferenceFormat())
 	if err != nil {
 		return Namespace{}, util.StatusWrap(err, "Invalid reference format")
 	}
@@ -55,8 +55,8 @@ func (ns Namespace) NewGlobalReference(rawReference []byte) (GlobalReference, er
 // ToProto converts a Namespace to a Protobuf message, so that it may be
 // sent as part of a gRPC request.
 func (ns Namespace) ToProto() *object.Namespace {
-	return &object.Namespace{
+	return object.Namespace_builder{
 		InstanceName:    ns.InstanceName.value,
 		ReferenceFormat: ns.ReferenceFormat.ToProto(),
-	}
+	}.Build()
 }

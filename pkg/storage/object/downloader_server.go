@@ -22,11 +22,11 @@ func NewDownloaderServer(downloader Downloader[GlobalReference]) object.Download
 }
 
 func (s *downloaderServer) DownloadObject(ctx context.Context, request *object.DownloadObjectRequest) (*object.DownloadObjectResponse, error) {
-	namespace, err := NewNamespace(request.Namespace)
+	namespace, err := NewNamespace(request.GetNamespace())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid namespace")
 	}
-	reference, err := namespace.NewGlobalReference(request.Reference)
+	reference, err := namespace.NewGlobalReference(request.GetReference())
 	if err != nil {
 		return nil, util.StatusWrap(err, "Invalid reference")
 	}
@@ -34,7 +34,7 @@ func (s *downloaderServer) DownloadObject(ctx context.Context, request *object.D
 	if err != nil {
 		return nil, err
 	}
-	return &object.DownloadObjectResponse{
+	return object.DownloadObjectResponse_builder{
 		Contents: contents.GetFullData(),
-	}, nil
+	}.Build(), nil
 }

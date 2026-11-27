@@ -46,12 +46,12 @@ func (n *fakeNow) get() time.Time {
 // getIncarnationsHash computes the expected incarnations hash of a
 // cluster consisting of shards "a" (weight 1) and "b" (weight 2).
 func getIncarnationsHash(t *testing.T, incarnationA, incarnationB string) []byte {
-	data, err := proto.MarshalOptions{Deterministic: true}.Marshal(&object_pb.IncarnationsHashInput{
+	data, err := proto.MarshalOptions{Deterministic: true}.Marshal(object_pb.IncarnationsHashInput_builder{
 		Shards: []*object_pb.IncarnationsHashInput_Shard{
-			{Name: "a", Weight: 1, Incarnation: []byte(incarnationA)},
-			{Name: "b", Weight: 2, Incarnation: []byte(incarnationB)},
+			object_pb.IncarnationsHashInput_Shard_builder{Name: "a", Weight: 1, Incarnation: []byte(incarnationA)}.Build(),
+			object_pb.IncarnationsHashInput_Shard_builder{Name: "b", Weight: 2, Incarnation: []byte(incarnationB)}.Build(),
 		},
-	})
+	}.Build())
 	require.NoError(t, err)
 	hash := sha256.Sum256(data)
 	return hash[:]
@@ -100,13 +100,13 @@ func TestWatermarkPoller(t *testing.T) {
 	// it was obtained using their own clocks, which need not match
 	// the clock of the storage frontend.
 	getWatermarkResponse := func(watermark, obtainedAt int64, incarnation string) *object_pb.GetWatermarkResponse {
-		return &object_pb.GetWatermarkResponse{
-			Watermark: &object_pb.Watermark{
+		return object_pb.GetWatermarkResponse_builder{
+			Watermark: object_pb.Watermark_builder{
 				Watermark:  &timestamppb.Timestamp{Seconds: watermark},
 				ObtainedAt: &timestamppb.Timestamp{Seconds: obtainedAt},
-			},
+			}.Build(),
 			Incarnation: []byte(incarnation),
-		}
+		}.Build()
 	}
 	expectGetWatermark := func(client *MockUploaderClient, watermark, obtainedAt int64, incarnation string, err error) {
 		call := client.EXPECT().GetWatermark(gomock.Any(), testutil.EqProto(t, &emptypb.Empty{}))
@@ -127,14 +127,14 @@ func TestWatermarkPoller(t *testing.T) {
 		return timer, timerChannel, timerCreated
 	}
 	leaseValidationContext := func(watermark, obtainedAt int64, incarnationsHash []byte, expectedIncarnation string) *object_pb.LeaseValidationContext {
-		return &object_pb.LeaseValidationContext{
-			Watermark: &object_pb.Watermark{
+		return object_pb.LeaseValidationContext_builder{
+			Watermark: object_pb.Watermark_builder{
 				Watermark:  &timestamppb.Timestamp{Seconds: watermark},
 				ObtainedAt: &timestamppb.Timestamp{Seconds: obtainedAt},
-			},
+			}.Build(),
 			IncarnationsHash:    incarnationsHash,
 			ExpectedIncarnation: []byte(expectedIncarnation),
-		}
+		}.Build()
 	}
 	unavailable := status.Error(codes.Unavailable, "Server offline")
 	hash1 := getIncarnationsHash(t, "a1", "b1")

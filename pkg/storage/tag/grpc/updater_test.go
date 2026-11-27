@@ -32,10 +32,10 @@ func TestUpdater(t *testing.T) {
 	t.Run("BackendFailure", func(t *testing.T) {
 		// Errors reported by the backend should be propagated.
 		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, &tag_pb.UpdateTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.
@@ -133,10 +133,10 @@ func TestUpdater(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		client.EXPECT().UpdateTag(ctx, testutil.EqProto(t, &tag_pb.UpdateTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.

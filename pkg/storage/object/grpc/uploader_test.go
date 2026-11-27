@@ -27,11 +27,11 @@ func TestUploader(t *testing.T) {
 	t.Run("ServerFailure", func(t *testing.T) {
 		// Errors returned by the server should be propagated to
 		// the caller.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xcc, 0x18, 0xf9, 0xe7, 0x1e, 0xc1, 0x30, 0x1a,
@@ -68,7 +68,7 @@ func TestUploader(t *testing.T) {
 			OutgoingReferencesLeases: [][]byte{
 				{1, 2, 3},
 			},
-		})).Return(nil, status.Error(codes.Unavailable, "Server offline"))
+		}.Build())).Return(nil, status.Error(codes.Unavailable, "Server offline"))
 
 		contents := object.MustNewContents(
 			object_pb.ReferenceFormat_SHA256_V1,
@@ -93,11 +93,11 @@ func TestUploader(t *testing.T) {
 		// NOT_FOUND errors returned by the server should be
 		// translated to an UploadObjectResult of type
 		// UploadObjectMissing.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xcb, 0x04, 0x79, 0xff, 0x6f, 0xba, 0x85, 0xfc,
@@ -114,7 +114,7 @@ func TestUploader(t *testing.T) {
 				0x69, 0x47,
 			},
 			WantContentsIfIncomplete: true,
-		})).Return(nil, status.Error(codes.NotFound, "Object does not exist"))
+		}.Build())).Return(nil, status.Error(codes.NotFound, "Object does not exist"))
 
 		result, err := uploader.UploadObject(
 			ctx,
@@ -131,11 +131,11 @@ func TestUploader(t *testing.T) {
 		// If the client explicitly provided the contents of an
 		// object, the call to UploadObject() is not permitted
 		// to return UploadObjectMissing.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x18, 0x5f, 0x8d, 0xb3, 0x22, 0x71, 0xfe, 0x25,
@@ -152,7 +152,7 @@ func TestUploader(t *testing.T) {
 				0x00, 0x00,
 			},
 			Contents: []byte("Hello"),
-		})).Return(nil, status.Error(codes.NotFound, "Object does not exist"))
+		}.Build())).Return(nil, status.Error(codes.NotFound, "Object does not exist"))
 
 		contents := object.MustNewContents(
 			object_pb.ReferenceFormat_SHA256_V1,
@@ -173,11 +173,11 @@ func TestUploader(t *testing.T) {
 		// Default initialized instances of TLease are used to
 		// indicate an absence of a lease. This means that
 		// UploadObject() MUST NOT return an empty byte array.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xe7, 0xbc, 0x8c, 0x11, 0x9f, 0x96, 0xf2, 0x44,
@@ -193,11 +193,9 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Complete_{
-				Complete: &object_pb.UploadObjectResponse_Complete{},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Complete: &object_pb.UploadObjectResponse_Complete{},
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -210,11 +208,11 @@ func TestUploader(t *testing.T) {
 	})
 
 	t.Run("SuccessComplete", func(t *testing.T) {
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xf0, 0x96, 0x13, 0x84, 0x9b, 0x0b, 0xff, 0xb5,
@@ -230,13 +228,11 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Complete_{
-				Complete: &object_pb.UploadObjectResponse_Complete{
-					Lease: []byte{1, 2, 3},
-				},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Complete: object_pb.UploadObjectResponse_Complete_builder{
+				Lease: []byte{1, 2, 3},
+			}.Build(),
+		}.Build(), nil)
 
 		result, err := uploader.UploadObject(
 			ctx,
@@ -256,11 +252,11 @@ func TestUploader(t *testing.T) {
 		// option. If set to true, the server MUST return the
 		// object's contents as part of a response of type
 		// 'incomplete'.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x66, 0x47, 0x06, 0xbb, 0xec, 0xb6, 0x3f, 0x5e,
@@ -277,13 +273,11 @@ func TestUploader(t *testing.T) {
 				0x7a, 0x4e,
 			},
 			WantContentsIfIncomplete: true,
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					WantOutgoingReferencesLeases: []uint32{7},
-				},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				WantOutgoingReferencesLeases: []uint32{7},
+			}.Build(),
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -299,11 +293,11 @@ func TestUploader(t *testing.T) {
 		// Conversely, if want_contents_if_incomplete is set to false,
 		// the server MUST omit the object's contents. Returning them
 		// would only waste bandwidth.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x41, 0x73, 0xc1, 0x91, 0x5b, 0x0f, 0x39, 0x11,
@@ -319,28 +313,26 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					Contents: []byte{
-						// SHA-256 hash.
-						0x18, 0x5f, 0x8d, 0xb3, 0x22, 0x71, 0xfe, 0x25,
-						0xf5, 0x61, 0xa6, 0xfc, 0x93, 0x8b, 0x2e, 0x26,
-						0x43, 0x06, 0xec, 0x30, 0x4e, 0xda, 0x51, 0x80,
-						0x07, 0xd1, 0x76, 0x48, 0x26, 0x38, 0x19, 0x69,
-						// Size in bytes.
-						0x05, 0x00, 0x00,
-						// Height.
-						0x00,
-						// Degree.
-						0x00, 0x00,
-						// Maximum parents total size in bytes.
-						0x00, 0x00,
-					},
-					WantOutgoingReferencesLeases: []uint32{0},
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				Contents: []byte{
+					// SHA-256 hash.
+					0x18, 0x5f, 0x8d, 0xb3, 0x22, 0x71, 0xfe, 0x25,
+					0xf5, 0x61, 0xa6, 0xfc, 0x93, 0x8b, 0x2e, 0x26,
+					0x43, 0x06, 0xec, 0x30, 0x4e, 0xda, 0x51, 0x80,
+					0x07, 0xd1, 0x76, 0x48, 0x26, 0x38, 0x19, 0x69,
+					// Size in bytes.
+					0x05, 0x00, 0x00,
+					// Height.
+					0x00,
+					// Degree.
+					0x00, 0x00,
+					// Maximum parents total size in bytes.
+					0x00, 0x00,
 				},
-			},
-		}, nil)
+				WantOutgoingReferencesLeases: []uint32{0},
+			}.Build(),
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -356,11 +348,11 @@ func TestUploader(t *testing.T) {
 		// If the response contains the contents of an object,
 		// it must match with the reference that was provided as
 		// part of the request.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x07, 0x66, 0x9b, 0xac, 0x63, 0xe1, 0xa4, 0x3b,
@@ -377,28 +369,26 @@ func TestUploader(t *testing.T) {
 				0x00, 0x00,
 			},
 			WantContentsIfIncomplete: true,
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					Contents: []byte{
-						// SHA-256 hash.
-						0x22, 0xa4, 0x21, 0xb5, 0x54, 0xfd, 0xbf, 0x72,
-						0x3e, 0xce, 0x49, 0xbc, 0x01, 0x51, 0x36, 0xf1,
-						0xa0, 0x2a, 0x61, 0x59, 0x69, 0xc6, 0x7f, 0xfe,
-						0xcc, 0x25, 0xc1, 0x93, 0xbf, 0x08, 0xff, 0x23,
-						// Size in bytes.
-						0xab, 0x1c, 0x00,
-						// Height.
-						0x00,
-						// Degree.
-						0x00, 0x00,
-						// Maximum parents total size in bytes.
-						0x00, 0x00,
-					},
-					WantOutgoingReferencesLeases: []uint32{0},
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				Contents: []byte{
+					// SHA-256 hash.
+					0x22, 0xa4, 0x21, 0xb5, 0x54, 0xfd, 0xbf, 0x72,
+					0x3e, 0xce, 0x49, 0xbc, 0x01, 0x51, 0x36, 0xf1,
+					0xa0, 0x2a, 0x61, 0x59, 0x69, 0xc6, 0x7f, 0xfe,
+					0xcc, 0x25, 0xc1, 0x93, 0xbf, 0x08, 0xff, 0x23,
+					// Size in bytes.
+					0xab, 0x1c, 0x00,
+					// Height.
+					0x00,
+					// Degree.
+					0x00, 0x00,
+					// Maximum parents total size in bytes.
+					0x00, 0x00,
 				},
-			},
-		}, nil)
+				WantOutgoingReferencesLeases: []uint32{0},
+			}.Build(),
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -414,11 +404,11 @@ func TestUploader(t *testing.T) {
 		// If the server has no leases of outgoing references to
 		// report that are invalid/expired, it should have
 		// returned a non-empty list of indices.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x06, 0x0d, 0x8e, 0x86, 0xcf, 0x07, 0x1e, 0x4e,
@@ -434,11 +424,9 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: &object_pb.UploadObjectResponse_Incomplete{},
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -455,11 +443,11 @@ func TestUploader(t *testing.T) {
 		// This allows the caller to more efficiently merge the
 		// results of multiple servers (e.g., when mirroring is
 		// used).
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0xac, 0x70, 0x49, 0x04, 0x83, 0xed, 0x7e, 0x25,
@@ -475,13 +463,11 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					WantOutgoingReferencesLeases: []uint32{5, 3},
-				},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				WantOutgoingReferencesLeases: []uint32{5, 3},
+			}.Build(),
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -496,11 +482,11 @@ func TestUploader(t *testing.T) {
 	t.Run("OutOfBoundsWantOutgoingReferencesLeases", func(t *testing.T) {
 		// The indices in the want_outgoing_references_leaves
 		// list must respect the degree of the object.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x06, 0x53, 0x77, 0xb9, 0xd8, 0xef, 0x98, 0x3d,
@@ -516,13 +502,11 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					WantOutgoingReferencesLeases: []uint32{8},
-				},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				WantOutgoingReferencesLeases: []uint32{8},
+			}.Build(),
+		}.Build(), nil)
 
 		_, err := uploader.UploadObject(
 			ctx,
@@ -538,11 +522,11 @@ func TestUploader(t *testing.T) {
 	t.Run("SuccessIncomplete", func(t *testing.T) {
 		// The indices in the want_outgoing_references_leaves
 		// list must respect the degree of the object.
-		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, &object_pb.UploadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		client.EXPECT().UploadObject(ctx, testutil.EqProto(t, object_pb.UploadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x8b, 0xb8, 0xd0, 0x81, 0x3a, 0xfb, 0xa8, 0x44,
@@ -558,13 +542,11 @@ func TestUploader(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})).Return(&object_pb.UploadObjectResponse{
-			Type: &object_pb.UploadObjectResponse_Incomplete_{
-				Incomplete: &object_pb.UploadObjectResponse_Incomplete{
-					WantOutgoingReferencesLeases: []uint32{3, 7},
-				},
-			},
-		}, nil)
+		}.Build())).Return(object_pb.UploadObjectResponse_builder{
+			Incomplete: object_pb.UploadObjectResponse_Incomplete_builder{
+				WantOutgoingReferencesLeases: []uint32{3, 7},
+			}.Build(),
+		}.Build(), nil)
 
 		result, err := uploader.UploadObject(
 			ctx,

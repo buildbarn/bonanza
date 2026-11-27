@@ -33,23 +33,27 @@ func NewUploader(client object_pb.UploaderClient, leaseValidationContextSource o
 }
 
 func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalReference, contents *object.Contents, childrenLeases [][]byte, wantContentsIfIncomplete bool) (object.UploadObjectResult[[]byte], error) {
-	request := &object_pb.UploadObjectRequest{
+	request := object_pb.UploadObjectRequest_builder{
 		Namespace: reference.GetNamespace().ToProto(),
 		Reference: reference.GetRawReference(),
-		// TODO: Issue multiple gRPC calls if the combined size
-		// of all leases exceeds gRPC's maximum message size.
-		OutgoingReferencesLeases: childrenLeases,
-		WantContentsIfIncomplete: wantContentsIfIncomplete,
-	}
+	}.Build()
+	// TODO: Issue multiple gRPC calls if the combined size
+	// of all leases exceeds gRPC's maximum message size.
+	request.SetOutgoingReferencesLeases(childrenLeases)
+	request.SetWantContentsIfIncomplete(wantContentsIfIncomplete)
 	if contents != nil {
-		request.Contents = contents.GetFullData()
+		if x := contents.GetFullData(); x != nil {
+			request.SetContents(x)
+		} else {
+			request.SetContents(nil)
+		}
 	}
 
 	response, err := object.CallWithLeaseValidationContext(
 		ctx,
 		u.leaseValidationContextSource,
 		func(leaseValidationContext *object_pb.LeaseValidationContext) (*object_pb.UploadObjectResponse, error) {
-			request.LeaseValidationContext = leaseValidationContext
+			request.SetLeaseValidationContext(leaseValidationContext)
 			return u.client.UploadObject(ctx, request)
 		},
 	)
@@ -63,18 +67,18 @@ func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalRefe
 		return nil, err
 	}
 
-	switch responseType := response.Type.(type) {
-	case *object_pb.UploadObjectResponse_Complete_:
-		lease := responseType.Complete.Lease
+	switch response.WhichType() {
+	case object_pb.UploadObjectResponse_Complete_case:
+		lease := response.GetComplete().GetLease()
 		if len(lease) == 0 {
 			return nil, status.Error(codes.Internal, "Server returned an empty lease for a complete object")
 		}
 		return object.UploadObjectComplete[[]byte]{
 			Lease: lease,
 		}, nil
-	case *object_pb.UploadObjectResponse_Incomplete_:
+	case object_pb.UploadObjectResponse_Incomplete_case:
 		var result object.UploadObjectIncomplete[[]byte]
-		if contents := responseType.Incomplete.Contents; wantContentsIfIncomplete {
+		if contents := response.GetIncomplete().GetContents(); wantContentsIfIncomplete {
 			result.Contents, err = object.NewContentsFromFullData(reference.LocalReference, contents)
 			if err != nil {
 				return nil, util.StatusWrapWithCode(err, codes.Internal, "Server returned invalid object contents")
@@ -85,7 +89,7 @@ func (u *uploader) UploadObject(ctx context.Context, reference object.GlobalRefe
 			}
 		}
 
-		wantLeases := responseType.Incomplete.WantOutgoingReferencesLeases
+		wantLeases := response.GetIncomplete().GetWantOutgoingReferencesLeases()
 		if len(wantLeases) == 0 {
 			return nil, status.Error(codes.Internal, "Server returned an empty list of outgoing references for which leases are expired")
 		}

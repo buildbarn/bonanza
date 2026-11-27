@@ -12,10 +12,11 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/testutil"
 	"github.com/stretchr/testify/require"
 
-	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestWatermark(t *testing.T) {
@@ -39,15 +40,15 @@ func TestWatermark(t *testing.T) {
 	require.Equal(t, []byte("hash1"), w.GetLastIncarnationsHash())
 
 	leaseValidationContext := func(watermark, obtainedAt int64, incarnationsHash string) *object_pb.LeaseValidationContext {
-		m := &object_pb.LeaseValidationContext{
-			Watermark: &object_pb.Watermark{
+		m := object_pb.LeaseValidationContext_builder{
+			Watermark: object_pb.Watermark_builder{
 				ObtainedAt: &timestamppb.Timestamp{Seconds: obtainedAt},
-			},
+			}.Build(),
 			IncarnationsHash:    []byte(incarnationsHash),
 			ExpectedIncarnation: []byte("incarnation"),
-		}
+		}.Build()
 		if watermark != 0 {
-			m.Watermark.Watermark = &timestamppb.Timestamp{Seconds: watermark}
+			m.GetWatermark().SetWatermark(&timestamppb.Timestamp{Seconds: watermark})
 		}
 		return m
 	}
@@ -81,14 +82,14 @@ func TestWatermark(t *testing.T) {
 	// Requests intended for another incarnation of the storage
 	// server should be rejected.
 	m := leaseValidationContext(1700000500, 1700000970, "hash2")
-	m.ExpectedIncarnation = []byte("other")
+	m.SetExpectedIncarnation([]byte("other"))
 	testutil.RequireEqualStatus(t, status.Error(codes.FailedPrecondition, "Request was intended for incarnation 6f74686572 of the storage server, while its current incarnation is 696e6361726e6174696f6e"), w.ProcessLeaseValidationContext(m))
 
 	// Invalid values are rejected. The message of the error
 	// returned by the Protobuf library is intentionally unstable,
 	// so only check our own prefix.
 	m = leaseValidationContext(1700000500, 1700000970, "hash2")
-	m.Watermark.ObtainedAt = nil
+	m.GetWatermark().ClearObtainedAt()
 	err := w.ProcessLeaseValidationContext(m)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.True(t, strings.HasPrefix(status.Convert(err).Message(), "Invalid time at which the watermark was obtained: "))
@@ -142,13 +143,13 @@ type fakeLeaseValidationContextSource struct {
 }
 
 func (s *fakeLeaseValidationContextSource) GetLeaseValidationContext(ctx context.Context) (*object_pb.LeaseValidationContext, error) {
-	return &object_pb.LeaseValidationContext{
+	return object_pb.LeaseValidationContext_builder{
 		ExpectedIncarnation: []byte{s.incarnation},
-	}, nil
+	}.Build(), nil
 }
 
 func (s *fakeLeaseValidationContextSource) ReportIncarnationMismatch(leaseValidationContext *object_pb.LeaseValidationContext) {
-	s.reported = append(s.reported, leaseValidationContext.ExpectedIncarnation)
+	s.reported = append(s.reported, leaseValidationContext.GetExpectedIncarnation())
 	s.incarnation++
 }
 
@@ -172,10 +173,10 @@ func TestCallWithLeaseValidationContext(t *testing.T) {
 		// context.
 		source := &fakeLeaseValidationContextSource{}
 		result, err := object.CallWithLeaseValidationContext(ctx, source, func(m *object_pb.LeaseValidationContext) (int, error) {
-			if m.ExpectedIncarnation[0] < 2 {
+			if m.GetExpectedIncarnation()[0] < 2 {
 				return 0, status.Error(codes.FailedPrecondition, "Incarnation mismatch")
 			}
-			return int(m.ExpectedIncarnation[0]), nil
+			return int(m.GetExpectedIncarnation()[0]), nil
 		})
 		require.NoError(t, err)
 		require.Equal(t, 2, result)

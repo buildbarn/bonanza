@@ -28,10 +28,10 @@ func TestUpdater(t *testing.T) {
 	replicaB := NewMockUpdaterForTesting(ctrl)
 	updater := tag_mirrored.NewUpdater(replicaA, replicaB)
 
-	namespace := util.Must(object.NewNamespace(&object_pb.Namespace{
+	namespace := util.Must(object.NewNamespace(object_pb.Namespace_builder{
 		InstanceName:    "hello/world",
 		ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-	}))
+	}.Build()))
 	key := tag.Key{
 		SignaturePublicKey: [...]byte{
 			0x70, 0xfe, 0x2a, 0xe6, 0x3a, 0x8b, 0x5d, 0xb1,

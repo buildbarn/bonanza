@@ -22,8 +22,8 @@ var Unlimited = Limit{
 // in parallel from a Protobuf message format to a native type.
 func NewLimit(m *object.Limit) Limit {
 	return Limit{
-		count:     m.Count,
-		sizeBytes: m.SizeBytes,
+		count:     m.GetCount(),
+		sizeBytes: m.GetSizeBytes(),
 	}
 }
 
@@ -42,10 +42,10 @@ func (l Limit) Min(other Limit) Limit {
 // in parallel to a Protobuf message, so that it can be embedded into a
 // gRPC request message.
 func (l Limit) ToProto() *object.Limit {
-	return &object.Limit{
+	return object.Limit_builder{
 		Count:     l.count,
 		SizeBytes: l.sizeBytes,
-	}
+	}.Build()
 }
 
 // CanAcquireSingleObject returns whether the current limits allow

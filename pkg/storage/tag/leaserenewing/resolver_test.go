@@ -16,10 +16,11 @@ import (
 	"github.com/buildbarn/bb-storage/pkg/util"
 	"github.com/stretchr/testify/require"
 
-	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestResolver(t *testing.T) {
@@ -31,10 +32,10 @@ func TestResolver(t *testing.T) {
 		tagStore,
 		objectUploader,
 		semaphore.NewWeighted(10),
-		object.NewLimit(&object_pb.Limit{
+		object.NewLimit(object_pb.Limit_builder{
 			Count:     4,
 			SizeBytes: 100000,
-		}),
+		}.Build()),
 	)
 
 	// Run the worker loop in the background.
@@ -51,10 +52,10 @@ func TestResolver(t *testing.T) {
 		workerDone.Wait()
 	}()
 
-	namespace := util.Must(object.NewNamespace(&object_pb.Namespace{
+	namespace := util.Must(object.NewNamespace(object_pb.Namespace_builder{
 		InstanceName:    "hello/world",
 		ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-	}))
+	}.Build()))
 	key1 := tag.Key{Hash: [...]byte{1, 31: 0}}
 	key2 := tag.Key{Hash: [...]byte{2, 31: 0}}
 
@@ -260,10 +261,10 @@ func TestResolver(t *testing.T) {
 				tagStore,
 				objectUploader,
 				semaphore.NewWeighted(10),
-				object.NewLimit(&object_pb.Limit{
+				object.NewLimit(object_pb.Limit_builder{
 					Count:     1,
 					SizeBytes: 100000,
-				}),
+				}.Build()),
 			)
 			tagStore.EXPECT().ResolveTag(ctx, namespace, key1, nil).Return(signedValue1, false, nil)
 

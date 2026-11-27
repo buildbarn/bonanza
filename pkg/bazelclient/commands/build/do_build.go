@@ -886,10 +886,10 @@ func Evaluate(logger logging.Logger, commonFlags *arguments.CommonFlags, workspa
 	dagUploader := dag_grpc.NewUploader(
 		dag_pb.NewUploaderClient(remoteCacheClient),
 		semaphore.NewWeighted(10),
-		object.NewLimit(&object_pb.Limit{
+		object.NewLimit(object_pb.Limit_builder{
 			Count:     1000,
 			SizeBytes: 1 << 20,
-		}),
+		}.Build()),
 	)
 	if err := dagUploader.UploadDAG(
 		ctx,

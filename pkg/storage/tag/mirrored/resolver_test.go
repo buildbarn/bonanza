@@ -27,10 +27,10 @@ func TestResolver(t *testing.T) {
 	replicaB := NewMockResolverForTesting(ctrl)
 	resolver := mirrored.NewResolver(replicaA, replicaB)
 
-	namespace := util.Must(object.NewNamespace(&object_pb.Namespace{
+	namespace := util.Must(object.NewNamespace(object_pb.Namespace_builder{
 		InstanceName:    "hello/world",
 		ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-	}))
+	}.Build()))
 	key := tag.Key{
 		SignaturePublicKey: [...]byte{
 			0x07, 0x78, 0x45, 0x66, 0x2a, 0xb1, 0x90, 0xbd,

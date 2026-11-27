@@ -146,17 +146,17 @@ func (p *WatermarkPoller) wakeupLocked() {
 // incarnations of all storage servers.
 func (p *WatermarkPoller) getIncarnationsHashLocked() []byte {
 	if p.incarnationsHash == nil {
-		input := &object_pb.IncarnationsHashInput{
-			Shards: make([]*object_pb.IncarnationsHashInput_Shard, 0, len(p.shards)),
-		}
+		shards := make([]*object_pb.IncarnationsHashInput_Shard, 0, len(p.shards))
 		for _, i := range p.shardIndicesByName {
-			input.Shards = append(input.Shards, &object_pb.IncarnationsHashInput_Shard{
+			shards = append(shards, object_pb.IncarnationsHashInput_Shard_builder{
 				Name:        p.shards[i].Name,
 				Weight:      p.shards[i].Weight,
 				Incarnation: p.states[i].incarnation,
-			})
+			}.Build())
 		}
-		data, err := proto.MarshalOptions{Deterministic: true}.Marshal(input)
+		data, err := proto.MarshalOptions{Deterministic: true}.Marshal(object_pb.IncarnationsHashInput_builder{
+			Shards: shards,
+		}.Build())
 		if err != nil {
 			panic(err)
 		}
@@ -187,14 +187,14 @@ func (p *WatermarkPoller) getLeaseValidationContextLocked(shardIndex int, now ti
 			oldestObtainedAt = state.obtainedAt
 		}
 	}
-	return &object_pb.LeaseValidationContext{
-			Watermark: &object_pb.Watermark{
+	return object_pb.LeaseValidationContext_builder{
+			Watermark: object_pb.Watermark_builder{
 				Watermark:  highestWatermark,
 				ObtainedAt: oldestObtainedAt,
-			},
+			}.Build(),
 			IncarnationsHash:    p.getIncarnationsHashLocked(),
 			ExpectedIncarnation: p.states[shardIndex].incarnation,
-		},
+		}.Build(),
 		!now.After(oldestRequestedAt.Add(2*p.interval)) && p.states[shardIndex].refreshByPoll == 0
 }
 
@@ -279,11 +279,13 @@ func (p *WatermarkPoller) pollOnce(ctx context.Context) {
 			requestedAt := p.clock.Now()
 			response, err := shard.Client.GetWatermark(ctx, &emptypb.Empty{})
 			var watermark *object_pb.Watermark
+			var watermarkTime *timestamppb.Timestamp
 			if err == nil {
-				watermark = response.Watermark
+				watermark = response.GetWatermark()
 				err = watermark.GetObtainedAt().CheckValid()
-				if err == nil && watermark.Watermark != nil {
-					err = watermark.Watermark.CheckValid()
+				watermarkTime = watermark.GetWatermark()
+				if err == nil && watermarkTime != nil {
+					err = watermarkTime.CheckValid()
 				}
 			}
 			if err != nil {
@@ -294,13 +296,13 @@ func (p *WatermarkPoller) pollOnce(ctx context.Context) {
 			}
 			p.lock.Lock()
 			state := &p.states[i]
-			if !bytes.Equal(state.incarnation, response.Incarnation) {
+			if !bytes.Equal(state.incarnation, response.GetIncarnation()) {
 				p.incarnationsHash = nil
 			}
 			state.requestedAt = requestedAt
-			state.watermark = watermark.Watermark
-			state.obtainedAt = watermark.ObtainedAt
-			state.incarnation = response.Incarnation
+			state.watermark = watermarkTime
+			state.obtainedAt = watermark.GetObtainedAt()
+			state.incarnation = response.GetIncarnation()
 			p.lock.Unlock()
 		}()
 	}

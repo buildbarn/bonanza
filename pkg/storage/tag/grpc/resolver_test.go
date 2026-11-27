@@ -31,10 +31,10 @@ func TestResolver(t *testing.T) {
 	t.Run("BackendFailure", func(t *testing.T) {
 		// Errors reported by the backend should be propagated.
 		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.
@@ -57,10 +57,10 @@ func TestResolver(t *testing.T) {
 
 		_, _, err := updater.ResolveTag(
 			ctx,
-			util.Must(object.NewNamespace(&object_pb.Namespace{
+			util.Must(object.NewNamespace(object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			})),
+			}.Build())),
 			tag.Key{
 				SignaturePublicKey: [...]byte{
 					0x2b, 0x2a, 0x29, 0x0b, 0xbe, 0xa2, 0xb7, 0xe7,
@@ -84,10 +84,10 @@ func TestResolver(t *testing.T) {
 		// If the server returns a malformed reference, an
 		// internal server error should be returned.
 		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.
@@ -130,10 +130,10 @@ func TestResolver(t *testing.T) {
 		minimumTimestamp := time.Unix(1762284040, 0)
 		_, _, err := updater.ResolveTag(
 			ctx,
-			util.Must(object.NewNamespace(&object_pb.Namespace{
+			util.Must(object.NewNamespace(object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			})),
+			}.Build())),
 			tag.Key{
 				SignaturePublicKey: [...]byte{
 					0x8a, 0x07, 0xeb, 0x8e, 0x05, 0x4e, 0x0b, 0x38,
@@ -157,10 +157,10 @@ func TestResolver(t *testing.T) {
 		// We should reject any values returned by the server
 		// that do not pass signature validation.
 		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.
@@ -215,10 +215,10 @@ func TestResolver(t *testing.T) {
 
 		_, _, err := updater.ResolveTag(
 			ctx,
-			util.Must(object.NewNamespace(&object_pb.Namespace{
+			util.Must(object.NewNamespace(object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			})),
+			}.Build())),
 			tag.Key{
 				SignaturePublicKey: [...]byte{
 					0x5a, 0x1c, 0x24, 0xf5, 0xd6, 0x19, 0xfc, 0x14,
@@ -240,10 +240,10 @@ func TestResolver(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		client.EXPECT().ResolveTag(ctx, testutil.EqProto(t, &tag_pb.ResolveTagRequest{
-			Namespace: &object_pb.Namespace{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Key: &tag_pb.Key{
 				SignaturePublicKey: []byte{
 					// PKIX header.
@@ -298,10 +298,10 @@ func TestResolver(t *testing.T) {
 
 		signedValue, complete, err := updater.ResolveTag(
 			ctx,
-			util.Must(object.NewNamespace(&object_pb.Namespace{
+			util.Must(object.NewNamespace(object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			})),
+			}.Build())),
 			tag.Key{
 				SignaturePublicKey: [...]byte{
 					0x1d, 0x58, 0x7d, 0x77, 0x24, 0x67, 0x0d, 0x69,

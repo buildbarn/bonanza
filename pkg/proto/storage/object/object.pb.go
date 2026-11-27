@@ -12,7 +12,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -64,13 +63,8 @@ func (x ReferenceFormat_Value) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ReferenceFormat_Value.Descriptor instead.
-func (ReferenceFormat_Value) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0, 0}
-}
-
 type ReferenceFormat struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -100,17 +94,24 @@ func (x *ReferenceFormat) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReferenceFormat.ProtoReflect.Descriptor instead.
-func (*ReferenceFormat) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{0}
+type ReferenceFormat_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 ReferenceFormat_builder) Build() *ReferenceFormat {
+	m0 := &ReferenceFormat{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type Namespace struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	InstanceName    string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName,proto3" json:"instance_name,omitempty"`
-	ReferenceFormat ReferenceFormat_Value  `protobuf:"varint,2,opt,name=reference_format,json=referenceFormat,proto3,enum=bonanza.storage.object.ReferenceFormat_Value" json:"reference_format,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_InstanceName    string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName"`
+	xxx_hidden_ReferenceFormat ReferenceFormat_Value  `protobuf:"varint,2,opt,name=reference_format,json=referenceFormat,enum=bonanza.storage.object.ReferenceFormat_Value"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Namespace) Reset() {
@@ -138,31 +139,50 @@ func (x *Namespace) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Namespace.ProtoReflect.Descriptor instead.
-func (*Namespace) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Namespace) GetInstanceName() string {
 	if x != nil {
-		return x.InstanceName
+		return x.xxx_hidden_InstanceName
 	}
 	return ""
 }
 
 func (x *Namespace) GetReferenceFormat() ReferenceFormat_Value {
 	if x != nil {
-		return x.ReferenceFormat
+		return x.xxx_hidden_ReferenceFormat
 	}
 	return ReferenceFormat_UNKNOWN
 }
 
+func (x *Namespace) SetInstanceName(v string) {
+	x.xxx_hidden_InstanceName = v
+}
+
+func (x *Namespace) SetReferenceFormat(v ReferenceFormat_Value) {
+	x.xxx_hidden_ReferenceFormat = v
+}
+
+type Namespace_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	InstanceName    string
+	ReferenceFormat ReferenceFormat_Value
+}
+
+func (b0 Namespace_builder) Build() *Namespace {
+	m0 := &Namespace{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_InstanceName = b.InstanceName
+	x.xxx_hidden_ReferenceFormat = b.ReferenceFormat
+	return m0
+}
+
 type DownloadObjectRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     *Namespace             `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Reference     []byte                 `protobuf:"bytes,2,opt,name=reference,proto3" json:"reference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Namespace *Namespace             `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_Reference []byte                 `protobuf:"bytes,2,opt,name=reference"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *DownloadObjectRequest) Reset() {
@@ -190,30 +210,63 @@ func (x *DownloadObjectRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DownloadObjectRequest.ProtoReflect.Descriptor instead.
-func (*DownloadObjectRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *DownloadObjectRequest) GetNamespace() *Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *DownloadObjectRequest) GetReference() []byte {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
+func (x *DownloadObjectRequest) SetNamespace(v *Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *DownloadObjectRequest) SetReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Reference = v
+}
+
+func (x *DownloadObjectRequest) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *DownloadObjectRequest) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+type DownloadObjectRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace *Namespace
+	Reference []byte
+}
+
+func (b0 DownloadObjectRequest_builder) Build() *DownloadObjectRequest {
+	m0 := &DownloadObjectRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_Reference = b.Reference
+	return m0
+}
+
 type DownloadObjectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Contents      []byte                 `protobuf:"bytes,1,opt,name=contents,proto3" json:"contents,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Contents []byte                 `protobuf:"bytes,1,opt,name=contents"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *DownloadObjectResponse) Reset() {
@@ -241,28 +294,44 @@ func (x *DownloadObjectResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DownloadObjectResponse.ProtoReflect.Descriptor instead.
-func (*DownloadObjectResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *DownloadObjectResponse) GetContents() []byte {
 	if x != nil {
-		return x.Contents
+		return x.xxx_hidden_Contents
 	}
 	return nil
 }
 
+func (x *DownloadObjectResponse) SetContents(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Contents = v
+}
+
+type DownloadObjectResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Contents []byte
+}
+
+func (b0 DownloadObjectResponse_builder) Build() *DownloadObjectResponse {
+	m0 := &DownloadObjectResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Contents = b.Contents
+	return m0
+}
+
 type UploadObjectRequest struct {
-	state                    protoimpl.MessageState  `protogen:"open.v1"`
-	Namespace                *Namespace              `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Reference                []byte                  `protobuf:"bytes,2,opt,name=reference,proto3" json:"reference,omitempty"`
-	Contents                 []byte                  `protobuf:"bytes,3,opt,name=contents,proto3" json:"contents,omitempty"`
-	OutgoingReferencesLeases [][]byte                `protobuf:"bytes,4,rep,name=outgoing_references_leases,json=outgoingReferencesLeases,proto3" json:"outgoing_references_leases,omitempty"`
-	WantContentsIfIncomplete bool                    `protobuf:"varint,5,opt,name=want_contents_if_incomplete,json=wantContentsIfIncomplete,proto3" json:"want_contents_if_incomplete,omitempty"`
-	LeaseValidationContext   *LeaseValidationContext `protobuf:"bytes,6,opt,name=lease_validation_context,json=leaseValidationContext,proto3" json:"lease_validation_context,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Namespace                *Namespace              `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_Reference                []byte                  `protobuf:"bytes,2,opt,name=reference"`
+	xxx_hidden_Contents                 []byte                  `protobuf:"bytes,3,opt,name=contents"`
+	xxx_hidden_OutgoingReferencesLeases [][]byte                `protobuf:"bytes,4,rep,name=outgoing_references_leases,json=outgoingReferencesLeases"`
+	xxx_hidden_WantContentsIfIncomplete bool                    `protobuf:"varint,5,opt,name=want_contents_if_incomplete,json=wantContentsIfIncomplete"`
+	xxx_hidden_LeaseValidationContext   *LeaseValidationContext `protobuf:"bytes,6,opt,name=lease_validation_context,json=leaseValidationContext"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *UploadObjectRequest) Reset() {
@@ -290,62 +359,129 @@ func (x *UploadObjectRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadObjectRequest.ProtoReflect.Descriptor instead.
-func (*UploadObjectRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *UploadObjectRequest) GetNamespace() *Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *UploadObjectRequest) GetReference() []byte {
 	if x != nil {
-		return x.Reference
+		return x.xxx_hidden_Reference
 	}
 	return nil
 }
 
 func (x *UploadObjectRequest) GetContents() []byte {
 	if x != nil {
-		return x.Contents
+		return x.xxx_hidden_Contents
 	}
 	return nil
 }
 
 func (x *UploadObjectRequest) GetOutgoingReferencesLeases() [][]byte {
 	if x != nil {
-		return x.OutgoingReferencesLeases
+		return x.xxx_hidden_OutgoingReferencesLeases
 	}
 	return nil
 }
 
 func (x *UploadObjectRequest) GetWantContentsIfIncomplete() bool {
 	if x != nil {
-		return x.WantContentsIfIncomplete
+		return x.xxx_hidden_WantContentsIfIncomplete
 	}
 	return false
 }
 
 func (x *UploadObjectRequest) GetLeaseValidationContext() *LeaseValidationContext {
 	if x != nil {
-		return x.LeaseValidationContext
+		return x.xxx_hidden_LeaseValidationContext
 	}
 	return nil
 }
 
+func (x *UploadObjectRequest) SetNamespace(v *Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *UploadObjectRequest) SetReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Reference = v
+}
+
+func (x *UploadObjectRequest) SetContents(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Contents = v
+}
+
+func (x *UploadObjectRequest) SetOutgoingReferencesLeases(v [][]byte) {
+	x.xxx_hidden_OutgoingReferencesLeases = v
+}
+
+func (x *UploadObjectRequest) SetWantContentsIfIncomplete(v bool) {
+	x.xxx_hidden_WantContentsIfIncomplete = v
+}
+
+func (x *UploadObjectRequest) SetLeaseValidationContext(v *LeaseValidationContext) {
+	x.xxx_hidden_LeaseValidationContext = v
+}
+
+func (x *UploadObjectRequest) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *UploadObjectRequest) HasLeaseValidationContext() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LeaseValidationContext != nil
+}
+
+func (x *UploadObjectRequest) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *UploadObjectRequest) ClearLeaseValidationContext() {
+	x.xxx_hidden_LeaseValidationContext = nil
+}
+
+type UploadObjectRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace                *Namespace
+	Reference                []byte
+	Contents                 []byte
+	OutgoingReferencesLeases [][]byte
+	WantContentsIfIncomplete bool
+	LeaseValidationContext   *LeaseValidationContext
+}
+
+func (b0 UploadObjectRequest_builder) Build() *UploadObjectRequest {
+	m0 := &UploadObjectRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_Contents = b.Contents
+	x.xxx_hidden_OutgoingReferencesLeases = b.OutgoingReferencesLeases
+	x.xxx_hidden_WantContentsIfIncomplete = b.WantContentsIfIncomplete
+	x.xxx_hidden_LeaseValidationContext = b.LeaseValidationContext
+	return m0
+}
+
 type UploadObjectResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*UploadObjectResponse_Complete_
-	//	*UploadObjectResponse_Incomplete_
-	Type          isUploadObjectResponse_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_Type isUploadObjectResponse_Type `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UploadObjectResponse) Reset() {
@@ -373,21 +509,9 @@ func (x *UploadObjectResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadObjectResponse.ProtoReflect.Descriptor instead.
-func (*UploadObjectResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UploadObjectResponse) GetType() isUploadObjectResponse_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *UploadObjectResponse) GetComplete() *UploadObjectResponse_Complete {
 	if x != nil {
-		if x, ok := x.Type.(*UploadObjectResponse_Complete_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Complete_); ok {
 			return x.Complete
 		}
 	}
@@ -396,35 +520,140 @@ func (x *UploadObjectResponse) GetComplete() *UploadObjectResponse_Complete {
 
 func (x *UploadObjectResponse) GetIncomplete() *UploadObjectResponse_Incomplete {
 	if x != nil {
-		if x, ok := x.Type.(*UploadObjectResponse_Incomplete_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Incomplete_); ok {
 			return x.Incomplete
 		}
 	}
 	return nil
 }
 
+func (x *UploadObjectResponse) SetComplete(v *UploadObjectResponse_Complete) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadObjectResponse_Complete_{v}
+}
+
+func (x *UploadObjectResponse) SetIncomplete(v *UploadObjectResponse_Incomplete) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadObjectResponse_Incomplete_{v}
+}
+
+func (x *UploadObjectResponse) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *UploadObjectResponse) HasComplete() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Complete_)
+	return ok
+}
+
+func (x *UploadObjectResponse) HasIncomplete() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Incomplete_)
+	return ok
+}
+
+func (x *UploadObjectResponse) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *UploadObjectResponse) ClearComplete() {
+	if _, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Complete_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadObjectResponse) ClearIncomplete() {
+	if _, ok := x.xxx_hidden_Type.(*uploadObjectResponse_Incomplete_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const UploadObjectResponse_Type_not_set_case case_UploadObjectResponse_Type = 0
+const UploadObjectResponse_Complete_case case_UploadObjectResponse_Type = 1
+const UploadObjectResponse_Incomplete_case case_UploadObjectResponse_Type = 2
+
+func (x *UploadObjectResponse) WhichType() case_UploadObjectResponse_Type {
+	if x == nil {
+		return UploadObjectResponse_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *uploadObjectResponse_Complete_:
+		return UploadObjectResponse_Complete_case
+	case *uploadObjectResponse_Incomplete_:
+		return UploadObjectResponse_Incomplete_case
+	default:
+		return UploadObjectResponse_Type_not_set_case
+	}
+}
+
+type UploadObjectResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Type:
+	Complete   *UploadObjectResponse_Complete
+	Incomplete *UploadObjectResponse_Incomplete
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 UploadObjectResponse_builder) Build() *UploadObjectResponse {
+	m0 := &UploadObjectResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Complete != nil {
+		x.xxx_hidden_Type = &uploadObjectResponse_Complete_{b.Complete}
+	}
+	if b.Incomplete != nil {
+		x.xxx_hidden_Type = &uploadObjectResponse_Incomplete_{b.Incomplete}
+	}
+	return m0
+}
+
+type case_UploadObjectResponse_Type protoreflect.FieldNumber
+
+func (x case_UploadObjectResponse_Type) String() string {
+	md := file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[5].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isUploadObjectResponse_Type interface {
 	isUploadObjectResponse_Type()
 }
 
-type UploadObjectResponse_Complete_ struct {
-	Complete *UploadObjectResponse_Complete `protobuf:"bytes,1,opt,name=complete,proto3,oneof"`
+type uploadObjectResponse_Complete_ struct {
+	Complete *UploadObjectResponse_Complete `protobuf:"bytes,1,opt,name=complete,oneof"`
 }
 
-type UploadObjectResponse_Incomplete_ struct {
-	Incomplete *UploadObjectResponse_Incomplete `protobuf:"bytes,2,opt,name=incomplete,proto3,oneof"`
+type uploadObjectResponse_Incomplete_ struct {
+	Incomplete *UploadObjectResponse_Incomplete `protobuf:"bytes,2,opt,name=incomplete,oneof"`
 }
 
-func (*UploadObjectResponse_Complete_) isUploadObjectResponse_Type() {}
+func (*uploadObjectResponse_Complete_) isUploadObjectResponse_Type() {}
 
-func (*UploadObjectResponse_Incomplete_) isUploadObjectResponse_Type() {}
+func (*uploadObjectResponse_Incomplete_) isUploadObjectResponse_Type() {}
 
 type GetWatermarkResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Watermark     *Watermark             `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	Incarnation   []byte                 `protobuf:"bytes,2,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Watermark   *Watermark             `protobuf:"bytes,1,opt,name=watermark"`
+	xxx_hidden_Incarnation []byte                 `protobuf:"bytes,2,opt,name=incarnation"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetWatermarkResponse) Reset() {
@@ -452,31 +681,64 @@ func (x *GetWatermarkResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetWatermarkResponse.ProtoReflect.Descriptor instead.
-func (*GetWatermarkResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *GetWatermarkResponse) GetWatermark() *Watermark {
 	if x != nil {
-		return x.Watermark
+		return x.xxx_hidden_Watermark
 	}
 	return nil
 }
 
 func (x *GetWatermarkResponse) GetIncarnation() []byte {
 	if x != nil {
-		return x.Incarnation
+		return x.xxx_hidden_Incarnation
 	}
 	return nil
 }
 
+func (x *GetWatermarkResponse) SetWatermark(v *Watermark) {
+	x.xxx_hidden_Watermark = v
+}
+
+func (x *GetWatermarkResponse) SetIncarnation(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Incarnation = v
+}
+
+func (x *GetWatermarkResponse) HasWatermark() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Watermark != nil
+}
+
+func (x *GetWatermarkResponse) ClearWatermark() {
+	x.xxx_hidden_Watermark = nil
+}
+
+type GetWatermarkResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Watermark   *Watermark
+	Incarnation []byte
+}
+
+func (b0 GetWatermarkResponse_builder) Build() *GetWatermarkResponse {
+	m0 := &GetWatermarkResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Watermark = b.Watermark
+	x.xxx_hidden_Incarnation = b.Incarnation
+	return m0
+}
+
 type Watermark struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Watermark     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	ObtainedAt    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=obtained_at,json=obtainedAt,proto3" json:"obtained_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Watermark  *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=watermark"`
+	xxx_hidden_ObtainedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=obtained_at,json=obtainedAt"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Watermark) Reset() {
@@ -504,32 +766,73 @@ func (x *Watermark) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Watermark.ProtoReflect.Descriptor instead.
-func (*Watermark) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *Watermark) GetWatermark() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Watermark
+		return x.xxx_hidden_Watermark
 	}
 	return nil
 }
 
 func (x *Watermark) GetObtainedAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.ObtainedAt
+		return x.xxx_hidden_ObtainedAt
 	}
 	return nil
 }
 
+func (x *Watermark) SetWatermark(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Watermark = v
+}
+
+func (x *Watermark) SetObtainedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ObtainedAt = v
+}
+
+func (x *Watermark) HasWatermark() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Watermark != nil
+}
+
+func (x *Watermark) HasObtainedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ObtainedAt != nil
+}
+
+func (x *Watermark) ClearWatermark() {
+	x.xxx_hidden_Watermark = nil
+}
+
+func (x *Watermark) ClearObtainedAt() {
+	x.xxx_hidden_ObtainedAt = nil
+}
+
+type Watermark_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Watermark  *timestamppb.Timestamp
+	ObtainedAt *timestamppb.Timestamp
+}
+
+func (b0 Watermark_builder) Build() *Watermark {
+	m0 := &Watermark{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Watermark = b.Watermark
+	x.xxx_hidden_ObtainedAt = b.ObtainedAt
+	return m0
+}
+
 type LeaseValidationContext struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Watermark           *Watermark             `protobuf:"bytes,1,opt,name=watermark,proto3" json:"watermark,omitempty"`
-	IncarnationsHash    []byte                 `protobuf:"bytes,2,opt,name=incarnations_hash,json=incarnationsHash,proto3" json:"incarnations_hash,omitempty"`
-	ExpectedIncarnation []byte                 `protobuf:"bytes,3,opt,name=expected_incarnation,json=expectedIncarnation,proto3" json:"expected_incarnation,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Watermark           *Watermark             `protobuf:"bytes,1,opt,name=watermark"`
+	xxx_hidden_IncarnationsHash    []byte                 `protobuf:"bytes,2,opt,name=incarnations_hash,json=incarnationsHash"`
+	xxx_hidden_ExpectedIncarnation []byte                 `protobuf:"bytes,3,opt,name=expected_incarnation,json=expectedIncarnation"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *LeaseValidationContext) Reset() {
@@ -557,37 +860,79 @@ func (x *LeaseValidationContext) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LeaseValidationContext.ProtoReflect.Descriptor instead.
-func (*LeaseValidationContext) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *LeaseValidationContext) GetWatermark() *Watermark {
 	if x != nil {
-		return x.Watermark
+		return x.xxx_hidden_Watermark
 	}
 	return nil
 }
 
 func (x *LeaseValidationContext) GetIncarnationsHash() []byte {
 	if x != nil {
-		return x.IncarnationsHash
+		return x.xxx_hidden_IncarnationsHash
 	}
 	return nil
 }
 
 func (x *LeaseValidationContext) GetExpectedIncarnation() []byte {
 	if x != nil {
-		return x.ExpectedIncarnation
+		return x.xxx_hidden_ExpectedIncarnation
 	}
 	return nil
 }
 
+func (x *LeaseValidationContext) SetWatermark(v *Watermark) {
+	x.xxx_hidden_Watermark = v
+}
+
+func (x *LeaseValidationContext) SetIncarnationsHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_IncarnationsHash = v
+}
+
+func (x *LeaseValidationContext) SetExpectedIncarnation(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_ExpectedIncarnation = v
+}
+
+func (x *LeaseValidationContext) HasWatermark() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Watermark != nil
+}
+
+func (x *LeaseValidationContext) ClearWatermark() {
+	x.xxx_hidden_Watermark = nil
+}
+
+type LeaseValidationContext_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Watermark           *Watermark
+	IncarnationsHash    []byte
+	ExpectedIncarnation []byte
+}
+
+func (b0 LeaseValidationContext_builder) Build() *LeaseValidationContext {
+	m0 := &LeaseValidationContext{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Watermark = b.Watermark
+	x.xxx_hidden_IncarnationsHash = b.IncarnationsHash
+	x.xxx_hidden_ExpectedIncarnation = b.ExpectedIncarnation
+	return m0
+}
+
 type IncarnationsHashInput struct {
-	state         protoimpl.MessageState         `protogen:"open.v1"`
-	Shards        []*IncarnationsHashInput_Shard `protobuf:"bytes,1,rep,name=shards,proto3" json:"shards,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState          `protogen:"opaque.v1"`
+	xxx_hidden_Shards *[]*IncarnationsHashInput_Shard `protobuf:"bytes,1,rep,name=shards"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *IncarnationsHashInput) Reset() {
@@ -615,24 +960,39 @@ func (x *IncarnationsHashInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use IncarnationsHashInput.ProtoReflect.Descriptor instead.
-func (*IncarnationsHashInput) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *IncarnationsHashInput) GetShards() []*IncarnationsHashInput_Shard {
 	if x != nil {
-		return x.Shards
+		if x.xxx_hidden_Shards != nil {
+			return *x.xxx_hidden_Shards
+		}
 	}
 	return nil
 }
 
+func (x *IncarnationsHashInput) SetShards(v []*IncarnationsHashInput_Shard) {
+	x.xxx_hidden_Shards = &v
+}
+
+type IncarnationsHashInput_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Shards []*IncarnationsHashInput_Shard
+}
+
+func (b0 IncarnationsHashInput_builder) Build() *IncarnationsHashInput {
+	m0 := &IncarnationsHashInput{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Shards = &b.Shards
+	return m0
+}
+
 type Limit struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Count         uint32                 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	SizeBytes     uint64                 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Count     uint32                 `protobuf:"varint,1,opt,name=count"`
+	xxx_hidden_SizeBytes uint64                 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Limit) Reset() {
@@ -660,30 +1020,49 @@ func (x *Limit) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Limit.ProtoReflect.Descriptor instead.
-func (*Limit) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *Limit) GetCount() uint32 {
 	if x != nil {
-		return x.Count
+		return x.xxx_hidden_Count
 	}
 	return 0
 }
 
 func (x *Limit) GetSizeBytes() uint64 {
 	if x != nil {
-		return x.SizeBytes
+		return x.xxx_hidden_SizeBytes
 	}
 	return 0
 }
 
+func (x *Limit) SetCount(v uint32) {
+	x.xxx_hidden_Count = v
+}
+
+func (x *Limit) SetSizeBytes(v uint64) {
+	x.xxx_hidden_SizeBytes = v
+}
+
+type Limit_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Count     uint32
+	SizeBytes uint64
+}
+
+func (b0 Limit_builder) Build() *Limit {
+	m0 := &Limit{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Count = b.Count
+	x.xxx_hidden_SizeBytes = b.SizeBytes
+	return m0
+}
+
 type UploadObjectResponse_Complete struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Lease         []byte                 `protobuf:"bytes,1,opt,name=lease,proto3" json:"lease,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Lease []byte                 `protobuf:"bytes,1,opt,name=lease"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UploadObjectResponse_Complete) Reset() {
@@ -711,24 +1090,40 @@ func (x *UploadObjectResponse_Complete) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadObjectResponse_Complete.ProtoReflect.Descriptor instead.
-func (*UploadObjectResponse_Complete) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 0}
-}
-
 func (x *UploadObjectResponse_Complete) GetLease() []byte {
 	if x != nil {
-		return x.Lease
+		return x.xxx_hidden_Lease
 	}
 	return nil
 }
 
+func (x *UploadObjectResponse_Complete) SetLease(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Lease = v
+}
+
+type UploadObjectResponse_Complete_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Lease []byte
+}
+
+func (b0 UploadObjectResponse_Complete_builder) Build() *UploadObjectResponse_Complete {
+	m0 := &UploadObjectResponse_Complete{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Lease = b.Lease
+	return m0
+}
+
 type UploadObjectResponse_Incomplete struct {
-	state                        protoimpl.MessageState `protogen:"open.v1"`
-	Contents                     []byte                 `protobuf:"bytes,1,opt,name=contents,proto3" json:"contents,omitempty"`
-	WantOutgoingReferencesLeases []uint32               `protobuf:"varint,2,rep,packed,name=want_outgoing_references_leases,json=wantOutgoingReferencesLeases,proto3" json:"want_outgoing_references_leases,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Contents                     []byte                 `protobuf:"bytes,1,opt,name=contents"`
+	xxx_hidden_WantOutgoingReferencesLeases []uint32               `protobuf:"varint,2,rep,packed,name=want_outgoing_references_leases,json=wantOutgoingReferencesLeases"`
+	unknownFields                           protoimpl.UnknownFields
+	sizeCache                               protoimpl.SizeCache
 }
 
 func (x *UploadObjectResponse_Incomplete) Reset() {
@@ -756,32 +1151,54 @@ func (x *UploadObjectResponse_Incomplete) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadObjectResponse_Incomplete.ProtoReflect.Descriptor instead.
-func (*UploadObjectResponse_Incomplete) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{5, 1}
-}
-
 func (x *UploadObjectResponse_Incomplete) GetContents() []byte {
 	if x != nil {
-		return x.Contents
+		return x.xxx_hidden_Contents
 	}
 	return nil
 }
 
 func (x *UploadObjectResponse_Incomplete) GetWantOutgoingReferencesLeases() []uint32 {
 	if x != nil {
-		return x.WantOutgoingReferencesLeases
+		return x.xxx_hidden_WantOutgoingReferencesLeases
 	}
 	return nil
 }
 
+func (x *UploadObjectResponse_Incomplete) SetContents(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Contents = v
+}
+
+func (x *UploadObjectResponse_Incomplete) SetWantOutgoingReferencesLeases(v []uint32) {
+	x.xxx_hidden_WantOutgoingReferencesLeases = v
+}
+
+type UploadObjectResponse_Incomplete_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Contents                     []byte
+	WantOutgoingReferencesLeases []uint32
+}
+
+func (b0 UploadObjectResponse_Incomplete_builder) Build() *UploadObjectResponse_Incomplete {
+	m0 := &UploadObjectResponse_Incomplete{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Contents = b.Contents
+	x.xxx_hidden_WantOutgoingReferencesLeases = b.WantOutgoingReferencesLeases
+	return m0
+}
+
 type IncarnationsHashInput_Shard struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Weight        uint32                 `protobuf:"varint,2,opt,name=weight,proto3" json:"weight,omitempty"`
-	Incarnation   []byte                 `protobuf:"bytes,3,opt,name=incarnation,proto3" json:"incarnation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Weight      uint32                 `protobuf:"varint,2,opt,name=weight"`
+	xxx_hidden_Incarnation []byte                 `protobuf:"bytes,3,opt,name=incarnation"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *IncarnationsHashInput_Shard) Reset() {
@@ -809,41 +1226,69 @@ func (x *IncarnationsHashInput_Shard) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use IncarnationsHashInput_Shard.ProtoReflect.Descriptor instead.
-func (*IncarnationsHashInput_Shard) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP(), []int{9, 0}
-}
-
 func (x *IncarnationsHashInput_Shard) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *IncarnationsHashInput_Shard) GetWeight() uint32 {
 	if x != nil {
-		return x.Weight
+		return x.xxx_hidden_Weight
 	}
 	return 0
 }
 
 func (x *IncarnationsHashInput_Shard) GetIncarnation() []byte {
 	if x != nil {
-		return x.Incarnation
+		return x.xxx_hidden_Incarnation
 	}
 	return nil
+}
+
+func (x *IncarnationsHashInput_Shard) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *IncarnationsHashInput_Shard) SetWeight(v uint32) {
+	x.xxx_hidden_Weight = v
+}
+
+func (x *IncarnationsHashInput_Shard) SetIncarnation(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Incarnation = v
+}
+
+type IncarnationsHashInput_Shard_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name        string
+	Weight      uint32
+	Incarnation []byte
+}
+
+func (b0 IncarnationsHashInput_Shard_builder) Build() *IncarnationsHashInput_Shard {
+	m0 := &IncarnationsHashInput_Shard{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Weight = b.Weight
+	x.xxx_hidden_Incarnation = b.Incarnation
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_storage_object_object_proto protoreflect.FileDescriptor
 
 const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\n" +
-	"3bonanza.build/pkg/proto/storage/object/object.proto\x12\x16bonanza.storage.object\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"6\n" +
-	"\x0fReferenceFormat\"#\n" +
+	"3bonanza.build/pkg/proto/storage/object/object.proto\x12\x16bonanza.storage.object\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"8\n" +
+	"\x0fReferenceFormat\"%\n" +
 	"\x05Value\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\r\n" +
-	"\tSHA256_V1\x10\x01\"\x8a\x01\n" +
+	"\tSHA256_V1\x10\x010\x02\"\x8a\x01\n" +
 	"\tNamespace\x12#\n" +
 	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12X\n" +
 	"\x10reference_format\x18\x02 \x01(\x0e2-.bonanza.storage.object.ReferenceFormat.ValueR\x0freferenceFormat\"v\n" +
@@ -897,19 +1342,7 @@ const file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc = "" +
 	"\x0eDownloadObject\x12-.bonanza.storage.object.DownloadObjectRequest\x1a..bonanza.storage.object.DownloadObjectResponse2\xcb\x01\n" +
 	"\bUploader\x12i\n" +
 	"\fUploadObject\x12+.bonanza.storage.object.UploadObjectRequest\x1a,.bonanza.storage.object.UploadObjectResponse\x12T\n" +
-	"\fGetWatermark\x12\x16.google.protobuf.Empty\x1a,.bonanza.storage.object.GetWatermarkResponseB(Z&bonanza.build/pkg/proto/storage/objectb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_object_object_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_storage_object_object_proto_rawDescData
-}
+	"\fGetWatermark\x12\x16.google.protobuf.Empty\x1a,.bonanza.storage.object.GetWatermarkResponseB-Z&bonanza.build/pkg/proto/storage/object\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_storage_object_object_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
@@ -963,8 +1396,8 @@ func file_bonanza_build_pkg_proto_storage_object_object_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_storage_object_object_proto_msgTypes[5].OneofWrappers = []any{
-		(*UploadObjectResponse_Complete_)(nil),
-		(*UploadObjectResponse_Incomplete_)(nil),
+		(*uploadObjectResponse_Complete_)(nil),
+		(*uploadObjectResponse_Incomplete_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

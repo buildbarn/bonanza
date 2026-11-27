@@ -104,14 +104,12 @@ func newObjectPoolHarness(t *testing.T, ctrl *gomock.Controller, limit object.Li
 	}()
 
 	testutil.RequireEqualProto(t, &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_Handshake_{
-			Handshake: &dag_pb.UploadDagsRequest_Handshake{
-				Namespace: &object_pb.Namespace{
-					InstanceName:    "hello",
-					ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-				},
-			},
-		},
+		Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			Namespace: object_pb.Namespace_builder{
+				InstanceName:    "hello",
+				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
+			}.Build(),
+		}},
 	}, h.expectRequest())
 
 	if beforeHandshake != nil {
@@ -119,11 +117,9 @@ func newObjectPoolHarness(t *testing.T, ctrl *gomock.Controller, limit object.Li
 	}
 
 	h.respond(&dag_pb.UploadDagsResponse{
-		Type: &dag_pb.UploadDagsResponse_Handshake_{
-			Handshake: &dag_pb.UploadDagsResponse_Handshake{
-				MaximumUnfinalizedDagsCount: maximumUnfinalizedDAGsCount,
-			},
-		},
+		Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			MaximumUnfinalizedDagsCount: maximumUnfinalizedDAGsCount,
+		}},
 	})
 	return h
 }
@@ -317,18 +313,14 @@ func TestObjectPool(t *testing.T) {
 
 		h.expectInitiateDAG(parent.LocalReference)
 		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{
-				RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
-					LowestReferenceIndex: 0,
-				},
-			},
+			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+				LowestReferenceIndex: 0,
+			}},
 		})
 		testutil.RequireEqualProto(t, &dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
-				ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
-					LowestReferenceIndex: 0,
-				},
-			},
+			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+				LowestReferenceIndex: 0,
+			}},
 		}, h.expectRequest())
 
 		// Both children are assigned reference indices. Only
@@ -473,11 +465,9 @@ func TestObjectPool(t *testing.T) {
 		h.expectInitiateDAG(parent.LocalReference)
 		h.requestAndExpectContents(0, parent)
 		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
-				RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
-					LowestReferenceIndex: 1,
-				},
-			},
+			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				LowestReferenceIndex: 1,
+			}},
 		})
 		err := <-h.errChan
 		require.Equal(t, codes.Internal, grpc_status.Code(err))
@@ -491,10 +481,10 @@ func TestObjectPool(t *testing.T) {
 		// have been written, they can be evicted.
 		baseObjectReader := NewMockObjectReaderForTesting(ctrl)
 		var leaf1Reference buffered.Reference
-		h := newObjectPoolHarness(t, ctrl, object.NewLimit(&object_pb.Limit{
+		h := newObjectPoolHarness(t, ctrl, object.NewLimit(object_pb.Limit_builder{
 			Count:     1,
 			SizeBytes: 1000,
-		}), 10, func(h *objectPoolHarness) {
+		}.Build()), 10, func(h *objectPoolHarness) {
 			leaf1Reference = h.capture(leaf1)
 		})
 		objectReader := buffered.NewObjectReader(baseObjectReader, h.pool)
@@ -538,10 +528,10 @@ func TestObjectPool(t *testing.T) {
 			first, second = second, first
 		}
 		var firstReference, secondReference buffered.Reference
-		h := newObjectPoolHarness(t, ctrl, object.NewLimit(&object_pb.Limit{
+		h := newObjectPoolHarness(t, ctrl, object.NewLimit(object_pb.Limit_builder{
 			Count:     2,
 			SizeBytes: 1000,
-		}), 1, func(h *objectPoolHarness) {
+		}.Build()), 1, func(h *objectPoolHarness) {
 			firstReference = h.capture(first)
 			secondReference = h.capture(second)
 		})
@@ -574,10 +564,10 @@ func TestObjectPool(t *testing.T) {
 	})
 
 	t.Run("ObjectTooLarge", func(t *testing.T) {
-		pool := buffered.NewObjectPool(object.NewLimit(&object_pb.Limit{
+		pool := buffered.NewObjectPool(object.NewLimit(object_pb.Limit_builder{
 			Count:     10,
 			SizeBytes: 3,
-		}), eviction.NewLRUSet[object.LocalReference]())
+		}.Build()), eviction.NewLRUSet[object.LocalReference]())
 		_, err := model_core.CreatedObject[buffered.ReferenceMetadata]{
 			Contents: leaf1,
 		}.Capture(context.Background(), buffered.NewObjectManager(pool))
@@ -603,8 +593,8 @@ func TestObjectPool(t *testing.T) {
 		request := h.expectRequest()
 		initiateDAG := request.GetInitiateDag()
 		require.NotNil(t, initiateDAG)
-		require.Equal(t, leaf1.LocalReference.GetRawReference(), initiateDAG.RootReference)
-		require.Equal(t, keyHash[:], initiateDAG.RootTag.GetKey().GetHash())
+		require.Equal(t, leaf1.LocalReference.GetRawReference(), initiateDAG.GetRootReference())
+		require.Equal(t, keyHash[:], initiateDAG.GetRootTag().GetKey().GetHash())
 
 		errChan := make(chan error, 1)
 		go func() {
@@ -619,11 +609,9 @@ func TestObjectPool(t *testing.T) {
 		}
 
 		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{
-				FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
-					RootReferenceIndex: 0,
-				},
-			},
+			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+				RootReferenceIndex: 0,
+			}},
 		})
 		require.NoError(t, <-errChan)
 		h.close()
@@ -643,12 +631,10 @@ func TestObjectPool(t *testing.T) {
 
 		h.finalizeObject(0, 0, nil)
 		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{
-				FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
-					RootReferenceIndex: 0,
-					Status:             grpc_status.New(codes.PermissionDenied, "Invalid signature").Proto(),
-				},
-			},
+			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+				RootReferenceIndex: 0,
+				Status:             grpc_status.New(codes.PermissionDenied, "Invalid signature").Proto(),
+			}},
 		})
 
 		err := <-h.errChan

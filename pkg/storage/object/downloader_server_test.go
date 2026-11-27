@@ -23,7 +23,7 @@ func TestDownloaderServer(t *testing.T) {
 	server := object.NewDownloaderServer(downloader)
 
 	t.Run("InvalidNamespace", func(t *testing.T) {
-		_, err := server.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
+		_, err := server.DownloadObject(ctx, object_pb.DownloadObjectRequest_builder{
 			Reference: []byte{
 				// SHA-256 hash.
 				0xf7, 0x42, 0x5b, 0x6c, 0x3d, 0xe5, 0x64, 0x77,
@@ -39,16 +39,16 @@ func TestDownloaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid namespace: No message provided"), err)
 	})
 
 	t.Run("InvalidReference", func(t *testing.T) {
-		_, err := server.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		_, err := server.DownloadObject(ctx, object_pb.DownloadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x59, 0x6b, 0x9a, 0x92, 0x27, 0xec, 0xbe, 0xd4,
@@ -64,7 +64,7 @@ func TestDownloaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, "Invalid reference: Degree is 0 and height is 1, while both either have to be zero or non-zero"), err)
 	})
 
@@ -72,11 +72,11 @@ func TestDownloaderServer(t *testing.T) {
 		downloader.EXPECT().DownloadObject(ctx, object.MustNewSHA256V1GlobalReference("hello/world", "8996ae1fd65a65cf2c4ffa96b1639deffd15ebd1624037aaeca4758529727e7e", 21777, 0, 0, 0)).
 			Return(nil, status.Error(codes.Unavailable, "Server offline"))
 
-		_, err := server.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		_, err := server.DownloadObject(ctx, object_pb.DownloadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x89, 0x96, 0xae, 0x1f, 0xd6, 0x5a, 0x65, 0xcf,
@@ -92,7 +92,7 @@ func TestDownloaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		testutil.RequireEqualStatus(t, status.Error(codes.Unavailable, "Server offline"), err)
 	})
 
@@ -100,11 +100,11 @@ func TestDownloaderServer(t *testing.T) {
 		downloader.EXPECT().DownloadObject(ctx, object.MustNewSHA256V1GlobalReference("hello/world", "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969", 5, 0, 0, 0)).
 			Return(object.MustNewContents(object_pb.ReferenceFormat_SHA256_V1, nil, []byte("Hello")), nil)
 
-		response, err := server.DownloadObject(ctx, &object_pb.DownloadObjectRequest{
-			Namespace: &object_pb.Namespace{
+		response, err := server.DownloadObject(ctx, object_pb.DownloadObjectRequest_builder{
+			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello/world",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-			},
+			}.Build(),
 			Reference: []byte{
 				// SHA-256 hash.
 				0x18, 0x5f, 0x8d, 0xb3, 0x22, 0x71, 0xfe, 0x25,
@@ -120,10 +120,10 @@ func TestDownloaderServer(t *testing.T) {
 				// Maximum parents total size in bytes.
 				0x00, 0x00,
 			},
-		})
+		}.Build())
 		require.NoError(t, err)
-		testutil.RequireEqualProto(t, &object_pb.DownloadObjectResponse{
+		testutil.RequireEqualProto(t, object_pb.DownloadObjectResponse_builder{
 			Contents: []byte("Hello"),
-		}, response)
+		}.Build(), response)
 	})
 }

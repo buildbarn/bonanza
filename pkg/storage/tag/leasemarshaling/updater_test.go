@@ -27,10 +27,10 @@ func TestUpdater(t *testing.T) {
 	marshaler := NewMockLeaseMarshalerForTesting(ctrl)
 	updater := leasemarshaling.NewUpdater(baseUpdater, marshaler)
 
-	namespace := util.Must(object.NewNamespace(&object_pb.Namespace{
+	namespace := util.Must(object.NewNamespace(object_pb.Namespace_builder{
 		InstanceName:    "hello/world",
 		ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
-	}))
+	}.Build()))
 	key := tag.Key{
 		SignaturePublicKey: [...]byte{
 			0xe2, 0x59, 0xc1, 0x20, 0x1c, 0x38, 0x28, 0x47,
