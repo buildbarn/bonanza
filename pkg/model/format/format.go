@@ -39,13 +39,13 @@ type Format[T any] interface {
 // components. This corresponds to the paths accepted by tools like
 // bonanza_browser.
 func ToPath(objectFormat *model_format_pb.Format) ([]string, bool) {
-	switch format := objectFormat.GetFormat().(type) {
-	case *model_format_pb.Format_Raw:
+	switch objectFormat.WhichFormat() {
+	case model_format_pb.Format_Raw_case:
 		return []string{"raw"}, true
-	case *model_format_pb.Format_ProtoTypeName:
-		return []string{"proto", format.ProtoTypeName}, true
-	case *model_format_pb.Format_ProtoListTypeName:
-		return []string{"proto_list", format.ProtoListTypeName}, true
+	case model_format_pb.Format_ProtoTypeName_case:
+		return []string{"proto", objectFormat.GetProtoTypeName()}, true
+	case model_format_pb.Format_ProtoListTypeName_case:
+		return []string{"proto_list", objectFormat.GetProtoListTypeName()}, true
 	default:
 		return nil, false
 	}

@@ -28,11 +28,9 @@ func NewDynamicProto(messageType protoreflect.MessageType) DynamicProto {
 
 // ToProto returns the Protobuf message describing the format.
 func (f DynamicProto) ToProto() *model_format_pb.Format {
-	return &model_format_pb.Format{
-		Format: &model_format_pb.Format_ProtoTypeName{
-			ProtoTypeName: string(f.messageType.Descriptor().FullName()),
-		},
-	}
+	return model_format_pb.Format_builder{
+		ProtoTypeName: proto.String(string(f.messageType.Descriptor().FullName())),
+	}.Build()
 }
 
 // Unmarshal a Protobuf message.

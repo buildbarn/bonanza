@@ -1,9 +1,10 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.format;
 
 import "google/protobuf/empty.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/format";
 
 // Format of a payload, such as the contents of an object or the value

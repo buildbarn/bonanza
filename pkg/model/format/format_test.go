@@ -21,11 +21,9 @@ func TestProto(t *testing.T) {
 	f := model_format.NewProto[wrapperspb.StringValue]()
 
 	t.Run("ToProto", func(t *testing.T) {
-		testutil.RequireEqualProto(t, &model_format_pb.Format{
-			Format: &model_format_pb.Format_ProtoTypeName{
-				ProtoTypeName: "google.protobuf.StringValue",
-			},
-		}, f.ToProto())
+		testutil.RequireEqualProto(t, model_format_pb.Format_builder{
+			ProtoTypeName: proto.String("google.protobuf.StringValue"),
+		}.Build(), f.ToProto())
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {
@@ -60,11 +58,9 @@ func TestDynamicProto(t *testing.T) {
 	f := model_format.NewDynamicProto((&wrapperspb.StringValue{}).ProtoReflect().Type())
 
 	t.Run("ToProto", func(t *testing.T) {
-		testutil.RequireEqualProto(t, &model_format_pb.Format{
-			Format: &model_format_pb.Format_ProtoTypeName{
-				ProtoTypeName: "google.protobuf.StringValue",
-			},
-		}, f.ToProto())
+		testutil.RequireEqualProto(t, model_format_pb.Format_builder{
+			ProtoTypeName: proto.String("google.protobuf.StringValue"),
+		}.Build(), f.ToProto())
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {
@@ -81,11 +77,9 @@ func TestProtoList(t *testing.T) {
 	f := model_format.NewProtoList[wrapperspb.StringValue]()
 
 	t.Run("ToProto", func(t *testing.T) {
-		testutil.RequireEqualProto(t, &model_format_pb.Format{
-			Format: &model_format_pb.Format_ProtoListTypeName{
-				ProtoListTypeName: "google.protobuf.StringValue",
-			},
-		}, f.ToProto())
+		testutil.RequireEqualProto(t, model_format_pb.Format_builder{
+			ProtoListTypeName: proto.String("google.protobuf.StringValue"),
+		}.Build(), f.ToProto())
 	})
 
 	t.Run("Empty", func(t *testing.T) {
@@ -179,11 +173,9 @@ func TestProtoList(t *testing.T) {
 
 func TestRaw(t *testing.T) {
 	t.Run("ToProto", func(t *testing.T) {
-		testutil.RequireEqualProto(t, &model_format_pb.Format{
-			Format: &model_format_pb.Format_Raw{
-				Raw: &emptypb.Empty{},
-			},
-		}, model_format.Raw{}.ToProto())
+		testutil.RequireEqualProto(t, model_format_pb.Format_builder{
+			Raw: &emptypb.Empty{},
+		}.Build(), model_format.Raw{}.ToProto())
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {

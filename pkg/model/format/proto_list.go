@@ -64,11 +64,9 @@ func NewProtoList[
 
 // ToProto returns the Protobuf message describing the format.
 func (ProtoList[TMessage, TMessagePtr]) ToProto() *model_format_pb.Format {
-	return &model_format_pb.Format{
-		Format: &model_format_pb.Format_ProtoListTypeName{
-			ProtoListTypeName: string(TMessagePtr(nil).ProtoReflect().Descriptor().FullName()),
-		},
-	}
+	return model_format_pb.Format_builder{
+		ProtoListTypeName: proto.String(string(TMessagePtr(nil).ProtoReflect().Descriptor().FullName())),
+	}.Build()
 }
 
 // Unmarshal a list of Protobuf messages.

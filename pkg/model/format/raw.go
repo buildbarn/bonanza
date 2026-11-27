@@ -16,11 +16,9 @@ var _ Format[[]byte] = Raw{}
 
 // ToProto returns the Protobuf message describing the format.
 func (Raw) ToProto() *model_format_pb.Format {
-	return &model_format_pb.Format{
-		Format: &model_format_pb.Format_Raw{
-			Raw: &emptypb.Empty{},
-		},
-	}
+	return model_format_pb.Format_builder{
+		Raw: &emptypb.Empty{},
+	}.Build()
 }
 
 // Unmarshal returns the payload as is.

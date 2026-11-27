@@ -11,7 +11,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -23,15 +22,10 @@ const (
 )
 
 type Format struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Format:
-	//
-	//	*Format_Raw
-	//	*Format_ProtoTypeName
-	//	*Format_ProtoListTypeName
-	Format        isFormat_Format `protobuf_oneof:"format"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Format isFormat_Format        `protobuf_oneof:"format"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Format) Reset() {
@@ -59,21 +53,9 @@ func (x *Format) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Format.ProtoReflect.Descriptor instead.
-func (*Format) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_format_format_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Format) GetFormat() isFormat_Format {
-	if x != nil {
-		return x.Format
-	}
-	return nil
-}
-
 func (x *Format) GetRaw() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Format.(*Format_Raw); ok {
+		if x, ok := x.xxx_hidden_Format.(*format_Raw); ok {
 			return x.Raw
 		}
 	}
@@ -82,7 +64,7 @@ func (x *Format) GetRaw() *emptypb.Empty {
 
 func (x *Format) GetProtoTypeName() string {
 	if x != nil {
-		if x, ok := x.Format.(*Format_ProtoTypeName); ok {
+		if x, ok := x.xxx_hidden_Format.(*format_ProtoTypeName); ok {
 			return x.ProtoTypeName
 		}
 	}
@@ -91,34 +73,160 @@ func (x *Format) GetProtoTypeName() string {
 
 func (x *Format) GetProtoListTypeName() string {
 	if x != nil {
-		if x, ok := x.Format.(*Format_ProtoListTypeName); ok {
+		if x, ok := x.xxx_hidden_Format.(*format_ProtoListTypeName); ok {
 			return x.ProtoListTypeName
 		}
 	}
 	return ""
 }
 
+func (x *Format) SetRaw(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Format = nil
+		return
+	}
+	x.xxx_hidden_Format = &format_Raw{v}
+}
+
+func (x *Format) SetProtoTypeName(v string) {
+	x.xxx_hidden_Format = &format_ProtoTypeName{v}
+}
+
+func (x *Format) SetProtoListTypeName(v string) {
+	x.xxx_hidden_Format = &format_ProtoListTypeName{v}
+}
+
+func (x *Format) HasFormat() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Format != nil
+}
+
+func (x *Format) HasRaw() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Format.(*format_Raw)
+	return ok
+}
+
+func (x *Format) HasProtoTypeName() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Format.(*format_ProtoTypeName)
+	return ok
+}
+
+func (x *Format) HasProtoListTypeName() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Format.(*format_ProtoListTypeName)
+	return ok
+}
+
+func (x *Format) ClearFormat() {
+	x.xxx_hidden_Format = nil
+}
+
+func (x *Format) ClearRaw() {
+	if _, ok := x.xxx_hidden_Format.(*format_Raw); ok {
+		x.xxx_hidden_Format = nil
+	}
+}
+
+func (x *Format) ClearProtoTypeName() {
+	if _, ok := x.xxx_hidden_Format.(*format_ProtoTypeName); ok {
+		x.xxx_hidden_Format = nil
+	}
+}
+
+func (x *Format) ClearProtoListTypeName() {
+	if _, ok := x.xxx_hidden_Format.(*format_ProtoListTypeName); ok {
+		x.xxx_hidden_Format = nil
+	}
+}
+
+const Format_Format_not_set_case case_Format_Format = 0
+const Format_Raw_case case_Format_Format = 1
+const Format_ProtoTypeName_case case_Format_Format = 2
+const Format_ProtoListTypeName_case case_Format_Format = 3
+
+func (x *Format) WhichFormat() case_Format_Format {
+	if x == nil {
+		return Format_Format_not_set_case
+	}
+	switch x.xxx_hidden_Format.(type) {
+	case *format_Raw:
+		return Format_Raw_case
+	case *format_ProtoTypeName:
+		return Format_ProtoTypeName_case
+	case *format_ProtoListTypeName:
+		return Format_ProtoListTypeName_case
+	default:
+		return Format_Format_not_set_case
+	}
+}
+
+type Format_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Format:
+	Raw               *emptypb.Empty
+	ProtoTypeName     *string
+	ProtoListTypeName *string
+	// -- end of xxx_hidden_Format
+}
+
+func (b0 Format_builder) Build() *Format {
+	m0 := &Format{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Raw != nil {
+		x.xxx_hidden_Format = &format_Raw{b.Raw}
+	}
+	if b.ProtoTypeName != nil {
+		x.xxx_hidden_Format = &format_ProtoTypeName{*b.ProtoTypeName}
+	}
+	if b.ProtoListTypeName != nil {
+		x.xxx_hidden_Format = &format_ProtoListTypeName{*b.ProtoListTypeName}
+	}
+	return m0
+}
+
+type case_Format_Format protoreflect.FieldNumber
+
+func (x case_Format_Format) String() string {
+	md := file_bonanza_build_pkg_proto_model_format_format_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isFormat_Format interface {
 	isFormat_Format()
 }
 
-type Format_Raw struct {
-	Raw *emptypb.Empty `protobuf:"bytes,1,opt,name=raw,proto3,oneof"`
+type format_Raw struct {
+	Raw *emptypb.Empty `protobuf:"bytes,1,opt,name=raw,oneof"`
 }
 
-type Format_ProtoTypeName struct {
-	ProtoTypeName string `protobuf:"bytes,2,opt,name=proto_type_name,json=protoTypeName,proto3,oneof"`
+type format_ProtoTypeName struct {
+	ProtoTypeName string `protobuf:"bytes,2,opt,name=proto_type_name,json=protoTypeName,oneof"`
 }
 
-type Format_ProtoListTypeName struct {
-	ProtoListTypeName string `protobuf:"bytes,3,opt,name=proto_list_type_name,json=protoListTypeName,proto3,oneof"`
+type format_ProtoListTypeName struct {
+	ProtoListTypeName string `protobuf:"bytes,3,opt,name=proto_list_type_name,json=protoListTypeName,oneof"`
 }
 
-func (*Format_Raw) isFormat_Format() {}
+func (*format_Raw) isFormat_Format() {}
 
-func (*Format_ProtoTypeName) isFormat_Format() {}
+func (*format_ProtoTypeName) isFormat_Format() {}
 
-func (*Format_ProtoListTypeName) isFormat_Format() {}
+func (*format_ProtoListTypeName) isFormat_Format() {}
 
 var File_bonanza_build_pkg_proto_model_format_format_proto protoreflect.FileDescriptor
 
@@ -129,19 +237,7 @@ const file_bonanza_build_pkg_proto_model_format_format_proto_rawDesc = "" +
 	"\x03raw\x18\x01 \x01(\v2\x16.google.protobuf.EmptyH\x00R\x03raw\x12(\n" +
 	"\x0fproto_type_name\x18\x02 \x01(\tH\x00R\rprotoTypeName\x121\n" +
 	"\x14proto_list_type_name\x18\x03 \x01(\tH\x00R\x11protoListTypeNameB\b\n" +
-	"\x06formatB&Z$bonanza.build/pkg/proto/model/formatb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_format_format_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_format_format_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_format_format_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_format_format_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_format_format_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_format_format_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_format_format_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_format_format_proto_rawDescData
-}
+	"\x06formatB+Z$bonanza.build/pkg/proto/model/format\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_format_format_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_bonanza_build_pkg_proto_model_format_format_proto_goTypes = []any{
@@ -163,9 +259,9 @@ func file_bonanza_build_pkg_proto_model_format_format_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_format_format_proto_msgTypes[0].OneofWrappers = []any{
-		(*Format_Raw)(nil),
-		(*Format_ProtoTypeName)(nil),
-		(*Format_ProtoListTypeName)(nil),
+		(*format_Raw)(nil),
+		(*format_ProtoTypeName)(nil),
+		(*format_ProtoListTypeName)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
