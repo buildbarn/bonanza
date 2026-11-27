@@ -46,7 +46,7 @@ type Client struct {
 	isLargestSizeClass        bool
 
 	// Mutable fields that are always set.
-	request                         remoteworker_pb.SynchronizeRequest
+	request                         *remoteworker_pb.SynchronizeRequest
 	schedulerMayThinkExecutingUntil *time.Time
 	nextSynchronizationAt           time.Time
 
@@ -110,9 +110,9 @@ func NewClient(
 	publicKeys := make([]*remoteworker_pb.SynchronizeRequest_PublicKey, 0, len(keysToSort.Slice))
 	for _, key := range keysToSort.Slice {
 		sortedPrivateKeys = append(sortedPrivateKeys, key.privateKey)
-		publicKeys = append(publicKeys, &remoteworker_pb.SynchronizeRequest_PublicKey{
+		publicKeys = append(publicKeys, remoteworker_pb.SynchronizeRequest_PublicKey_builder{
 			PkixPublicKey: key.pkixPublicKey,
-		})
+		}.Build())
 	}
 
 	return &Client{
@@ -124,16 +124,14 @@ func NewClient(
 		clientCertificateVerifier: clientCertificateVerifier,
 		isLargestSizeClass:        isLargestSizeClass,
 
-		request: remoteworker_pb.SynchronizeRequest{
+		request: remoteworker_pb.SynchronizeRequest_builder{
 			WorkerId:   workerID,
 			PublicKeys: publicKeys,
 			SizeClass:  sizeClass,
-			CurrentState: &remoteworker_pb.CurrentState{
-				WorkerState: &remoteworker_pb.CurrentState_Idle{
-					Idle: &emptypb.Empty{},
-				},
-			},
-		},
+			CurrentState: remoteworker_pb.CurrentState_builder{
+				Idle: &emptypb.Empty{},
+			}.Build(),
+		}.Build(),
 		nextSynchronizationAt: clock.Now(),
 	}, nil
 }
@@ -277,11 +275,11 @@ func (c *Client) startExecution(desiredState *remoteworker_pb.DesiredState_Execu
 	c.eventEncoder = encryptedaction.NewEventEncoder(action, sharedSecret)
 
 	// Change state to indicate the build has started.
-	c.request.GetCurrentState().WorkerState = &remoteworker_pb.CurrentState_Executing_{
-		Executing: &remoteworker_pb.CurrentState_Executing{
+	c.request.GetCurrentState().SetExecuting(
+		remoteworker_pb.CurrentState_Executing_builder{
 			TaskUuid: desiredState.GetTaskUuid(),
-		},
-	}
+		}.Build(),
+	)
 	return nil
 }
 
@@ -294,9 +292,7 @@ func (c *Client) stopExecution() {
 		c.executionCancellation = nil
 	}
 
-	c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Idle{
-		Idle: &emptypb.Empty{},
-	}
+	c.request.GetCurrentState().SetIdle(&emptypb.Empty{})
 }
 
 // touchSchedulerMayThinkExecuting updates state on whether the
@@ -330,7 +326,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 		}
 	}
 
-	if workerState, ok := c.request.CurrentState.WorkerState.(*remoteworker_pb.CurrentState_Executing_); ok {
+	if executing := c.request.GetCurrentState().GetExecuting(); executing != nil {
 		// Either wait until we've reached the next
 		// synchronization time or execution has completed.
 		timer, timerChannel := c.clock.NewTimer(c.nextSynchronizationAt.Sub(c.clock.Now()))
@@ -356,21 +352,21 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 						return false, util.StatusWrap(err, "Failed to marshal completion event")
 					}
 				}
-				c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Completed_{
-					Completed: &remoteworker_pb.CurrentState_Completed{
-						TaskUuid:                 workerState.Executing.TaskUuid,
+				c.request.GetCurrentState().SetCompleted(
+					remoteworker_pb.CurrentState_Completed_builder{
+						TaskUuid:                 executing.GetTaskUuid(),
 						Event:                    event,
 						VirtualExecutionDuration: durationpb.New(c.completionVirtualExecutionDuration),
 						Result:                   c.completionResult,
-					},
-				}
+					}.Build(),
+				)
 			} else {
-				c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Rejected_{
-					Rejected: &remoteworker_pb.CurrentState_Rejected{
-						TaskUuid: workerState.Executing.TaskUuid,
+				c.request.GetCurrentState().SetRejected(
+					remoteworker_pb.CurrentState_Rejected_builder{
+						TaskUuid: executing.GetTaskUuid(),
 						Reason:   status.Convert(c.completionRejectionError).Proto(),
-					},
-				}
+					}.Build(),
+				)
 			}
 			c.completionRejectionError = nil
 			c.completionEvent = nil
@@ -383,7 +379,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 				if err != nil {
 					return false, util.StatusWrap(err, "Failed to marshal execution event")
 				}
-				workerState.Executing.Event = event
+				executing.SetEvent(event)
 			}
 		}
 	}
@@ -391,25 +387,26 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 	// Determine whether we should perform call to Synchronize with
 	// prefer_being_able set to false (potentially blocking) or true
 	// (non-blocking).
+	currentState := c.request.GetCurrentState()
 	currentStateIsExecuting := false
-	switch workerState := c.request.CurrentState.WorkerState.(type) {
-	case *remoteworker_pb.CurrentState_Idle:
+	switch currentState.WhichWorkerState() {
+	case remoteworker_pb.CurrentState_Idle_case:
 		// Even though we are idle, the scheduler may think we
 		// are executing. This means we were not able to perform
 		// readiness checks. Forcefully switch to idle, so that
 		// we can still do this before picking up more work.
-		c.request.PreferBeingIdle = c.schedulerMayThinkExecutingUntil != nil
-	case *remoteworker_pb.CurrentState_Rejected_:
-		c.request.PreferBeingIdle = false
-	case *remoteworker_pb.CurrentState_Executing_:
+		c.request.SetPreferBeingIdle(c.schedulerMayThinkExecutingUntil != nil)
+	case remoteworker_pb.CurrentState_Rejected_case:
+		c.request.SetPreferBeingIdle(false)
+	case remoteworker_pb.CurrentState_Executing_case:
 		currentStateIsExecuting = true
-		c.request.PreferBeingIdle = false
-	case *remoteworker_pb.CurrentState_Completed_:
+		c.request.SetPreferBeingIdle(false)
+	case remoteworker_pb.CurrentState_Completed_case:
 		// In case execution failed with a serious
 		// error, request that the worker gets a brief
 		// amount of idle time, so that we can do some
 		// health checks prior to picking up more work.
-		c.request.PreferBeingIdle = workerState.Completed.Result != remoteworker_pb.CurrentState_Completed_SUCCEEDED
+		c.request.SetPreferBeingIdle(currentState.GetCompleted().GetResult() != remoteworker_pb.CurrentState_Completed_SUCCEEDED)
 	default:
 		panic("Unknown worker state")
 	}
@@ -420,7 +417,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 	// or properly ensure the scheduler thinks we're in the idle
 	// state.
 	if ctx.Err() != nil {
-		c.request.PreferBeingIdle = true
+		c.request.SetPreferBeingIdle(true)
 		ctx = context.Background()
 	}
 
@@ -428,7 +425,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 	// requesting new work. If this fails, we might have lost an
 	// execute request sent by the scheduler, so assume the
 	// scheduler thinks we may be executing.
-	response, err := c.scheduler.Synchronize(ctx, &c.request)
+	response, err := c.scheduler.Synchronize(ctx, c.request)
 	if c.schedulerMayThinkExecutingUntil == nil {
 		c.touchSchedulerMayThinkExecuting()
 	}
@@ -438,7 +435,7 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 
 	// Determine when we should contact the scheduler again in case
 	// of no activity.
-	nextSynchronizationAt := response.NextSynchronizationAt
+	nextSynchronizationAt := response.GetNextSynchronizationAt()
 	if err := nextSynchronizationAt.CheckValid(); err != nil {
 		return false, util.StatusWrap(err, "Scheduler response contained invalid synchronization timestamp")
 	}
@@ -446,64 +443,65 @@ func (c *Client) Run(ctx context.Context) (bool, error) {
 
 	// As Synchronize() succeeded, the next call does not need to
 	// include data associated with the current execution event.
-	if workerState, ok := c.request.CurrentState.WorkerState.(*remoteworker_pb.CurrentState_Executing_); ok {
-		workerState.Executing.Event = nil
+	if executing := currentState.GetExecuting(); executing != nil {
+		executing.ClearEvent()
 	}
 
 	// Apply desired state changes provided by the scheduler.
-	if desiredState := response.DesiredState; desiredState != nil {
-		switch workerState := desiredState.WorkerState.(type) {
-		case *remoteworker_pb.DesiredState_VerifyingPublicKeys_:
-			// Scheduler wants us to recompute our
-			// verification zeros.
-			verificationECDHPublicKeys := map[ecdh.Curve]*ecdh.PublicKey{}
-			for i, k := range workerState.VerifyingPublicKeys.VerificationPkixPublicKeys {
-				verificationECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(k)
-				if err != nil {
-					return false, util.StatusWrapfWithCode(err, codes.Internal, "Scheduler provided an invalid verification PKIX public key at index %d", i)
-				}
-				verificationECDHPublicKeys[verificationECDHPublicKey.Curve()] = verificationECDHPublicKey
+	switch desiredState := response.GetDesiredState(); desiredState.WhichWorkerState() {
+	case remoteworker_pb.DesiredState_WorkerState_not_set_case:
+	case remoteworker_pb.DesiredState_VerifyingPublicKeys_case:
+		// Scheduler wants us to recompute our
+		// verification zeros.
+		verificationECDHPublicKeys := map[ecdh.Curve]*ecdh.PublicKey{}
+		for i, k := range desiredState.GetVerifyingPublicKeys().GetVerificationPkixPublicKeys() {
+			verificationECDHPublicKey, err := crypto.ParsePKIXECDHPublicKey(k)
+			if err != nil {
+				return false, util.StatusWrapfWithCode(err, codes.Internal, "Scheduler provided an invalid verification PKIX public key at index %d", i)
 			}
-
-			for i, privateKey := range c.privateKeys {
-				verificationECDHPublicKey, ok := verificationECDHPublicKeys[privateKey.Curve()]
-				if !ok {
-					return false, status.Errorf(codes.Internal, "Scheduler did not provide a verification PKIX public key that has the same curve as PKIX public key %s", base64.StdEncoding.EncodeToString(c.request.PublicKeys[i].PkixPublicKey))
-				}
-				sharedSecret, err := privateKey.ECDH(verificationECDHPublicKey)
-				if err != nil {
-					return false, util.StatusWrapfWithCode(err, codes.Internal, "Failed to compute shared secret for PKIX public key %s", base64.StdEncoding.EncodeToString(c.request.PublicKeys[i].PkixPublicKey))
-				}
-				aesCipher, err := aes.NewCipher(sharedSecret)
-				if err != nil {
-					return false, util.StatusWrapfWithCode(err, codes.Internal, "Failed to create block cipher for PKIX public key %s", base64.StdEncoding.EncodeToString(c.request.PublicKeys[i].PkixPublicKey))
-				}
-				verificationZeros := make([]byte, aesCipher.BlockSize())
-				aesCipher.Encrypt(verificationZeros, verificationZeros)
-				c.request.PublicKeys[i].VerificationZeros = verificationZeros
-			}
-		case *remoteworker_pb.DesiredState_Idle:
-			// Scheduler is forcing us to go back to idle.
-			c.stopExecution()
-			c.schedulerMayThinkExecutingUntil = nil
-			return true, nil
-		case *remoteworker_pb.DesiredState_Executing_:
-			// Scheduler is requesting us to execute the
-			// next action, maybe forcing us to stop
-			// execution of the current build action.
-			if err := c.startExecution(workerState.Executing); err != nil {
-				c.request.CurrentState.WorkerState = &remoteworker_pb.CurrentState_Rejected_{
-					Rejected: &remoteworker_pb.CurrentState_Rejected{
-						TaskUuid: workerState.Executing.TaskUuid,
-						Reason:   status.Convert(err).Proto(),
-					},
-				}
-			}
-			c.touchSchedulerMayThinkExecuting()
-			return false, nil
-		default:
-			return false, status.Error(codes.Internal, "Scheduler provided an unknown desired state")
+			verificationECDHPublicKeys[verificationECDHPublicKey.Curve()] = verificationECDHPublicKey
 		}
+
+		publicKeys := c.request.GetPublicKeys()
+		for i, privateKey := range c.privateKeys {
+			verificationECDHPublicKey, ok := verificationECDHPublicKeys[privateKey.Curve()]
+			if !ok {
+				return false, status.Errorf(codes.Internal, "Scheduler did not provide a verification PKIX public key that has the same curve as PKIX public key %s", base64.StdEncoding.EncodeToString(publicKeys[i].GetPkixPublicKey()))
+			}
+			sharedSecret, err := privateKey.ECDH(verificationECDHPublicKey)
+			if err != nil {
+				return false, util.StatusWrapfWithCode(err, codes.Internal, "Failed to compute shared secret for PKIX public key %s", base64.StdEncoding.EncodeToString(publicKeys[i].GetPkixPublicKey()))
+			}
+			aesCipher, err := aes.NewCipher(sharedSecret)
+			if err != nil {
+				return false, util.StatusWrapfWithCode(err, codes.Internal, "Failed to create block cipher for PKIX public key %s", base64.StdEncoding.EncodeToString(publicKeys[i].GetPkixPublicKey()))
+			}
+			verificationZeros := make([]byte, aesCipher.BlockSize())
+			aesCipher.Encrypt(verificationZeros, verificationZeros)
+			publicKeys[i].SetVerificationZeros(verificationZeros)
+		}
+	case remoteworker_pb.DesiredState_Idle_case:
+		// Scheduler is forcing us to go back to idle.
+		c.stopExecution()
+		c.schedulerMayThinkExecutingUntil = nil
+		return true, nil
+	case remoteworker_pb.DesiredState_Executing_case:
+		// Scheduler is requesting us to execute the
+		// next action, maybe forcing us to stop
+		// execution of the current build action.
+		executing := desiredState.GetExecuting()
+		if err := c.startExecution(executing); err != nil {
+			currentState.SetRejected(
+				remoteworker_pb.CurrentState_Rejected_builder{
+					TaskUuid: executing.GetTaskUuid(),
+					Reason:   status.Convert(err).Proto(),
+				}.Build(),
+			)
+		}
+		c.touchSchedulerMayThinkExecuting()
+		return false, nil
+	default:
+		return false, status.Error(codes.Internal, "Scheduler provided an unknown desired state")
 	}
 
 	// Scheduler has instructed to continue as is.

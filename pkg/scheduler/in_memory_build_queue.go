@@ -476,14 +476,14 @@ func (bq *InMemoryBuildQueue) Execute(in *remoteexecution_pb.ExecuteRequest, out
 	t := &task{
 		operations:       map[*invocation]*operation{},
 		deduplicationKey: deduplicationKey,
-		desiredState: remoteworker_pb.DesiredState_Executing{
+		desiredState: remoteworker_pb.DesiredState_Executing_builder{
 			TaskUuid:                  util.Must(bq.uuidGenerator()).String(),
 			Action:                    action,
 			EffectiveExecutionTimeout: durationpb.New(timeout),
 			QueuedTimestamp:           bq.getCurrentTime(),
 			AuxiliaryMetadata:         auxiliaryMetadata,
 			W3CTraceContext:           w3cTraceContext,
-		},
+		}.Build(),
 		expectedDuration:        expectedDuration,
 		initialSizeClassLearner: initialSizeClassLearner,
 		stageChangeWakeup:       make(chan struct{}),
@@ -603,17 +603,17 @@ func (bq *InMemoryBuildQueue) getPlatformQueuePublicKey(pkixPublicKey []byte) (p
 func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remoteworker_pb.SynchronizeRequest) (*remoteworker_pb.SynchronizeResponse, error) {
 	// Ensure that the list of public keys provided by the worker is
 	// non-empty and properly sorted.
-	publicKeys := request.PublicKeys
+	publicKeys := request.GetPublicKeys()
 	if len(publicKeys) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Worker provided no public keys")
 	}
 	if !slices.IsSortedFunc(publicKeys, func(a, b *remoteworker_pb.SynchronizeRequest_PublicKey) int {
-		return bytes.Compare(a.PkixPublicKey, b.PkixPublicKey)
+		return bytes.Compare(a.GetPkixPublicKey(), b.GetPkixPublicKey())
 	}) {
 		return nil, status.Error(codes.InvalidArgument, "Public keys provided by worker are not sorted")
 	}
 
-	workerKey := newWorkerKey(request.WorkerId)
+	workerKey := newWorkerKey(request.GetWorkerId())
 
 	bq.enter(bq.clock.Now())
 	defer bq.leave()
@@ -656,16 +656,17 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 	var pq *platformQueue
 	var firstPublicKey []byte
 	for _, publicKey := range publicKeys {
-		if foundPQ, ok := bq.platformQueues[string(publicKey.PkixPublicKey)]; ok {
+		pkixPublicKey := publicKey.GetPkixPublicKey()
+		if foundPQ, ok := bq.platformQueues[string(pkixPublicKey)]; ok {
 			if pq == nil {
 				pq = foundPQ
-				firstPublicKey = publicKey.PkixPublicKey
+				firstPublicKey = pkixPublicKey
 			} else if foundPQ != pq {
 				return nil, status.Errorf(
 					codes.InvalidArgument,
 					"PKIX public keys %s and %s are already associated with different platform queues",
 					base64.StdEncoding.EncodeToString(firstPublicKey),
-					base64.StdEncoding.EncodeToString(publicKey.PkixPublicKey),
+					base64.StdEncoding.EncodeToString(pkixPublicKey),
 				)
 			}
 		}
@@ -682,7 +683,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 	needsVerification := slices.ContainsFunc(
 		publicKeys,
 		func(publicKey *remoteworker_pb.SynchronizeRequest_PublicKey) bool {
-			return len(publicKey.VerificationZeros) != aes.BlockSize
+			return len(publicKey.GetVerificationZeros()) != aes.BlockSize
 		},
 	)
 
@@ -698,7 +699,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 		// public keys sorted.
 		cmp := 1
 		for insertionIndex < len(existingPublicKeys) {
-			cmp = bytes.Compare(requestPublicKey.PkixPublicKey, existingPublicKeys[insertionIndex].pkixPublicKey[:])
+			cmp = bytes.Compare(requestPublicKey.GetPkixPublicKey(), existingPublicKeys[insertionIndex].pkixPublicKey[:])
 			if cmp >= 0 {
 				break
 			}
@@ -712,7 +713,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 			// zeros equal the precomputed value.
 			publicKey := &existingPublicKeys[insertionIndex]
 			curveIndex = publicKey.curveIndex
-			if !needsVerification && subtle.ConstantTimeCompare(requestPublicKey.VerificationZeros, publicKey.verificationZeros[:]) != 1 {
+			if !needsVerification && subtle.ConstantTimeCompare(requestPublicKey.GetVerificationZeros(), publicKey.verificationZeros[:]) != 1 {
 				needsVerification = true
 			}
 		} else if needsVerification {
@@ -722,7 +723,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 			// verification key for this kind of curve
 			// exists.
 			var err error
-			_, curveIndex, err = bq.parsePKIXPublicKeyAndGetCurveIndex(requestPublicKey.PkixPublicKey)
+			_, curveIndex, err = bq.parsePKIXPublicKeyAndGetCurveIndex(requestPublicKey.GetPkixPublicKey())
 			if err != nil {
 				return nil, util.StatusWrapfWithCode(err, codes.InvalidArgument, "Invalid PKIX public key at index %d", index)
 			}
@@ -731,12 +732,12 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 			// yet. Compute the verification zeros on the
 			// fly and allow the public key to be added if
 			// the client provided value matches.
-			publicKey, err := bq.getPlatformQueuePublicKey(requestPublicKey.PkixPublicKey)
+			publicKey, err := bq.getPlatformQueuePublicKey(requestPublicKey.GetPkixPublicKey())
 			if err != nil {
 				return nil, util.StatusWrapfWithCode(err, codes.InvalidArgument, "Invalid PKIX public key at index %d", index)
 			}
 			curveIndex = publicKey.curveIndex
-			if subtle.ConstantTimeCompare(requestPublicKey.VerificationZeros, publicKey.verificationZeros[:]) == 1 {
+			if subtle.ConstantTimeCompare(requestPublicKey.GetVerificationZeros(), publicKey.verificationZeros[:]) == 1 {
 				newPublicKeys = append(newPublicKeys, newPublicKey{
 					publicKey:      publicKey,
 					insertionIndex: insertionIndex,
@@ -756,16 +757,14 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 		// match. Return the verification public keys for all
 		// curves used by the worker, so that it can recompute
 		// and retry.
-		return &remoteworker_pb.SynchronizeResponse{
+		return remoteworker_pb.SynchronizeResponse_builder{
 			NextSynchronizationAt: bq.getCurrentTime(),
-			DesiredState: &remoteworker_pb.DesiredState{
-				WorkerState: &remoteworker_pb.DesiredState_VerifyingPublicKeys_{
-					VerifyingPublicKeys: &remoteworker_pb.DesiredState_VerifyingPublicKeys{
-						VerificationPkixPublicKeys: verificationPKIXPublicKeys,
-					},
-				},
-			},
-		}, nil
+			DesiredState: remoteworker_pb.DesiredState_builder{
+				VerifyingPublicKeys: remoteworker_pb.DesiredState_VerifyingPublicKeys_builder{
+					VerificationPkixPublicKeys: verificationPKIXPublicKeys,
+				}.Build(),
+			}.Build(),
+		}.Build(), nil
 	}
 
 	var scq *sizeClassQueue
@@ -776,8 +775,8 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 		pq = newPlatformQueue(nil, 0, 0)
 	} else if index := sort.Search(
 		len(pq.sizeClasses),
-		func(i int) bool { return pq.sizeClasses[i] >= request.SizeClass },
-	); index < len(pq.sizeClasses) && pq.sizeClasses[index] == request.SizeClass {
+		func(i int) bool { return pq.sizeClasses[i] >= request.GetSizeClass() },
+	); index < len(pq.sizeClasses) && pq.sizeClasses[index] == request.GetSizeClass() {
 		// Found an existing size class queue. Prevent the
 		// platform queue from being garbage collected, as it
 		// will now have an active worker.
@@ -793,9 +792,9 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 		// non-deterministic otherwise.
 		if maximumSizeClassQueue := pq.sizeClassQueues[len(pq.sizeClassQueues)-1]; maximumSizeClassQueue.mayBeRemoved {
 			return nil, status.Error(codes.InvalidArgument, "Cannot add multiple size classes to a platform queue that is not predeclared")
-		} else if maximumSizeClass := pq.sizeClasses[len(pq.sizeClasses)-1]; request.SizeClass > maximumSizeClass {
-			return nil, status.Errorf(codes.InvalidArgument, "Worker provided size class %d, which exceeds the predeclared maximum of %d", request.SizeClass, maximumSizeClass)
-		} else if maximumSizeClass > 0 && request.SizeClass < 1 {
+		} else if maximumSizeClass := pq.sizeClasses[len(pq.sizeClasses)-1]; request.GetSizeClass() > maximumSizeClass {
+			return nil, status.Errorf(codes.InvalidArgument, "Worker provided size class %d, which exceeds the predeclared maximum of %d", request.GetSizeClass(), maximumSizeClass)
+		} else if maximumSizeClass > 0 && request.GetSizeClass() < 1 {
 			return nil, status.Error(codes.InvalidArgument, "Worker did not provide a size class, even though this platform queue uses them")
 		}
 	}
@@ -804,7 +803,7 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 	// and size classes.
 	pq.addNewPublicKeys(bq, newPublicKeys)
 	if scq == nil {
-		scq = pq.addSizeClassQueue(bq, request.SizeClass, true)
+		scq = pq.addSizeClassQueue(bq, request.GetSizeClass(), true)
 	}
 
 	w, ok := scq.workers[workerKey]
@@ -842,30 +841,30 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 
 	// Process the current state of the worker to determine what it
 	// should be doing next.
-	switch workerState := request.CurrentState.GetWorkerState().(type) {
-	case *remoteworker_pb.CurrentState_Idle:
-		return w.getCurrentOrNextTask(ctx, bq, scq, request.WorkerId, request.PreferBeingIdle)
-	case *remoteworker_pb.CurrentState_Rejected_:
-		if !w.isRunningCorrectTask(workerState.Rejected.TaskUuid) {
-			return w.getCurrentOrNextTask(ctx, bq, scq, request.WorkerId, request.PreferBeingIdle)
+	switch request.GetCurrentState().WhichWorkerState() {
+	case remoteworker_pb.CurrentState_Idle_case:
+		return w.getCurrentOrNextTask(ctx, bq, scq, request.GetWorkerId(), request.GetPreferBeingIdle())
+	case remoteworker_pb.CurrentState_Rejected_case:
+		if !w.isRunningCorrectTask(request.GetCurrentState().GetRejected().GetTaskUuid()) {
+			return w.getCurrentOrNextTask(ctx, bq, scq, request.GetWorkerId(), request.GetPreferBeingIdle())
 		}
-		reason := status.ErrorProto(workerState.Rejected.Reason)
+		reason := status.ErrorProto(request.GetCurrentState().GetRejected().GetReason())
 		if reason == nil {
 			return nil, status.Error(codes.InvalidArgument, "Provided rejection reason is not an error")
 		}
 		w.currentTask.fail(bq, "RejectedByWorker", util.StatusWrap(reason, "Action rejected by worker"), true)
-	case *remoteworker_pb.CurrentState_Executing_:
-		if !w.isRunningCorrectTask(workerState.Executing.TaskUuid) {
+	case remoteworker_pb.CurrentState_Executing_case:
+		if !w.isRunningCorrectTask(request.GetCurrentState().GetExecuting().GetTaskUuid()) {
 			// Don't block when obtaining a task, so that we
 			// can ask the worker to stop running the
 			// current action if there's nothing else to do.
-			return w.getCurrentOrNextTask(nil, bq, scq, request.WorkerId, request.PreferBeingIdle)
+			return w.getCurrentOrNextTask(nil, bq, scq, request.GetWorkerId(), request.GetPreferBeingIdle())
 		}
 
 		// If the worker provided an execution event, record it
 		// so that the next ExecuteResponse can send it back to
 		// the client.
-		if event := workerState.Executing.Event; event != nil {
+		if event := request.GetCurrentState().GetExecuting().GetEvent(); event != nil {
 			t := w.currentTask
 			t.lastExecutionEvent = event
 			t.executionEventsSeen++
@@ -874,18 +873,18 @@ func (bq *InMemoryBuildQueue) Synchronize(ctx context.Context, request *remotewo
 
 		// Allow the worker to continue with what it's doing
 		// right now.
-		return &remoteworker_pb.SynchronizeResponse{
+		return remoteworker_pb.SynchronizeResponse_builder{
 			NextSynchronizationAt: bq.getNextSynchronizationAtDelay(),
-		}, nil
-	case *remoteworker_pb.CurrentState_Completed_:
-		if !w.isRunningCorrectTask(workerState.Completed.TaskUuid) {
-			return w.getCurrentOrNextTask(ctx, bq, scq, request.WorkerId, request.PreferBeingIdle)
+		}.Build(), nil
+	case remoteworker_pb.CurrentState_Completed_case:
+		if !w.isRunningCorrectTask(request.GetCurrentState().GetCompleted().GetTaskUuid()) {
+			return w.getCurrentOrNextTask(ctx, bq, scq, request.GetWorkerId(), request.GetPreferBeingIdle())
 		}
-		w.currentTask.complete(bq, workerState.Completed)
+		w.currentTask.complete(bq, request.GetCurrentState().GetCompleted())
 	default:
 		return nil, status.Error(codes.InvalidArgument, "Worker provided an unknown current state")
 	}
-	return w.getNextTask(ctx, bq, scq, request.WorkerId, request.PreferBeingIdle)
+	return w.getNextTask(ctx, bq, scq, request.GetWorkerId(), request.GetPreferBeingIdle())
 }
 
 // ListPlatformQueues returns a list of all platform queues currently
@@ -1450,14 +1449,12 @@ func (bq *InMemoryBuildQueue) leave() {
 // getIdleSynchronizeResponse returns a synchronization response that
 // explicitly instructs a worker to return to the idle state.
 func (bq *InMemoryBuildQueue) getIdleSynchronizeResponse() *remoteworker_pb.SynchronizeResponse {
-	return &remoteworker_pb.SynchronizeResponse{
+	return remoteworker_pb.SynchronizeResponse_builder{
 		NextSynchronizationAt: bq.getCurrentTime(),
-		DesiredState: &remoteworker_pb.DesiredState{
-			WorkerState: &remoteworker_pb.DesiredState_Idle{
-				Idle: &emptypb.Empty{},
-			},
-		},
-	}
+		DesiredState: remoteworker_pb.DesiredState_builder{
+			Idle: &emptypb.Empty{},
+		}.Build(),
+	}.Build()
 }
 
 // platformQueueList is a list of *platformQueue objects that is
@@ -2173,7 +2170,7 @@ func (h queuedOperationsHeap) Less(i, j int) bool {
 	if ti.expectedDuration < tj.expectedDuration {
 		return false
 	}
-	return ti.desiredState.QueuedTimestamp.AsTime().Before(tj.desiredState.QueuedTimestamp.AsTime())
+	return ti.desiredState.GetQueuedTimestamp().AsTime().Before(tj.desiredState.GetQueuedTimestamp().AsTime())
 }
 
 func (h queuedOperationsHeap) Swap(i, j int) {
@@ -2437,7 +2434,7 @@ func (o *operation) maybeStartCleanup(bq *InMemoryBuildQueue) {
 type task struct {
 	operations       map[*invocation]*operation
 	deduplicationKey [sha256.Size]byte
-	desiredState     remoteworker_pb.DesiredState_Executing
+	desiredState     *remoteworker_pb.DesiredState_Executing
 
 	// currentStageStartTime is used by register*StageFinished() to
 	// obtain Prometheus metrics.
@@ -2642,7 +2639,7 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 	}
 
 	result := "Unknown"
-	switch completed.Result {
+	switch completed.GetResult() {
 	case remoteworker_pb.CurrentState_Completed_SUCCEEDED:
 		result = "Succeeded"
 	case remoteworker_pb.CurrentState_Completed_TIMED_OUT:
@@ -2656,14 +2653,14 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 	// Communicate the results to the initial size class learner,
 	// which may request that the task is re-executed.
 	pq := t.getCurrentSizeClassQueue().platformQueue
-	if completed.Result == remoteworker_pb.CurrentState_Completed_SUCCEEDED {
+	if completed.GetResult() == remoteworker_pb.CurrentState_Completed_SUCCEEDED {
 		// The task succeeded, but we may still get instructed
 		// to run the task again for training purposes. If that
 		// happens, create a new task that runs in the
 		// background. The user does not need to be blocked on
 		// this.
 		if backgroundSizeClassIndex, backgroundExpectedDuration, backgroundTimeout, backgroundInitialSizeClassLearner := t.initialSizeClassLearner.Succeeded(
-			completed.VirtualExecutionDuration.AsDuration(),
+			completed.GetVirtualExecutionDuration().AsDuration(),
 			pq.sizeClasses,
 		); backgroundInitialSizeClassLearner != nil {
 			if pq.maximumQueuedBackgroundLearningOperations == 0 {
@@ -2678,14 +2675,14 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 				} else {
 					backgroundTask := &task{
 						operations: map[*invocation]*operation{},
-						desiredState: remoteworker_pb.DesiredState_Executing{
+						desiredState: remoteworker_pb.DesiredState_Executing_builder{
 							TaskUuid:                  util.Must(bq.uuidGenerator()).String(),
-							Action:                    t.desiredState.Action,
+							Action:                    t.desiredState.GetAction(),
 							EffectiveExecutionTimeout: durationpb.New(backgroundTimeout),
-							QueuedTimestamp:           t.desiredState.QueuedTimestamp,
-							AuxiliaryMetadata:         t.desiredState.AuxiliaryMetadata,
-							W3CTraceContext:           t.desiredState.W3CTraceContext,
-						},
+							QueuedTimestamp:           t.desiredState.GetQueuedTimestamp(),
+							AuxiliaryMetadata:         t.desiredState.GetAuxiliaryMetadata(),
+							W3CTraceContext:           t.desiredState.GetW3CTraceContext(),
+						}.Build(),
 						expectedDuration:        backgroundExpectedDuration,
 						initialSizeClassLearner: backgroundInitialSizeClassLearner,
 						stageChangeWakeup:       make(chan struct{}),
@@ -2695,16 +2692,16 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 				}
 			}
 		}
-		t.lastExecutionEvent = completed.Event
+		t.lastExecutionEvent = completed.GetEvent()
 		t.markCompleted(bq)
-	} else if expectedDuration, timeout, initialSizeClassLearner := t.initialSizeClassLearner.Failed(completed.Result == remoteworker_pb.CurrentState_Completed_TIMED_OUT); initialSizeClassLearner != nil {
+	} else if expectedDuration, timeout, initialSizeClassLearner := t.initialSizeClassLearner.Failed(completed.GetResult() == remoteworker_pb.CurrentState_Completed_TIMED_OUT); initialSizeClassLearner != nil {
 		// Re-execution against the largest size class is
 		// requested, using the original timeout value.
 		// Transplant all operations to the other size class
 		// queue and reschedule.
 		t.initialSizeClassLearner = initialSizeClassLearner
 		t.expectedDuration = expectedDuration
-		t.desiredState.EffectiveExecutionTimeout = durationpb.New(timeout)
+		t.desiredState.SetEffectiveExecutionTimeout(durationpb.New(timeout))
 		t.registerCompletedStageFinished(bq)
 		largestSCQ := pq.sizeClassQueues[len(pq.sizeClassQueues)-1]
 		operations := t.operations
@@ -2717,7 +2714,7 @@ func (t *task) complete(bq *InMemoryBuildQueue, completed *remoteworker_pb.Curre
 		t.schedule(bq)
 		t.reportNonFinalStageChange()
 	} else {
-		t.lastExecutionEvent = completed.Event
+		t.lastExecutionEvent = completed.GetEvent()
 		t.markCompleted(bq)
 	}
 }
@@ -3023,14 +3020,12 @@ func (w *worker) assignUnqueuedTaskAndWakeUp(bq *InMemoryBuildQueue, t *task, st
 // that instructs a worker to start executing a task.
 func (w *worker) getExecutingSynchronizeResponse(bq *InMemoryBuildQueue) *remoteworker_pb.SynchronizeResponse {
 	t := w.currentTask
-	return &remoteworker_pb.SynchronizeResponse{
+	return remoteworker_pb.SynchronizeResponse_builder{
 		NextSynchronizationAt: bq.getNextSynchronizationAtDelay(),
-		DesiredState: &remoteworker_pb.DesiredState{
-			WorkerState: &remoteworker_pb.DesiredState_Executing_{
-				Executing: &t.desiredState,
-			},
-		},
-	}
+		DesiredState: remoteworker_pb.DesiredState_builder{
+			Executing: t.desiredState,
+		}.Build(),
+	}.Build()
 }
 
 // getNextTask extracts the next queued task from the queue and assigns
@@ -3148,14 +3143,12 @@ func (w *worker) getCurrentOrNextTask(ctx context.Context, bq *InMemoryBuildQueu
 	if t := w.currentTask; t != nil {
 		if t.retryCount < bq.configuration.WorkerTaskRetryCount {
 			t.retryCount++
-			return &remoteworker_pb.SynchronizeResponse{
+			return remoteworker_pb.SynchronizeResponse_builder{
 				NextSynchronizationAt: bq.getNextSynchronizationAtDelay(),
-				DesiredState: &remoteworker_pb.DesiredState{
-					WorkerState: &remoteworker_pb.DesiredState_Executing_{
-						Executing: &t.desiredState,
-					},
-				},
-			}, nil
+				DesiredState: remoteworker_pb.DesiredState_builder{
+					Executing: t.desiredState,
+				}.Build(),
+			}.Build(), nil
 		}
 		t.fail(
 			bq,
@@ -3179,7 +3172,7 @@ func (w *worker) isRunningCorrectTask(taskUUID string) bool {
 	if t == nil {
 		return false
 	}
-	return t.desiredState.TaskUuid == taskUUID
+	return t.desiredState.GetTaskUuid() == taskUUID
 }
 
 type idleSynchronizingWorker struct {

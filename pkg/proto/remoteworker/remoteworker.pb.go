@@ -16,7 +16,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -71,20 +70,15 @@ func (x CurrentState_Completed_Result) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use CurrentState_Completed_Result.Descriptor instead.
-func (CurrentState_Completed_Result) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2, 0}
-}
-
 type SynchronizeRequest struct {
-	state           protoimpl.MessageState          `protogen:"open.v1"`
-	WorkerId        map[string]string               `protobuf:"bytes,1,rep,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	PublicKeys      []*SynchronizeRequest_PublicKey `protobuf:"bytes,2,rep,name=public_keys,json=publicKeys,proto3" json:"public_keys,omitempty"`
-	SizeClass       uint32                          `protobuf:"varint,3,opt,name=size_class,json=sizeClass,proto3" json:"size_class,omitempty"`
-	CurrentState    *CurrentState                   `protobuf:"bytes,4,opt,name=current_state,json=currentState,proto3" json:"current_state,omitempty"`
-	PreferBeingIdle bool                            `protobuf:"varint,5,opt,name=prefer_being_idle,json=preferBeingIdle,proto3" json:"prefer_being_idle,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState           `protogen:"opaque.v1"`
+	xxx_hidden_WorkerId        map[string]string                `protobuf:"bytes,1,rep,name=worker_id,json=workerId" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_PublicKeys      *[]*SynchronizeRequest_PublicKey `protobuf:"bytes,2,rep,name=public_keys,json=publicKeys"`
+	xxx_hidden_SizeClass       uint32                           `protobuf:"varint,3,opt,name=size_class,json=sizeClass"`
+	xxx_hidden_CurrentState    *CurrentState                    `protobuf:"bytes,4,opt,name=current_state,json=currentState"`
+	xxx_hidden_PreferBeingIdle bool                             `protobuf:"varint,5,opt,name=prefer_being_idle,json=preferBeingIdle"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *SynchronizeRequest) Reset() {
@@ -112,57 +106,101 @@ func (x *SynchronizeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SynchronizeRequest.ProtoReflect.Descriptor instead.
-func (*SynchronizeRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *SynchronizeRequest) GetWorkerId() map[string]string {
 	if x != nil {
-		return x.WorkerId
+		return x.xxx_hidden_WorkerId
 	}
 	return nil
 }
 
 func (x *SynchronizeRequest) GetPublicKeys() []*SynchronizeRequest_PublicKey {
 	if x != nil {
-		return x.PublicKeys
+		if x.xxx_hidden_PublicKeys != nil {
+			return *x.xxx_hidden_PublicKeys
+		}
 	}
 	return nil
 }
 
 func (x *SynchronizeRequest) GetSizeClass() uint32 {
 	if x != nil {
-		return x.SizeClass
+		return x.xxx_hidden_SizeClass
 	}
 	return 0
 }
 
 func (x *SynchronizeRequest) GetCurrentState() *CurrentState {
 	if x != nil {
-		return x.CurrentState
+		return x.xxx_hidden_CurrentState
 	}
 	return nil
 }
 
 func (x *SynchronizeRequest) GetPreferBeingIdle() bool {
 	if x != nil {
-		return x.PreferBeingIdle
+		return x.xxx_hidden_PreferBeingIdle
 	}
 	return false
 }
 
+func (x *SynchronizeRequest) SetWorkerId(v map[string]string) {
+	x.xxx_hidden_WorkerId = v
+}
+
+func (x *SynchronizeRequest) SetPublicKeys(v []*SynchronizeRequest_PublicKey) {
+	x.xxx_hidden_PublicKeys = &v
+}
+
+func (x *SynchronizeRequest) SetSizeClass(v uint32) {
+	x.xxx_hidden_SizeClass = v
+}
+
+func (x *SynchronizeRequest) SetCurrentState(v *CurrentState) {
+	x.xxx_hidden_CurrentState = v
+}
+
+func (x *SynchronizeRequest) SetPreferBeingIdle(v bool) {
+	x.xxx_hidden_PreferBeingIdle = v
+}
+
+func (x *SynchronizeRequest) HasCurrentState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CurrentState != nil
+}
+
+func (x *SynchronizeRequest) ClearCurrentState() {
+	x.xxx_hidden_CurrentState = nil
+}
+
+type SynchronizeRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	WorkerId        map[string]string
+	PublicKeys      []*SynchronizeRequest_PublicKey
+	SizeClass       uint32
+	CurrentState    *CurrentState
+	PreferBeingIdle bool
+}
+
+func (b0 SynchronizeRequest_builder) Build() *SynchronizeRequest {
+	m0 := &SynchronizeRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_WorkerId = b.WorkerId
+	x.xxx_hidden_PublicKeys = &b.PublicKeys
+	x.xxx_hidden_SizeClass = b.SizeClass
+	x.xxx_hidden_CurrentState = b.CurrentState
+	x.xxx_hidden_PreferBeingIdle = b.PreferBeingIdle
+	return m0
+}
+
 type CurrentState struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to WorkerState:
-	//
-	//	*CurrentState_Idle
-	//	*CurrentState_Rejected_
-	//	*CurrentState_Executing_
-	//	*CurrentState_Completed_
-	WorkerState   isCurrentState_WorkerState `protobuf_oneof:"worker_state"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_WorkerState isCurrentState_WorkerState `protobuf_oneof:"worker_state"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CurrentState) Reset() {
@@ -190,21 +228,9 @@ func (x *CurrentState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CurrentState.ProtoReflect.Descriptor instead.
-func (*CurrentState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *CurrentState) GetWorkerState() isCurrentState_WorkerState {
-	if x != nil {
-		return x.WorkerState
-	}
-	return nil
-}
-
 func (x *CurrentState) GetIdle() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.WorkerState.(*CurrentState_Idle); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*currentState_Idle); ok {
 			return x.Idle
 		}
 	}
@@ -213,7 +239,7 @@ func (x *CurrentState) GetIdle() *emptypb.Empty {
 
 func (x *CurrentState) GetRejected() *CurrentState_Rejected {
 	if x != nil {
-		if x, ok := x.WorkerState.(*CurrentState_Rejected_); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*currentState_Rejected_); ok {
 			return x.Rejected
 		}
 	}
@@ -222,7 +248,7 @@ func (x *CurrentState) GetRejected() *CurrentState_Rejected {
 
 func (x *CurrentState) GetExecuting() *CurrentState_Executing {
 	if x != nil {
-		if x, ok := x.WorkerState.(*CurrentState_Executing_); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*currentState_Executing_); ok {
 			return x.Executing
 		}
 	}
@@ -231,47 +257,210 @@ func (x *CurrentState) GetExecuting() *CurrentState_Executing {
 
 func (x *CurrentState) GetCompleted() *CurrentState_Completed {
 	if x != nil {
-		if x, ok := x.WorkerState.(*CurrentState_Completed_); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*currentState_Completed_); ok {
 			return x.Completed
 		}
 	}
 	return nil
 }
 
+func (x *CurrentState) SetIdle(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &currentState_Idle{v}
+}
+
+func (x *CurrentState) SetRejected(v *CurrentState_Rejected) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &currentState_Rejected_{v}
+}
+
+func (x *CurrentState) SetExecuting(v *CurrentState_Executing) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &currentState_Executing_{v}
+}
+
+func (x *CurrentState) SetCompleted(v *CurrentState_Completed) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &currentState_Completed_{v}
+}
+
+func (x *CurrentState) HasWorkerState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_WorkerState != nil
+}
+
+func (x *CurrentState) HasIdle() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*currentState_Idle)
+	return ok
+}
+
+func (x *CurrentState) HasRejected() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*currentState_Rejected_)
+	return ok
+}
+
+func (x *CurrentState) HasExecuting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*currentState_Executing_)
+	return ok
+}
+
+func (x *CurrentState) HasCompleted() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*currentState_Completed_)
+	return ok
+}
+
+func (x *CurrentState) ClearWorkerState() {
+	x.xxx_hidden_WorkerState = nil
+}
+
+func (x *CurrentState) ClearIdle() {
+	if _, ok := x.xxx_hidden_WorkerState.(*currentState_Idle); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+func (x *CurrentState) ClearRejected() {
+	if _, ok := x.xxx_hidden_WorkerState.(*currentState_Rejected_); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+func (x *CurrentState) ClearExecuting() {
+	if _, ok := x.xxx_hidden_WorkerState.(*currentState_Executing_); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+func (x *CurrentState) ClearCompleted() {
+	if _, ok := x.xxx_hidden_WorkerState.(*currentState_Completed_); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+const CurrentState_WorkerState_not_set_case case_CurrentState_WorkerState = 0
+const CurrentState_Idle_case case_CurrentState_WorkerState = 1
+const CurrentState_Rejected_case case_CurrentState_WorkerState = 2
+const CurrentState_Executing_case case_CurrentState_WorkerState = 3
+const CurrentState_Completed_case case_CurrentState_WorkerState = 4
+
+func (x *CurrentState) WhichWorkerState() case_CurrentState_WorkerState {
+	if x == nil {
+		return CurrentState_WorkerState_not_set_case
+	}
+	switch x.xxx_hidden_WorkerState.(type) {
+	case *currentState_Idle:
+		return CurrentState_Idle_case
+	case *currentState_Rejected_:
+		return CurrentState_Rejected_case
+	case *currentState_Executing_:
+		return CurrentState_Executing_case
+	case *currentState_Completed_:
+		return CurrentState_Completed_case
+	default:
+		return CurrentState_WorkerState_not_set_case
+	}
+}
+
+type CurrentState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_WorkerState:
+	Idle      *emptypb.Empty
+	Rejected  *CurrentState_Rejected
+	Executing *CurrentState_Executing
+	Completed *CurrentState_Completed
+	// -- end of xxx_hidden_WorkerState
+}
+
+func (b0 CurrentState_builder) Build() *CurrentState {
+	m0 := &CurrentState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Idle != nil {
+		x.xxx_hidden_WorkerState = &currentState_Idle{b.Idle}
+	}
+	if b.Rejected != nil {
+		x.xxx_hidden_WorkerState = &currentState_Rejected_{b.Rejected}
+	}
+	if b.Executing != nil {
+		x.xxx_hidden_WorkerState = &currentState_Executing_{b.Executing}
+	}
+	if b.Completed != nil {
+		x.xxx_hidden_WorkerState = &currentState_Completed_{b.Completed}
+	}
+	return m0
+}
+
+type case_CurrentState_WorkerState protoreflect.FieldNumber
+
+func (x case_CurrentState_WorkerState) String() string {
+	md := file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isCurrentState_WorkerState interface {
 	isCurrentState_WorkerState()
 }
 
-type CurrentState_Idle struct {
-	Idle *emptypb.Empty `protobuf:"bytes,1,opt,name=idle,proto3,oneof"`
+type currentState_Idle struct {
+	Idle *emptypb.Empty `protobuf:"bytes,1,opt,name=idle,oneof"`
 }
 
-type CurrentState_Rejected_ struct {
-	Rejected *CurrentState_Rejected `protobuf:"bytes,2,opt,name=rejected,proto3,oneof"`
+type currentState_Rejected_ struct {
+	Rejected *CurrentState_Rejected `protobuf:"bytes,2,opt,name=rejected,oneof"`
 }
 
-type CurrentState_Executing_ struct {
-	Executing *CurrentState_Executing `protobuf:"bytes,3,opt,name=executing,proto3,oneof"`
+type currentState_Executing_ struct {
+	Executing *CurrentState_Executing `protobuf:"bytes,3,opt,name=executing,oneof"`
 }
 
-type CurrentState_Completed_ struct {
-	Completed *CurrentState_Completed `protobuf:"bytes,4,opt,name=completed,proto3,oneof"`
+type currentState_Completed_ struct {
+	Completed *CurrentState_Completed `protobuf:"bytes,4,opt,name=completed,oneof"`
 }
 
-func (*CurrentState_Idle) isCurrentState_WorkerState() {}
+func (*currentState_Idle) isCurrentState_WorkerState() {}
 
-func (*CurrentState_Rejected_) isCurrentState_WorkerState() {}
+func (*currentState_Rejected_) isCurrentState_WorkerState() {}
 
-func (*CurrentState_Executing_) isCurrentState_WorkerState() {}
+func (*currentState_Executing_) isCurrentState_WorkerState() {}
 
-func (*CurrentState_Completed_) isCurrentState_WorkerState() {}
+func (*currentState_Completed_) isCurrentState_WorkerState() {}
 
 type SynchronizeResponse struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	NextSynchronizationAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=next_synchronization_at,json=nextSynchronizationAt,proto3" json:"next_synchronization_at,omitempty"`
-	DesiredState          *DesiredState          `protobuf:"bytes,2,opt,name=desired_state,json=desiredState,proto3" json:"desired_state,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_NextSynchronizationAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=next_synchronization_at,json=nextSynchronizationAt"`
+	xxx_hidden_DesiredState          *DesiredState          `protobuf:"bytes,2,opt,name=desired_state,json=desiredState"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *SynchronizeResponse) Reset() {
@@ -299,35 +488,71 @@ func (x *SynchronizeResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SynchronizeResponse.ProtoReflect.Descriptor instead.
-func (*SynchronizeResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *SynchronizeResponse) GetNextSynchronizationAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.NextSynchronizationAt
+		return x.xxx_hidden_NextSynchronizationAt
 	}
 	return nil
 }
 
 func (x *SynchronizeResponse) GetDesiredState() *DesiredState {
 	if x != nil {
-		return x.DesiredState
+		return x.xxx_hidden_DesiredState
 	}
 	return nil
 }
 
+func (x *SynchronizeResponse) SetNextSynchronizationAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_NextSynchronizationAt = v
+}
+
+func (x *SynchronizeResponse) SetDesiredState(v *DesiredState) {
+	x.xxx_hidden_DesiredState = v
+}
+
+func (x *SynchronizeResponse) HasNextSynchronizationAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_NextSynchronizationAt != nil
+}
+
+func (x *SynchronizeResponse) HasDesiredState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DesiredState != nil
+}
+
+func (x *SynchronizeResponse) ClearNextSynchronizationAt() {
+	x.xxx_hidden_NextSynchronizationAt = nil
+}
+
+func (x *SynchronizeResponse) ClearDesiredState() {
+	x.xxx_hidden_DesiredState = nil
+}
+
+type SynchronizeResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	NextSynchronizationAt *timestamppb.Timestamp
+	DesiredState          *DesiredState
+}
+
+func (b0 SynchronizeResponse_builder) Build() *SynchronizeResponse {
+	m0 := &SynchronizeResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_NextSynchronizationAt = b.NextSynchronizationAt
+	x.xxx_hidden_DesiredState = b.DesiredState
+	return m0
+}
+
 type DesiredState struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to WorkerState:
-	//
-	//	*DesiredState_VerifyingPublicKeys_
-	//	*DesiredState_Idle
-	//	*DesiredState_Executing_
-	WorkerState   isDesiredState_WorkerState `protobuf_oneof:"worker_state"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_WorkerState isDesiredState_WorkerState `protobuf_oneof:"worker_state"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DesiredState) Reset() {
@@ -355,21 +580,9 @@ func (x *DesiredState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DesiredState.ProtoReflect.Descriptor instead.
-func (*DesiredState) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *DesiredState) GetWorkerState() isDesiredState_WorkerState {
-	if x != nil {
-		return x.WorkerState
-	}
-	return nil
-}
-
 func (x *DesiredState) GetVerifyingPublicKeys() *DesiredState_VerifyingPublicKeys {
 	if x != nil {
-		if x, ok := x.WorkerState.(*DesiredState_VerifyingPublicKeys_); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*desiredState_VerifyingPublicKeys_); ok {
 			return x.VerifyingPublicKeys
 		}
 	}
@@ -378,7 +591,7 @@ func (x *DesiredState) GetVerifyingPublicKeys() *DesiredState_VerifyingPublicKey
 
 func (x *DesiredState) GetIdle() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.WorkerState.(*DesiredState_Idle); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*desiredState_Idle); ok {
 			return x.Idle
 		}
 	}
@@ -387,41 +600,175 @@ func (x *DesiredState) GetIdle() *emptypb.Empty {
 
 func (x *DesiredState) GetExecuting() *DesiredState_Executing {
 	if x != nil {
-		if x, ok := x.WorkerState.(*DesiredState_Executing_); ok {
+		if x, ok := x.xxx_hidden_WorkerState.(*desiredState_Executing_); ok {
 			return x.Executing
 		}
 	}
 	return nil
 }
 
+func (x *DesiredState) SetVerifyingPublicKeys(v *DesiredState_VerifyingPublicKeys) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &desiredState_VerifyingPublicKeys_{v}
+}
+
+func (x *DesiredState) SetIdle(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &desiredState_Idle{v}
+}
+
+func (x *DesiredState) SetExecuting(v *DesiredState_Executing) {
+	if v == nil {
+		x.xxx_hidden_WorkerState = nil
+		return
+	}
+	x.xxx_hidden_WorkerState = &desiredState_Executing_{v}
+}
+
+func (x *DesiredState) HasWorkerState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_WorkerState != nil
+}
+
+func (x *DesiredState) HasVerifyingPublicKeys() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*desiredState_VerifyingPublicKeys_)
+	return ok
+}
+
+func (x *DesiredState) HasIdle() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*desiredState_Idle)
+	return ok
+}
+
+func (x *DesiredState) HasExecuting() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_WorkerState.(*desiredState_Executing_)
+	return ok
+}
+
+func (x *DesiredState) ClearWorkerState() {
+	x.xxx_hidden_WorkerState = nil
+}
+
+func (x *DesiredState) ClearVerifyingPublicKeys() {
+	if _, ok := x.xxx_hidden_WorkerState.(*desiredState_VerifyingPublicKeys_); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+func (x *DesiredState) ClearIdle() {
+	if _, ok := x.xxx_hidden_WorkerState.(*desiredState_Idle); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+func (x *DesiredState) ClearExecuting() {
+	if _, ok := x.xxx_hidden_WorkerState.(*desiredState_Executing_); ok {
+		x.xxx_hidden_WorkerState = nil
+	}
+}
+
+const DesiredState_WorkerState_not_set_case case_DesiredState_WorkerState = 0
+const DesiredState_VerifyingPublicKeys_case case_DesiredState_WorkerState = 1
+const DesiredState_Idle_case case_DesiredState_WorkerState = 2
+const DesiredState_Executing_case case_DesiredState_WorkerState = 3
+
+func (x *DesiredState) WhichWorkerState() case_DesiredState_WorkerState {
+	if x == nil {
+		return DesiredState_WorkerState_not_set_case
+	}
+	switch x.xxx_hidden_WorkerState.(type) {
+	case *desiredState_VerifyingPublicKeys_:
+		return DesiredState_VerifyingPublicKeys_case
+	case *desiredState_Idle:
+		return DesiredState_Idle_case
+	case *desiredState_Executing_:
+		return DesiredState_Executing_case
+	default:
+		return DesiredState_WorkerState_not_set_case
+	}
+}
+
+type DesiredState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_WorkerState:
+	VerifyingPublicKeys *DesiredState_VerifyingPublicKeys
+	Idle                *emptypb.Empty
+	Executing           *DesiredState_Executing
+	// -- end of xxx_hidden_WorkerState
+}
+
+func (b0 DesiredState_builder) Build() *DesiredState {
+	m0 := &DesiredState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.VerifyingPublicKeys != nil {
+		x.xxx_hidden_WorkerState = &desiredState_VerifyingPublicKeys_{b.VerifyingPublicKeys}
+	}
+	if b.Idle != nil {
+		x.xxx_hidden_WorkerState = &desiredState_Idle{b.Idle}
+	}
+	if b.Executing != nil {
+		x.xxx_hidden_WorkerState = &desiredState_Executing_{b.Executing}
+	}
+	return m0
+}
+
+type case_DesiredState_WorkerState protoreflect.FieldNumber
+
+func (x case_DesiredState_WorkerState) String() string {
+	md := file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isDesiredState_WorkerState interface {
 	isDesiredState_WorkerState()
 }
 
-type DesiredState_VerifyingPublicKeys_ struct {
-	VerifyingPublicKeys *DesiredState_VerifyingPublicKeys `protobuf:"bytes,1,opt,name=verifying_public_keys,json=verifyingPublicKeys,proto3,oneof"`
+type desiredState_VerifyingPublicKeys_ struct {
+	VerifyingPublicKeys *DesiredState_VerifyingPublicKeys `protobuf:"bytes,1,opt,name=verifying_public_keys,json=verifyingPublicKeys,oneof"`
 }
 
-type DesiredState_Idle struct {
-	Idle *emptypb.Empty `protobuf:"bytes,2,opt,name=idle,proto3,oneof"`
+type desiredState_Idle struct {
+	Idle *emptypb.Empty `protobuf:"bytes,2,opt,name=idle,oneof"`
 }
 
-type DesiredState_Executing_ struct {
-	Executing *DesiredState_Executing `protobuf:"bytes,3,opt,name=executing,proto3,oneof"`
+type desiredState_Executing_ struct {
+	Executing *DesiredState_Executing `protobuf:"bytes,3,opt,name=executing,oneof"`
 }
 
-func (*DesiredState_VerifyingPublicKeys_) isDesiredState_WorkerState() {}
+func (*desiredState_VerifyingPublicKeys_) isDesiredState_WorkerState() {}
 
-func (*DesiredState_Idle) isDesiredState_WorkerState() {}
+func (*desiredState_Idle) isDesiredState_WorkerState() {}
 
-func (*DesiredState_Executing_) isDesiredState_WorkerState() {}
+func (*desiredState_Executing_) isDesiredState_WorkerState() {}
 
 type SynchronizeRequest_PublicKey struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	PkixPublicKey     []byte                 `protobuf:"bytes,1,opt,name=pkix_public_key,json=pkixPublicKey,proto3" json:"pkix_public_key,omitempty"`
-	VerificationZeros []byte                 `protobuf:"bytes,2,opt,name=verification_zeros,json=verificationZeros,proto3" json:"verification_zeros,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PkixPublicKey     []byte                 `protobuf:"bytes,1,opt,name=pkix_public_key,json=pkixPublicKey"`
+	xxx_hidden_VerificationZeros []byte                 `protobuf:"bytes,2,opt,name=verification_zeros,json=verificationZeros"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *SynchronizeRequest_PublicKey) Reset() {
@@ -449,31 +796,56 @@ func (x *SynchronizeRequest_PublicKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SynchronizeRequest_PublicKey.ProtoReflect.Descriptor instead.
-func (*SynchronizeRequest_PublicKey) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{0, 1}
-}
-
 func (x *SynchronizeRequest_PublicKey) GetPkixPublicKey() []byte {
 	if x != nil {
-		return x.PkixPublicKey
+		return x.xxx_hidden_PkixPublicKey
 	}
 	return nil
 }
 
 func (x *SynchronizeRequest_PublicKey) GetVerificationZeros() []byte {
 	if x != nil {
-		return x.VerificationZeros
+		return x.xxx_hidden_VerificationZeros
 	}
 	return nil
 }
 
+func (x *SynchronizeRequest_PublicKey) SetPkixPublicKey(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_PkixPublicKey = v
+}
+
+func (x *SynchronizeRequest_PublicKey) SetVerificationZeros(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_VerificationZeros = v
+}
+
+type SynchronizeRequest_PublicKey_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	PkixPublicKey     []byte
+	VerificationZeros []byte
+}
+
+func (b0 SynchronizeRequest_PublicKey_builder) Build() *SynchronizeRequest_PublicKey {
+	m0 := &SynchronizeRequest_PublicKey{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PkixPublicKey = b.PkixPublicKey
+	x.xxx_hidden_VerificationZeros = b.VerificationZeros
+	return m0
+}
+
 type CurrentState_Rejected struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskUuid      string                 `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid,omitempty"`
-	Reason        *status.Status         `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TaskUuid string                 `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid"`
+	xxx_hidden_Reason   *status.Status         `protobuf:"bytes,2,opt,name=reason"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CurrentState_Rejected) Reset() {
@@ -501,31 +873,61 @@ func (x *CurrentState_Rejected) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CurrentState_Rejected.ProtoReflect.Descriptor instead.
-func (*CurrentState_Rejected) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 0}
-}
-
 func (x *CurrentState_Rejected) GetTaskUuid() string {
 	if x != nil {
-		return x.TaskUuid
+		return x.xxx_hidden_TaskUuid
 	}
 	return ""
 }
 
 func (x *CurrentState_Rejected) GetReason() *status.Status {
 	if x != nil {
-		return x.Reason
+		return x.xxx_hidden_Reason
 	}
 	return nil
 }
 
+func (x *CurrentState_Rejected) SetTaskUuid(v string) {
+	x.xxx_hidden_TaskUuid = v
+}
+
+func (x *CurrentState_Rejected) SetReason(v *status.Status) {
+	x.xxx_hidden_Reason = v
+}
+
+func (x *CurrentState_Rejected) HasReason() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Reason != nil
+}
+
+func (x *CurrentState_Rejected) ClearReason() {
+	x.xxx_hidden_Reason = nil
+}
+
+type CurrentState_Rejected_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TaskUuid string
+	Reason   *status.Status
+}
+
+func (b0 CurrentState_Rejected_builder) Build() *CurrentState_Rejected {
+	m0 := &CurrentState_Rejected{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_TaskUuid = b.TaskUuid
+	x.xxx_hidden_Reason = b.Reason
+	return m0
+}
+
 type CurrentState_Executing struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskUuid      string                 `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid,omitempty"`
-	Event         *encryptedaction.Event `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TaskUuid string                 `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid"`
+	xxx_hidden_Event    *encryptedaction.Event `protobuf:"bytes,2,opt,name=event"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CurrentState_Executing) Reset() {
@@ -553,33 +955,63 @@ func (x *CurrentState_Executing) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CurrentState_Executing.ProtoReflect.Descriptor instead.
-func (*CurrentState_Executing) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 1}
-}
-
 func (x *CurrentState_Executing) GetTaskUuid() string {
 	if x != nil {
-		return x.TaskUuid
+		return x.xxx_hidden_TaskUuid
 	}
 	return ""
 }
 
 func (x *CurrentState_Executing) GetEvent() *encryptedaction.Event {
 	if x != nil {
-		return x.Event
+		return x.xxx_hidden_Event
 	}
 	return nil
 }
 
+func (x *CurrentState_Executing) SetTaskUuid(v string) {
+	x.xxx_hidden_TaskUuid = v
+}
+
+func (x *CurrentState_Executing) SetEvent(v *encryptedaction.Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *CurrentState_Executing) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *CurrentState_Executing) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+type CurrentState_Executing_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TaskUuid string
+	Event    *encryptedaction.Event
+}
+
+func (b0 CurrentState_Executing_builder) Build() *CurrentState_Executing {
+	m0 := &CurrentState_Executing{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_TaskUuid = b.TaskUuid
+	x.xxx_hidden_Event = b.Event
+	return m0
+}
+
 type CurrentState_Completed struct {
-	state                    protoimpl.MessageState        `protogen:"open.v1"`
-	TaskUuid                 string                        `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid,omitempty"`
-	Event                    *encryptedaction.Event        `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
-	VirtualExecutionDuration *durationpb.Duration          `protobuf:"bytes,3,opt,name=virtual_execution_duration,json=virtualExecutionDuration,proto3" json:"virtual_execution_duration,omitempty"`
-	Result                   CurrentState_Completed_Result `protobuf:"varint,4,opt,name=result,proto3,enum=bonanza.remoteworker.CurrentState_Completed_Result" json:"result,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_TaskUuid                 string                        `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid"`
+	xxx_hidden_Event                    *encryptedaction.Event        `protobuf:"bytes,2,opt,name=event"`
+	xxx_hidden_VirtualExecutionDuration *durationpb.Duration          `protobuf:"bytes,3,opt,name=virtual_execution_duration,json=virtualExecutionDuration"`
+	xxx_hidden_Result                   CurrentState_Completed_Result `protobuf:"varint,4,opt,name=result,enum=bonanza.remoteworker.CurrentState_Completed_Result"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *CurrentState_Completed) Reset() {
@@ -607,44 +1039,97 @@ func (x *CurrentState_Completed) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CurrentState_Completed.ProtoReflect.Descriptor instead.
-func (*CurrentState_Completed) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{1, 2}
-}
-
 func (x *CurrentState_Completed) GetTaskUuid() string {
 	if x != nil {
-		return x.TaskUuid
+		return x.xxx_hidden_TaskUuid
 	}
 	return ""
 }
 
 func (x *CurrentState_Completed) GetEvent() *encryptedaction.Event {
 	if x != nil {
-		return x.Event
+		return x.xxx_hidden_Event
 	}
 	return nil
 }
 
 func (x *CurrentState_Completed) GetVirtualExecutionDuration() *durationpb.Duration {
 	if x != nil {
-		return x.VirtualExecutionDuration
+		return x.xxx_hidden_VirtualExecutionDuration
 	}
 	return nil
 }
 
 func (x *CurrentState_Completed) GetResult() CurrentState_Completed_Result {
 	if x != nil {
-		return x.Result
+		return x.xxx_hidden_Result
 	}
 	return CurrentState_Completed_SUCCEEDED
 }
 
+func (x *CurrentState_Completed) SetTaskUuid(v string) {
+	x.xxx_hidden_TaskUuid = v
+}
+
+func (x *CurrentState_Completed) SetEvent(v *encryptedaction.Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *CurrentState_Completed) SetVirtualExecutionDuration(v *durationpb.Duration) {
+	x.xxx_hidden_VirtualExecutionDuration = v
+}
+
+func (x *CurrentState_Completed) SetResult(v CurrentState_Completed_Result) {
+	x.xxx_hidden_Result = v
+}
+
+func (x *CurrentState_Completed) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *CurrentState_Completed) HasVirtualExecutionDuration() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_VirtualExecutionDuration != nil
+}
+
+func (x *CurrentState_Completed) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+func (x *CurrentState_Completed) ClearVirtualExecutionDuration() {
+	x.xxx_hidden_VirtualExecutionDuration = nil
+}
+
+type CurrentState_Completed_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TaskUuid                 string
+	Event                    *encryptedaction.Event
+	VirtualExecutionDuration *durationpb.Duration
+	Result                   CurrentState_Completed_Result
+}
+
+func (b0 CurrentState_Completed_builder) Build() *CurrentState_Completed {
+	m0 := &CurrentState_Completed{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_TaskUuid = b.TaskUuid
+	x.xxx_hidden_Event = b.Event
+	x.xxx_hidden_VirtualExecutionDuration = b.VirtualExecutionDuration
+	x.xxx_hidden_Result = b.Result
+	return m0
+}
+
 type DesiredState_VerifyingPublicKeys struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	VerificationPkixPublicKeys [][]byte               `protobuf:"bytes,1,rep,name=verification_pkix_public_keys,json=verificationPkixPublicKeys,proto3" json:"verification_pkix_public_keys,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_VerificationPkixPublicKeys [][]byte               `protobuf:"bytes,1,rep,name=verification_pkix_public_keys,json=verificationPkixPublicKeys"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *DesiredState_VerifyingPublicKeys) Reset() {
@@ -672,28 +1157,41 @@ func (x *DesiredState_VerifyingPublicKeys) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DesiredState_VerifyingPublicKeys.ProtoReflect.Descriptor instead.
-func (*DesiredState_VerifyingPublicKeys) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 0}
-}
-
 func (x *DesiredState_VerifyingPublicKeys) GetVerificationPkixPublicKeys() [][]byte {
 	if x != nil {
-		return x.VerificationPkixPublicKeys
+		return x.xxx_hidden_VerificationPkixPublicKeys
 	}
 	return nil
 }
 
+func (x *DesiredState_VerifyingPublicKeys) SetVerificationPkixPublicKeys(v [][]byte) {
+	x.xxx_hidden_VerificationPkixPublicKeys = v
+}
+
+type DesiredState_VerifyingPublicKeys_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	VerificationPkixPublicKeys [][]byte
+}
+
+func (b0 DesiredState_VerifyingPublicKeys_builder) Build() *DesiredState_VerifyingPublicKeys {
+	m0 := &DesiredState_VerifyingPublicKeys{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_VerificationPkixPublicKeys = b.VerificationPkixPublicKeys
+	return m0
+}
+
 type DesiredState_Executing struct {
-	state                     protoimpl.MessageState  `protogen:"open.v1"`
-	TaskUuid                  string                  `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid,omitempty"`
-	Action                    *encryptedaction.Action `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
-	EffectiveExecutionTimeout *durationpb.Duration    `protobuf:"bytes,3,opt,name=effective_execution_timeout,json=effectiveExecutionTimeout,proto3" json:"effective_execution_timeout,omitempty"`
-	QueuedTimestamp           *timestamppb.Timestamp  `protobuf:"bytes,4,opt,name=queued_timestamp,json=queuedTimestamp,proto3" json:"queued_timestamp,omitempty"`
-	AuxiliaryMetadata         []*anypb.Any            `protobuf:"bytes,5,rep,name=auxiliary_metadata,json=auxiliaryMetadata,proto3" json:"auxiliary_metadata,omitempty"`
-	W3CTraceContext           map[string]string       `protobuf:"bytes,6,rep,name=w3c_trace_context,json=w3cTraceContext,proto3" json:"w3c_trace_context,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                                protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_TaskUuid                  string                  `protobuf:"bytes,1,opt,name=task_uuid,json=taskUuid"`
+	xxx_hidden_Action                    *encryptedaction.Action `protobuf:"bytes,2,opt,name=action"`
+	xxx_hidden_EffectiveExecutionTimeout *durationpb.Duration    `protobuf:"bytes,3,opt,name=effective_execution_timeout,json=effectiveExecutionTimeout"`
+	xxx_hidden_QueuedTimestamp           *timestamppb.Timestamp  `protobuf:"bytes,4,opt,name=queued_timestamp,json=queuedTimestamp"`
+	xxx_hidden_AuxiliaryMetadata         *[]*anypb.Any           `protobuf:"bytes,5,rep,name=auxiliary_metadata,json=auxiliaryMetadata"`
+	xxx_hidden_W3CTraceContext           map[string]string       `protobuf:"bytes,6,rep,name=w3c_trace_context,json=w3cTraceContext" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields                        protoimpl.UnknownFields
+	sizeCache                            protoimpl.SizeCache
 }
 
 func (x *DesiredState_Executing) Reset() {
@@ -721,51 +1219,129 @@ func (x *DesiredState_Executing) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DesiredState_Executing.ProtoReflect.Descriptor instead.
-func (*DesiredState_Executing) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP(), []int{3, 1}
-}
-
 func (x *DesiredState_Executing) GetTaskUuid() string {
 	if x != nil {
-		return x.TaskUuid
+		return x.xxx_hidden_TaskUuid
 	}
 	return ""
 }
 
 func (x *DesiredState_Executing) GetAction() *encryptedaction.Action {
 	if x != nil {
-		return x.Action
+		return x.xxx_hidden_Action
 	}
 	return nil
 }
 
 func (x *DesiredState_Executing) GetEffectiveExecutionTimeout() *durationpb.Duration {
 	if x != nil {
-		return x.EffectiveExecutionTimeout
+		return x.xxx_hidden_EffectiveExecutionTimeout
 	}
 	return nil
 }
 
 func (x *DesiredState_Executing) GetQueuedTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.QueuedTimestamp
+		return x.xxx_hidden_QueuedTimestamp
 	}
 	return nil
 }
 
 func (x *DesiredState_Executing) GetAuxiliaryMetadata() []*anypb.Any {
 	if x != nil {
-		return x.AuxiliaryMetadata
+		if x.xxx_hidden_AuxiliaryMetadata != nil {
+			return *x.xxx_hidden_AuxiliaryMetadata
+		}
 	}
 	return nil
 }
 
 func (x *DesiredState_Executing) GetW3CTraceContext() map[string]string {
 	if x != nil {
-		return x.W3CTraceContext
+		return x.xxx_hidden_W3CTraceContext
 	}
 	return nil
+}
+
+func (x *DesiredState_Executing) SetTaskUuid(v string) {
+	x.xxx_hidden_TaskUuid = v
+}
+
+func (x *DesiredState_Executing) SetAction(v *encryptedaction.Action) {
+	x.xxx_hidden_Action = v
+}
+
+func (x *DesiredState_Executing) SetEffectiveExecutionTimeout(v *durationpb.Duration) {
+	x.xxx_hidden_EffectiveExecutionTimeout = v
+}
+
+func (x *DesiredState_Executing) SetQueuedTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_QueuedTimestamp = v
+}
+
+func (x *DesiredState_Executing) SetAuxiliaryMetadata(v []*anypb.Any) {
+	x.xxx_hidden_AuxiliaryMetadata = &v
+}
+
+func (x *DesiredState_Executing) SetW3CTraceContext(v map[string]string) {
+	x.xxx_hidden_W3CTraceContext = v
+}
+
+func (x *DesiredState_Executing) HasAction() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Action != nil
+}
+
+func (x *DesiredState_Executing) HasEffectiveExecutionTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_EffectiveExecutionTimeout != nil
+}
+
+func (x *DesiredState_Executing) HasQueuedTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_QueuedTimestamp != nil
+}
+
+func (x *DesiredState_Executing) ClearAction() {
+	x.xxx_hidden_Action = nil
+}
+
+func (x *DesiredState_Executing) ClearEffectiveExecutionTimeout() {
+	x.xxx_hidden_EffectiveExecutionTimeout = nil
+}
+
+func (x *DesiredState_Executing) ClearQueuedTimestamp() {
+	x.xxx_hidden_QueuedTimestamp = nil
+}
+
+type DesiredState_Executing_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TaskUuid                  string
+	Action                    *encryptedaction.Action
+	EffectiveExecutionTimeout *durationpb.Duration
+	QueuedTimestamp           *timestamppb.Timestamp
+	AuxiliaryMetadata         []*anypb.Any
+	W3CTraceContext           map[string]string
+}
+
+func (b0 DesiredState_Executing_builder) Build() *DesiredState_Executing {
+	m0 := &DesiredState_Executing{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_TaskUuid = b.TaskUuid
+	x.xxx_hidden_Action = b.Action
+	x.xxx_hidden_EffectiveExecutionTimeout = b.EffectiveExecutionTimeout
+	x.xxx_hidden_QueuedTimestamp = b.QueuedTimestamp
+	x.xxx_hidden_AuxiliaryMetadata = &b.AuxiliaryMetadata
+	x.xxx_hidden_W3CTraceContext = b.W3CTraceContext
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_remoteworker_remoteworker_proto protoreflect.FileDescriptor
@@ -830,19 +1406,7 @@ const file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc = "" 
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x0e\n" +
 	"\fworker_state2t\n" +
 	"\x0eOperationQueue\x12b\n" +
-	"\vSynchronize\x12(.bonanza.remoteworker.SynchronizeRequest\x1a).bonanza.remoteworker.SynchronizeResponseB&Z$bonanza.build/pkg/proto/remoteworkerb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc), len(file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_rawDescData
-}
+	"\vSynchronize\x12(.bonanza.remoteworker.SynchronizeRequest\x1a).bonanza.remoteworker.SynchronizeResponseB+Z$bonanza.build/pkg/proto/remoteworker\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
@@ -906,15 +1470,15 @@ func file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[1].OneofWrappers = []any{
-		(*CurrentState_Idle)(nil),
-		(*CurrentState_Rejected_)(nil),
-		(*CurrentState_Executing_)(nil),
-		(*CurrentState_Completed_)(nil),
+		(*currentState_Idle)(nil),
+		(*currentState_Rejected_)(nil),
+		(*currentState_Executing_)(nil),
+		(*currentState_Completed_)(nil),
 	}
 	file_bonanza_build_pkg_proto_remoteworker_remoteworker_proto_msgTypes[3].OneofWrappers = []any{
-		(*DesiredState_VerifyingPublicKeys_)(nil),
-		(*DesiredState_Idle)(nil),
-		(*DesiredState_Executing_)(nil),
+		(*desiredState_VerifyingPublicKeys_)(nil),
+		(*desiredState_Idle)(nil),
+		(*desiredState_Executing_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

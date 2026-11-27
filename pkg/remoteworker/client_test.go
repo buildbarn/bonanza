@@ -42,11 +42,14 @@ type fakeScheduler struct {
 func (s *fakeScheduler) Synchronize(ctx context.Context, in *remoteworker_pb.SynchronizeRequest, opts ...grpc.CallOption) (*remoteworker_pb.SynchronizeResponse, error) {
 	// The worker reuses the request message across calls. Record a
 	// snapshot of the current state of the worker.
-	s.requests = append(s.requests, &remoteworker_pb.SynchronizeRequest{
-		CurrentState: &remoteworker_pb.CurrentState{
-			WorkerState: in.CurrentState.WorkerState,
-		},
-	})
+	s.requests = append(s.requests, remoteworker_pb.SynchronizeRequest_builder{
+		CurrentState: remoteworker_pb.CurrentState_builder{
+			Completed: in.GetCurrentState().GetCompleted(),
+			Executing: in.GetCurrentState().GetExecuting(),
+			Idle:      in.GetCurrentState().GetIdle(),
+			Rejected:  in.GetCurrentState().GetRejected(),
+		}.Build(),
+	}.Build())
 	if len(s.responses) == 0 {
 		return nil, status.Error(codes.Internal, "No more responses")
 	}
@@ -148,13 +151,13 @@ func newDesiredStateExecuting(t *testing.T, identity clientIdentity, workerPriva
 		}.Build(),
 	}.Build()
 	require.NoError(t, encryptedaction.ActionSetCiphertext(action, sharedSecret, []byte(plaintext)))
-	return &remoteworker_pb.DesiredState{
-		WorkerState: &remoteworker_pb.DesiredState_Executing_{Executing: &remoteworker_pb.DesiredState_Executing{
+	return remoteworker_pb.DesiredState_builder{
+		Executing: remoteworker_pb.DesiredState_Executing_builder{
 			TaskUuid:                  taskUUID,
 			Action:                    action,
 			EffectiveExecutionTimeout: &durationpb.Duration{Seconds: 60},
-		}},
-	}
+		}.Build(),
+	}.Build()
 }
 
 func TestClient(t *testing.T) {
@@ -172,20 +175,20 @@ func TestClient(t *testing.T) {
 
 		scheduler := &fakeScheduler{
 			responses: []*remoteworker_pb.SynchronizeResponse{
-				{
+				remoteworker_pb.SynchronizeResponse_builder{
 					NextSynchronizationAt: timestamppb.Now(),
 					DesiredState:          newDesiredStateExecuting(t, identity, workerPrivateKey, "task-a", "action-a"),
-				},
-				{
+				}.Build(),
+				remoteworker_pb.SynchronizeResponse_builder{
 					// Use a synchronization time in the
 					// future, so that the next call to
 					// Run() waits for task B to complete.
 					NextSynchronizationAt: timestamppb.New(time.Now().Add(time.Hour)),
 					DesiredState:          newDesiredStateExecuting(t, identity, workerPrivateKey, "task-b", "action-b"),
-				},
-				{
+				}.Build(),
+				remoteworker_pb.SynchronizeResponse_builder{
 					NextSynchronizationAt: timestamppb.Now(),
-				},
+				}.Build(),
 			},
 		}
 		executor := fakeExecutor{
@@ -223,16 +226,16 @@ func TestClient(t *testing.T) {
 		}
 
 		require.Len(t, scheduler.requests, 3)
-		completed, ok := scheduler.requests[2].CurrentState.WorkerState.(*remoteworker_pb.CurrentState_Completed_)
-		if !ok {
-			if rejected, ok := scheduler.requests[2].CurrentState.WorkerState.(*remoteworker_pb.CurrentState_Rejected_); ok {
-				t.Fatalf("Task %#v was rejected: %s", rejected.Rejected.TaskUuid, status.ErrorProto(rejected.Rejected.Reason))
+		completed := scheduler.requests[2].GetCurrentState().GetCompleted()
+		if completed == nil {
+			if rejected := scheduler.requests[2].GetCurrentState().GetRejected(); rejected != nil {
+				t.Fatalf("Task %#v was rejected: %s", rejected.GetTaskUuid(), status.ErrorProto(rejected.GetReason()))
 			}
-			t.Fatalf("Worker did not report completion, but %T", scheduler.requests[2].CurrentState.WorkerState)
+			t.Fatalf("Worker did not report completion, but %v", scheduler.requests[2].GetCurrentState().WhichWorkerState())
 		}
-		require.Equal(t, "task-b", completed.Completed.TaskUuid)
-		require.Equal(t, remoteworker_pb.CurrentState_Completed_SUCCEEDED, completed.Completed.Result)
-		require.NotNil(t, completed.Completed.Event)
+		require.Equal(t, "task-b", completed.GetTaskUuid())
+		require.Equal(t, remoteworker_pb.CurrentState_Completed_SUCCEEDED, completed.GetResult())
+		require.NotNil(t, completed.GetEvent())
 	})
 
 	t.Run("RejectionIsReportedForCorrectTask", func(t *testing.T) {
@@ -244,13 +247,13 @@ func TestClient(t *testing.T) {
 
 		scheduler := &fakeScheduler{
 			responses: []*remoteworker_pb.SynchronizeResponse{
-				{
+				remoteworker_pb.SynchronizeResponse_builder{
 					NextSynchronizationAt: timestamppb.New(time.Now().Add(time.Hour)),
 					DesiredState:          newDesiredStateExecuting(t, identity, workerPrivateKey, "task-a", "action-a"),
-				},
-				{
+				}.Build(),
+				remoteworker_pb.SynchronizeResponse_builder{
 					NextSynchronizationAt: timestamppb.Now(),
-				},
+				}.Build(),
 			},
 		}
 		executor := fakeExecutor{
@@ -279,9 +282,9 @@ func TestClient(t *testing.T) {
 		}
 
 		require.Len(t, scheduler.requests, 2)
-		rejected, ok := scheduler.requests[1].CurrentState.WorkerState.(*remoteworker_pb.CurrentState_Rejected_)
-		require.True(t, ok, "Worker did not report rejection, but %T", scheduler.requests[1].CurrentState.WorkerState)
-		require.Equal(t, "task-a", rejected.Rejected.TaskUuid)
-		testutil.RequireEqualStatus(t, status.Error(codes.Internal, "Storage is offline"), status.ErrorProto(rejected.Rejected.Reason))
+		rejected := scheduler.requests[1].GetCurrentState().GetRejected()
+		require.NotNil(t, rejected, "Worker state is %v", scheduler.requests[1].GetCurrentState().WhichWorkerState())
+		require.Equal(t, "task-a", rejected.GetTaskUuid())
+		testutil.RequireEqualStatus(t, status.Error(codes.Internal, "Storage is offline"), status.ErrorProto(rejected.GetReason()))
 	})
 }
