@@ -20,6 +20,7 @@ import (
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -76,27 +77,26 @@ func (s *uploaderServer[TLease]) UploadDags(stream dag.Uploader_UploadDagsServer
 		}
 		return err
 	}
-	requestType, ok := request.Type.(*dag.UploadDagsRequest_Handshake_)
-	if !ok {
+	handshakeRequest := request.GetHandshake()
+	if handshakeRequest == nil {
 		return status.Error(codes.InvalidArgument, "Initial message from client did not contain a handshake")
 	}
-	handshakeRequest := requestType.Handshake
-	namespace, err := object.NewNamespace(handshakeRequest.Namespace)
+	namespace, err := object.NewNamespace(handshakeRequest.GetNamespace())
 	if err != nil {
 		return util.StatusWrap(err, "Invalid namespace")
 	}
 	maximumUnfinalizedParentsLimit := s.maximumUnfinalizedParentsLimit
-	if clientLimit := handshakeRequest.MaximumUnfinalizedParentsLimit; clientLimit != nil {
+	if clientLimit := handshakeRequest.GetMaximumUnfinalizedParentsLimit(); clientLimit != nil {
 		maximumUnfinalizedParentsLimit = maximumUnfinalizedParentsLimit.Min(object.NewLimit(clientLimit))
 	}
 
-	if err := stream.Send(&dag.UploadDagsResponse{
-		Type: &dag.UploadDagsResponse_Handshake_{
-			Handshake: &dag.UploadDagsResponse_Handshake{
-				MaximumUnfinalizedDagsCount: s.maximumUnfinalizedDAGsCount,
-			},
-		},
-	}); err != nil {
+	uh := dag.UploadDagsResponse_Handshake_builder{
+		MaximumUnfinalizedDagsCount: s.maximumUnfinalizedDAGsCount,
+	}.Build()
+	udr := dag.UploadDagsResponse_builder{
+		Handshake: proto.ValueOrDefault(uh),
+	}.Build()
+	if err := stream.Send(udr); err != nil {
 		return err
 	}
 
@@ -293,9 +293,10 @@ func (r *dagReceiver[TLease]) getOrCreateObjectState(reference object.LocalRefer
 	o, ok := r.objectsByReference[reference]
 	if ok {
 		if o.finalizeObject == nil {
-			o.finalizeObject = &dag.UploadDagsResponse_FinalizeObject{
+			uf := dag.UploadDagsResponse_FinalizeObject_builder{
 				LowestReferenceIndex: referenceIndex,
-			}
+			}.Build()
+			o.finalizeObject = uf
 			if o.unfinalized == nil {
 				// An existing object appeared in
 				// another (part of the) DAG, and we
@@ -322,17 +323,18 @@ func (r *dagReceiver[TLease]) getOrCreateObjectState(reference object.LocalRefer
 			// we send back a single FinalizeObject message
 			// that acknowledges both reference indices at
 			// the same time.
-			o.finalizeObject.AdditionalReferenceIndices++
+			o.finalizeObject.SetAdditionalReferenceIndices(o.finalizeObject.GetAdditionalReferenceIndices() + 1)
 		}
 	} else {
 		// Object was not seen before, or its state has already
 		// been purged in the meantime.
+		uf := dag.UploadDagsResponse_FinalizeObject_builder{
+			LowestReferenceIndex: referenceIndex,
+		}.Build()
 		o = &objectState[TLease]{
-			reference: reference,
-			finalizeObject: &dag.UploadDagsResponse_FinalizeObject{
-				LowestReferenceIndex: referenceIndex,
-			},
-			unfinalized: &unfinalizedObjectState[TLease]{},
+			reference:      reference,
+			finalizeObject: uf,
+			unfinalized:    &unfinalizedObjectState[TLease]{},
 		}
 		r.objectsByReference[reference] = o
 		heap.Push(&r.pendingObjects, o)
@@ -419,8 +421,8 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			return err
 		}
 
-		switch request.GetType().(type) {
-		case *dag.UploadDagsRequest_InitiateDag_:
+		switch request.WhichType() {
+		case dag.UploadDagsRequest_InitiateDag_case:
 			initiateDAG := request.GetInitiateDag()
 			rootReference, err := r.namespace.NewLocalReference(initiateDAG.GetRootReference())
 			if err != nil {
@@ -492,7 +494,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 			r.lock.Unlock()
 
 			nextReferenceIndex++
-		case *dag.UploadDagsRequest_ProvideObjectContents_:
+		case dag.UploadDagsRequest_ProvideObjectContents_case:
 			provideObjectContents := request.GetProvideObjectContents()
 			r.lock.Lock()
 			o, ok := r.requestedObjects[provideObjectContents.GetLowestReferenceIndex()]
@@ -576,7 +578,7 @@ func (r *dagReceiver[TLease]) processIncomingMessages() error {
 					r.putObject(o, contents, leases)
 				}
 			}
-		case *dag.UploadDagsRequest_ProvideObjectChildren_:
+		case dag.UploadDagsRequest_ProvideObjectChildren_case:
 			provideObjectChildren := request.GetProvideObjectChildren()
 			r.lock.Lock()
 			o, ok := r.requestedObjects[provideObjectChildren.GetLowestReferenceIndex()]
@@ -647,7 +649,7 @@ func (r *dagReceiver[TLease]) queueFinalizeObjectLocked(o *objectState[TLease], 
 	if o.finalizeObject == nil {
 		panic("attempted to schedule FinalizeObject message for object that did not have an outstanding request")
 	}
-	o.finalizeObject.Status = status
+	o.finalizeObject.SetStatus(status)
 
 	if o.nextRequestedOrFinalizedObject != nil || r.lastRequestedObject == &o.nextRequestedOrFinalizedObject || r.lastFinalizedObject == &o.nextRequestedOrFinalizedObject {
 		panic("RequestObjectContents or FinalizeObject message is already requested for object")
@@ -660,12 +662,9 @@ func (r *dagReceiver[TLease]) queueFinalizeObjectLocked(o *objectState[TLease], 
 // queueFinalizeTagLocked queues a FinalizeTag message for transmission
 // back to the client.
 func (r *dagReceiver[TLease]) queueFinalizeTagLocked(rootReferenceIndex uint64, status *statuspb.Status) {
-	t := &finalizedTagState{
-		finalization: dag.UploadDagsResponse_FinalizeTag{
-			RootReferenceIndex: rootReferenceIndex,
-			Status:             status,
-		},
-	}
+	t := &finalizedTagState{}
+	t.finalization.SetRootReferenceIndex(rootReferenceIndex)
+	t.finalization.SetStatus(status)
 
 	*r.lastFinalizedTag = t
 	r.lastFinalizedTag = &t.nextFinalizedTag
@@ -1048,11 +1047,10 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 			r.unfinalizedDAGsCount -= o.unfinalizedDAGsWithoutTagsCount
 			r.lock.Unlock()
 
-			if err := r.stream.Send(&dag.UploadDagsResponse{
-				Type: &dag.UploadDagsResponse_FinalizeObject_{
-					FinalizeObject: finalizeObject,
-				},
-			}); err != nil {
+			udr := dag.UploadDagsResponse_builder{
+				FinalizeObject: proto.ValueOrDefault(finalizeObject),
+			}.Build()
+			if err := r.stream.Send(udr); err != nil {
 				return err
 			}
 		} else if r.firstFinalizedTag != nil {
@@ -1078,11 +1076,10 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 			r.unfinalizedDAGsCount--
 			r.lock.Unlock()
 
-			if err := r.stream.Send(&dag.UploadDagsResponse{
-				Type: &dag.UploadDagsResponse_FinalizeTag_{
-					FinalizeTag: &d.finalization,
-				},
-			}); err != nil {
+			udr := dag.UploadDagsResponse_builder{
+				FinalizeTag: &d.finalization,
+			}.Build()
+			if err := r.stream.Send(udr); err != nil {
 				return err
 			}
 		} else {
@@ -1100,23 +1097,20 @@ func (r *dagReceiver[TLease]) processOutgoingMessages() error {
 			r.requestedObjectCount--
 			o.nextRequestedOrFinalizedObject = nil
 
-			lowestReferenceIndex := o.finalizeObject.LowestReferenceIndex
+			lowestReferenceIndex := o.finalizeObject.GetLowestReferenceIndex()
 			r.requestedObjects[lowestReferenceIndex] = o
-			response := &dag.UploadDagsResponse{
-				Type: &dag.UploadDagsResponse_RequestObjectContents_{
-					RequestObjectContents: &dag.UploadDagsResponse_RequestObjectContents{
-						LowestReferenceIndex: lowestReferenceIndex,
-					},
-				},
-			}
+			ur := dag.UploadDagsResponse_RequestObjectContents_builder{
+				LowestReferenceIndex: lowestReferenceIndex,
+			}.Build()
+			response := dag.UploadDagsResponse_builder{
+				RequestObjectContents: proto.ValueOrDefault(ur),
+			}.Build()
 			if o.storedOutgoingReferences != nil {
-				response = &dag.UploadDagsResponse{
-					Type: &dag.UploadDagsResponse_RequestObjectChildren_{
-						RequestObjectChildren: &dag.UploadDagsResponse_RequestObjectChildren{
-							LowestReferenceIndex: lowestReferenceIndex,
-						},
-					},
-				}
+				ur2 := dag.UploadDagsResponse_RequestObjectChildren_builder{
+					LowestReferenceIndex: lowestReferenceIndex,
+				}.Build()
+				response = &dag.UploadDagsResponse{}
+				response.SetRequestObjectChildren(proto.ValueOrDefault(ur2))
 			}
 			r.lock.Unlock()
 

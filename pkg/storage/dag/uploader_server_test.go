@@ -55,8 +55,8 @@ func TestUploaderServer(t *testing.T) {
 		// The initial message sent by the client should always
 		// be a handshake.
 		server := NewMockUploader_UploadDagsServer(ctrl)
-		server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+		server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+			InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 				RootReference: []byte{
 					// SHA-256 hash.
 					0x67, 0x8d, 0xb6, 0x9b, 0xba, 0x11, 0x39, 0x19,
@@ -72,8 +72,8 @@ func TestUploaderServer(t *testing.T) {
 					// Maximum parents total size in bytes.
 					0x00, 0x00,
 				},
-			}},
-		}, nil)
+			}.Build(),
+		}.Build(), nil)
 
 		testutil.RequireEqualStatus(
 			t,
@@ -87,14 +87,14 @@ func TestUploaderServer(t *testing.T) {
 		// Otherwise we don't know the instance name and
 		// reference format being used.
 		server := NewMockUploader_UploadDagsServer(ctrl)
-		server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+		server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+			Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 				MaximumUnfinalizedParentsLimit: object_pb.Limit_builder{
 					Count:     100,
 					SizeBytes: 1 << 20,
 				}.Build(),
-			}},
-		}, nil)
+			}.Build(),
+		}.Build(), nil)
 
 		testutil.RequireEqualStatus(
 			t,
@@ -110,8 +110,8 @@ func TestUploaderServer(t *testing.T) {
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -120,15 +120,15 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().Return(nil, io.EOF),
 		)
-		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+		server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 				MaximumUnfinalizedDagsCount: 5,
-			}},
-		}))
+			}.Build(),
+		}.Build()))
 
 		require.NoError(t, uploaderServer.UploadDags(server))
 	})
@@ -140,8 +140,8 @@ func TestUploaderServer(t *testing.T) {
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -150,15 +150,15 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{}, nil),
 		)
-		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+		server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 				MaximumUnfinalizedDagsCount: 5,
-			}},
-		}))
+			}.Build(),
+		}.Build()))
 
 		testutil.RequireEqualStatus(
 			t,
@@ -220,8 +220,8 @@ func TestUploaderServer(t *testing.T) {
 			server := NewMockUploader_UploadDagsServer(ctrl)
 			server.EXPECT().Context().Return(ctx).AnyTimes()
 			gomock.InOrder(
-				server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+				server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+					Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 						Namespace: object_pb.Namespace_builder{
 							InstanceName:    "hello/world",
 							ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -230,19 +230,19 @@ func TestUploaderServer(t *testing.T) {
 							Count:     100,
 							SizeBytes: 1 << 20,
 						}.Build(),
-					}},
-				}, nil),
-				server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+					}.Build(),
+				}.Build(), nil),
+				server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+					InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 						RootReference: e.rootReference,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			)
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			}))
+				}.Build(),
+			}.Build()))
 
 			testutil.RequireEqualStatus(t, status.Error(codes.InvalidArgument, e.statusMessage), uploaderServer.UploadDags(server))
 		}
@@ -257,8 +257,8 @@ func TestUploaderServer(t *testing.T) {
 		server := NewMockUploader_UploadDagsServer(ctrl)
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -267,10 +267,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x18, 0x5f, 0x8d, 0xb3, 0x22, 0x71, 0xfe, 0x25,
@@ -286,15 +286,15 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-				}},
-			}, nil).Times(6),
+				}.Build(),
+			}.Build(), nil).Times(6),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 			server.EXPECT().Send(gomock.Any()).MaxTimes(10),
 		)
 		objectUploader.EXPECT().
@@ -321,8 +321,8 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -331,10 +331,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x4f, 0xee, 0xb0, 0x3e, 0xce, 0x69, 0x22, 0x9a,
@@ -350,7 +350,7 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-					RootTag: &dag_pb.UploadDagsRequest_InitiateDag_Tag{
+					RootTag: dag_pb.UploadDagsRequest_InitiateDag_Tag_builder{
 						Key: tag_pb.Key_builder{
 							SignaturePublicKey: []byte{
 								// PKIX header.
@@ -380,29 +380,29 @@ func TestUploaderServer(t *testing.T) {
 							0x45, 0x6d, 0xbc, 0xdf, 0xfa, 0xda, 0xdd, 0xc0,
 							0x29, 0x0c, 0xa5, 0x15, 0x08, 0xe8, 0x6d, 0x09,
 						},
-					},
-				}},
-			}, nil),
+					}.Build(),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeTag: dag_pb.UploadDagsResponse_FinalizeTag_builder{
 					RootReferenceIndex: 0,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -460,8 +460,8 @@ func TestUploaderServer(t *testing.T) {
 		wait1 := make(chan struct{})
 		wait2 := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -470,10 +470,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x64, 0xec, 0x88, 0xca, 0x00, 0xb2, 0x68, 0xe5,
@@ -489,7 +489,7 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-					RootTag: &dag_pb.UploadDagsRequest_InitiateDag_Tag{
+					RootTag: dag_pb.UploadDagsRequest_InitiateDag_Tag_builder{
 						Key: tag_pb.Key_builder{
 							SignaturePublicKey: []byte{
 								// PKIX header.
@@ -519,42 +519,42 @@ func TestUploaderServer(t *testing.T) {
 							0x73, 0x25, 0x2c, 0x0b, 0xec, 0xe9, 0x4e, 0x37,
 							0x90, 0x1d, 0x1c, 0x30, 0x87, 0xa1, 0x8a, 0x06,
 						},
-					},
-				}},
-			}, nil),
+					}.Build(),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait1 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
 						ObjectContents:       []byte("Hello world"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait2 }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeTag: dag_pb.UploadDagsResponse_FinalizeTag_builder{
 					RootReferenceIndex: 0,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -625,34 +625,34 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: rootContents.GetLocalReference().GetRawReference(),
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -707,34 +707,34 @@ func TestUploaderServer(t *testing.T) {
 		wait2 := make(chan struct{})
 		wait3 := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: rootContents.GetLocalReference().GetRawReference(),
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait1 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectChildren: dag_pb.UploadDagsRequest_ProvideObjectChildren_builder{
 						LowestReferenceIndex: 0,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait2 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: absentChildReferenceIndex,
 						ObjectContents:       []byte("Absent"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait3 }).
 				Return(nil, io.EOF),
@@ -753,36 +753,36 @@ func TestUploaderServer(t *testing.T) {
 			remainingFinalizations.Wait()
 			close(wait3)
 		}()
-		sendHandshake := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+		sendHandshake := server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 				MaximumUnfinalizedDagsCount: 5,
-			}},
-		}))
-		sendRequestRootChildren := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+			}.Build(),
+		}.Build()))
+		sendRequestRootChildren := server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			RequestObjectChildren: dag_pb.UploadDagsResponse_RequestObjectChildren_builder{
 				LowestReferenceIndex: 0,
-			}},
-		})).After(sendHandshake).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) })
-		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			}.Build(),
+		}.Build())).After(sendHandshake).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) })
+		server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 				LowestReferenceIndex: presentChildReferenceIndex,
-			}},
-		})).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
-		sendRequestAbsentChild := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+			}.Build(),
+		}.Build())).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
+		sendRequestAbsentChild := server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 				LowestReferenceIndex: absentChildReferenceIndex,
-			}},
-		})).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) })
-		sendFinalizeAbsentChild := server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			}.Build(),
+		}.Build())).After(sendRequestRootChildren).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) })
+		sendFinalizeAbsentChild := server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 				LowestReferenceIndex: absentChildReferenceIndex,
-			}},
-		})).After(sendRequestAbsentChild)
-		server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			}.Build(),
+		}.Build())).After(sendRequestAbsentChild)
+		server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+			FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 				LowestReferenceIndex: 0,
-			}},
-		})).After(sendFinalizeAbsentChild).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
+			}.Build(),
+		}.Build())).After(sendFinalizeAbsentChild).Do(func(response *dag_pb.UploadDagsResponse) { remainingFinalizations.Done() })
 
 		// The server first traverses into the child whose lease
 		// needs to be renewed, without involving the client.
@@ -833,8 +833,8 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -843,10 +843,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x20, 0x7c, 0xef, 0xdb, 0xee, 0x02, 0xec, 0xe5,
@@ -862,35 +862,35 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
 					Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		objectUploader.EXPECT().
 			UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "207cefdbee02ece5b644ddc278362822e6f517df8bbe3de0bc11fee772581bea", 241, 0, 0, 0), nil, nil, false).
@@ -908,8 +908,8 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -918,10 +918,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x00, 0xef, 0xce, 0x81, 0x7c, 0xc6, 0x81, 0xdf,
@@ -937,28 +937,28 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
 						ObjectContents:       []byte("This data does not match the provided checksum"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
 		)
 		objectUploader.EXPECT().
 			UploadObject(gomock.Any(), object.MustNewSHA256V1GlobalReference("hello/world", "00efce817cc681dfe9caa081c7bf412efa02b918b6cb8c8cab5373fc96880a47", 46, 0, 0, 0), nil, nil, false).
@@ -1001,8 +1001,8 @@ func TestUploaderServer(t *testing.T) {
 		wait5 := make(chan struct{})
 		wait6 := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -1011,10 +1011,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     2,
 						SizeBytes: 160,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0xe8, 0x2d, 0x79, 0xbe, 0xda, 0xc8, 0x41, 0xc3,
@@ -1030,12 +1030,12 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x28, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait0 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1080,12 +1080,12 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait1 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 1,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1102,20 +1102,20 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait4 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 4,
 						ObjectContents:       []byte("Baz"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait2 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 2,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1132,20 +1132,20 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait5 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 5,
 						ObjectContents:       []byte("Foo"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait3 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 3,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1162,95 +1162,95 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait6 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 6,
 						ObjectContents:       []byte("Bar"),
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 1,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 4,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 4,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 1,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 2,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 5,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait5) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait5) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 2,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 3,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 6,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait6) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait6) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 6,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 3,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -1343,8 +1343,8 @@ func TestUploaderServer(t *testing.T) {
 		wait0 := make(chan struct{})
 		wait3 := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -1353,10 +1353,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     2,
 						SizeBytes: 160,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0xe8, 0x2d, 0x79, 0xbe, 0xda, 0xc8, 0x41, 0xc3,
@@ -1372,12 +1372,12 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x28, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait0 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1422,43 +1422,43 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait3 }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 1,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 2,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 3,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -1507,8 +1507,8 @@ func TestUploaderServer(t *testing.T) {
 		wait3 := make(chan struct{})
 		wait4 := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -1517,10 +1517,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     2,
 						SizeBytes: 160,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0xe0, 0xe4, 0x74, 0x85, 0xb1, 0xa2, 0x64, 0x8a,
@@ -1536,12 +1536,12 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x28, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait0 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 0,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1586,12 +1586,12 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait1 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 1,
 						ObjectContents: []byte{
 							// SHA-256 hash.
@@ -1608,93 +1608,93 @@ func TestUploaderServer(t *testing.T) {
 							// Maximum total parents size in bytes.
 							0x00, 0x00,
 						},
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait4 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 4,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait2 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 2,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait3 }).
-				Return(&dag_pb.UploadDagsRequest{
-					Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+				Return(dag_pb.UploadDagsRequest_builder{
+					ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
 						LowestReferenceIndex: 3,
-					}},
-				}, nil),
+					}.Build(),
+				}.Build(), nil),
 			server.EXPECT().Recv().
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait0) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 1,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait1) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 4,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait4) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 4,
 					Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 1,
 					Status:               status.New(codes.Canceled, "One or more child objects were not uploaded successfully").Proto(),
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 2,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait2) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 2,
 					Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 3,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait3) }),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 3,
 					Status:               status.New(codes.Canceled, "Client canceled upload of object").Proto(),
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
 					Status:               status.New(codes.Canceled, "One or more child objects were not uploaded successfully").Proto(),
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -1729,8 +1729,8 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -1739,10 +1739,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     0,
 						SizeBytes: 0,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0x6a, 0x91, 0xfa, 0x7c, 0xe8, 0xf8, 0x87, 0xce,
@@ -1758,28 +1758,28 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
+				}.Build(),
+			}.Build())),
 			// Closing the stream prematurely causes the
 			// existence check to be canceled. The server
 			// may report this to the client before it
 			// notices that the request is being torn down.
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
 					Status:               status.New(codes.Canceled, "Request canceled").Proto(),
-				}},
-			})).MaxTimes(1),
+				}.Build(),
+			}.Build())).MaxTimes(1),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().
@@ -1807,8 +1807,8 @@ func TestUploaderServer(t *testing.T) {
 		server.EXPECT().Context().Return(ctx).AnyTimes()
 		wait := make(chan struct{})
 		gomock.InOrder(
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -1817,10 +1817,10 @@ func TestUploaderServer(t *testing.T) {
 						Count:     0,
 						SizeBytes: 0,
 					}.Build(),
-				}},
-			}, nil),
-			server.EXPECT().Recv().Return(&dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			server.EXPECT().Recv().Return(dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0xbd, 0x42, 0x35, 0xa5, 0xb1, 0x12, 0xd4, 0x60,
@@ -1836,23 +1836,23 @@ func TestUploaderServer(t *testing.T) {
 						// Maximum total parents size in bytes.
 						0x00, 0x00,
 					},
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			server.EXPECT().Recv().
 				Do(func() { <-wait }).
 				Return(nil, io.EOF),
 		)
 		gomock.InOrder(
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			})),
-			server.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+				}.Build(),
+			}.Build())),
+			server.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsResponse_builder{
+				RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 					LowestReferenceIndex: 0,
-				}},
-			})).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
+				}.Build(),
+			}.Build())).Do(func(response *dag_pb.UploadDagsResponse) { close(wait) }),
 		)
 		gomock.InOrder(
 			objectUploader.EXPECT().

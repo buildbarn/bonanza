@@ -22,6 +22,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -330,17 +331,15 @@ func (op *ObjectPool) initiateDAGLocked(reference object.LocalReference, tr *tag
 	op.unfinalizedRootsByIndex[referenceIndex] = tr
 	op.unfinalizedDAGs++
 
-	initiateDAG := &dag_pb.UploadDagsRequest_InitiateDag{
+	initiateDAG := dag_pb.UploadDagsRequest_InitiateDag_builder{
 		RootReference: reference.GetRawReference(),
-	}
+	}.Build()
 	if tr != nil {
-		initiateDAG.RootTag = tr.tag
+		initiateDAG.SetRootTag(tr.tag)
 	}
-	return &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_InitiateDag_{
-			InitiateDag: initiateDAG,
-		},
-	}
+	return dag_pb.UploadDagsRequest_builder{
+		InitiateDag: proto.ValueOrDefault(initiateDAG),
+	}.Build()
 }
 
 // provideObjectContentsLocked creates a ProvideObjectContents message
@@ -369,22 +368,18 @@ func (op *ObjectPool) provideObjectContentsLocked(p pendingProvide) (*dag_pb.Upl
 		op.addReferenceIndexLocked(contents.GetOutgoingReference(i), referenceIndex)
 	}
 	if p.childrenOnly {
-		return &dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{
-				ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
-					LowestReferenceIndex: p.lowestReferenceIndex,
-				},
-			},
-		}, nil
-	}
-	return &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
-			ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
+		return dag_pb.UploadDagsRequest_builder{
+			ProvideObjectChildren: dag_pb.UploadDagsRequest_ProvideObjectChildren_builder{
 				LowestReferenceIndex: p.lowestReferenceIndex,
-				ObjectContents:       contents.GetFullData(),
-			},
-		},
-	}, nil
+			}.Build(),
+		}.Build(), nil
+	}
+	return dag_pb.UploadDagsRequest_builder{
+		ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
+			LowestReferenceIndex: p.lowestReferenceIndex,
+			ObjectContents:       contents.GetFullData(),
+		}.Build(),
+	}.Build(), nil
 }
 
 // getNextRequestLocked blocks until there is a message that needs to
@@ -454,9 +449,9 @@ func (op *ObjectPool) processOutgoingMessages(ctx context.Context, stream dag_pb
 }
 
 func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse) error {
-	switch responseType := response.Type.(type) {
-	case *dag_pb.UploadDagsResponse_RequestObjectContents_:
-		lowestReferenceIndex := responseType.RequestObjectContents.LowestReferenceIndex
+	switch response.WhichType() {
+	case dag_pb.UploadDagsResponse_RequestObjectContents_case:
+		lowestReferenceIndex := response.GetRequestObjectContents().GetLowestReferenceIndex()
 		rs, ok := op.referencesByLowestIndex[lowestReferenceIndex]
 		if !ok {
 			return status.Errorf(codes.Internal, "Server requested object with lowest reference index %d, which was not expected", lowestReferenceIndex)
@@ -468,8 +463,8 @@ func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse)
 		op.senderWakeup.Broadcast()
 		return nil
 
-	case *dag_pb.UploadDagsResponse_RequestObjectChildren_:
-		lowestReferenceIndex := responseType.RequestObjectChildren.LowestReferenceIndex
+	case dag_pb.UploadDagsResponse_RequestObjectChildren_case:
+		lowestReferenceIndex := response.GetRequestObjectChildren().GetLowestReferenceIndex()
 		rs, ok := op.referencesByLowestIndex[lowestReferenceIndex]
 		if !ok {
 			return status.Errorf(codes.Internal, "Server requested children of object with lowest reference index %d, which was not expected", lowestReferenceIndex)
@@ -485,13 +480,13 @@ func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse)
 		op.senderWakeup.Broadcast()
 		return nil
 
-	case *dag_pb.UploadDagsResponse_FinalizeObject_:
-		finalizeObject := responseType.FinalizeObject
-		rs, ok := op.referencesByLowestIndex[finalizeObject.LowestReferenceIndex]
+	case dag_pb.UploadDagsResponse_FinalizeObject_case:
+		finalizeObject := response.GetFinalizeObject()
+		rs, ok := op.referencesByLowestIndex[finalizeObject.GetLowestReferenceIndex()]
 		if !ok {
-			return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d, which was not expected", finalizeObject.LowestReferenceIndex)
+			return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d, which was not expected", finalizeObject.GetLowestReferenceIndex())
 		}
-		if err := status.ErrorProto(finalizeObject.Status); err != nil {
+		if err := status.ErrorProto(finalizeObject.GetStatus()); err != nil {
 			return util.StatusWrapf(err, "Server failed to write object with reference %s", rs.reference)
 		}
 
@@ -499,11 +494,11 @@ func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse)
 		// pointing to the same object, the server may collapse
 		// these references and acknowledge them using a single
 		// FinalizeObject message.
-		acknowledgedCount := uint64(finalizeObject.AdditionalReferenceIndices) + 1
+		acknowledgedCount := uint64(finalizeObject.GetAdditionalReferenceIndices()) + 1
 		if acknowledgedCount > uint64(len(rs.referenceIndices)) {
-			return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d and %d additional reference indices, which was not expected", finalizeObject.LowestReferenceIndex, finalizeObject.AdditionalReferenceIndices)
+			return status.Errorf(codes.Internal, "Server finalized object with lowest reference index %d and %d additional reference indices, which was not expected", finalizeObject.GetLowestReferenceIndex(), finalizeObject.GetAdditionalReferenceIndices())
 		}
-		delete(op.referencesByLowestIndex, finalizeObject.LowestReferenceIndex)
+		delete(op.referencesByLowestIndex, finalizeObject.GetLowestReferenceIndex())
 		for _, referenceIndex := range rs.referenceIndices[:acknowledgedCount] {
 			// Roots of DAGs without tags are finalized as
 			// soon as the root object is finalized. Roots of
@@ -524,16 +519,16 @@ func (op *ObjectPool) processResponseLocked(response *dag_pb.UploadDagsResponse)
 		op.finalizeObjectAndDescendantsLocked(rs.reference)
 		return nil
 
-	case *dag_pb.UploadDagsResponse_FinalizeTag_:
-		finalizeTag := responseType.FinalizeTag
-		tr, ok := op.unfinalizedRootsByIndex[finalizeTag.RootReferenceIndex]
+	case dag_pb.UploadDagsResponse_FinalizeTag_case:
+		finalizeTag := response.GetFinalizeTag()
+		tr, ok := op.unfinalizedRootsByIndex[finalizeTag.GetRootReferenceIndex()]
 		if !ok || tr == nil {
-			return status.Errorf(codes.Internal, "Server finalized tag with root reference index %d, which was not expected", finalizeTag.RootReferenceIndex)
+			return status.Errorf(codes.Internal, "Server finalized tag with root reference index %d, which was not expected", finalizeTag.GetRootReferenceIndex())
 		}
-		if err := status.ErrorProto(finalizeTag.Status); err != nil {
+		if err := status.ErrorProto(finalizeTag.GetStatus()); err != nil {
 			return util.StatusWrapf(err, "Server failed to write tag for object with reference %s", tr.reference)
 		}
-		delete(op.unfinalizedRootsByIndex, finalizeTag.RootReferenceIndex)
+		delete(op.unfinalizedRootsByIndex, finalizeTag.GetRootReferenceIndex())
 		op.unfinalizedDAGs--
 		op.senderWakeup.Broadcast()
 		op.unfinalizedTags--
@@ -592,13 +587,11 @@ func (op *ObjectPool) SendQueuedObjects(ctx context.Context, client dag_pb.Uploa
 
 		// As all objects reside in memory, there is no need to
 		// limit the breadth at which the server traverses DAGs.
-		if err := stream.Send(&dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_Handshake_{
-				Handshake: &dag_pb.UploadDagsRequest_Handshake{
-					Namespace: namespace.ToProto(),
-				},
-			},
-		}); err != nil {
+		if err := stream.Send(dag_pb.UploadDagsRequest_builder{
+			Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
+				Namespace: namespace.ToProto(),
+			}.Build(),
+		}.Build()); err != nil {
 			return util.StatusWrap(err, "Failed to send handshake message to server")
 		}
 
@@ -606,11 +599,11 @@ func (op *ObjectPool) SendQueuedObjects(ctx context.Context, client dag_pb.Uploa
 		if err != nil {
 			return util.StatusWrap(err, "Failed to receive handshake message from server")
 		}
-		handshake, ok := response.Type.(*dag_pb.UploadDagsResponse_Handshake_)
-		if !ok {
+		handshake := response.GetHandshake()
+		if handshake == nil {
 			return status.Error(codes.Internal, "Initial message from server did not contain a handshake")
 		}
-		maximumUnfinalizedDAGs := handshake.Handshake.MaximumUnfinalizedDagsCount
+		maximumUnfinalizedDAGs := handshake.GetMaximumUnfinalizedDagsCount()
 		if maximumUnfinalizedDAGs == 0 {
 			return status.Error(codes.Internal, "Server does not permit initiating any DAGs")
 		}
@@ -937,12 +930,11 @@ func (u *tagBoundUpdater) UpdateTag(ctx context.Context, keyHash [sha256.Size]by
 		return err
 	}
 	return u.pool.updateTag(
-		reference.LocalReference,
-		&dag_pb.UploadDagsRequest_InitiateDag_Tag{
+		reference.LocalReference, dag_pb.UploadDagsRequest_InitiateDag_Tag_builder{
 			Key:       keyMessage,
 			Timestamp: timestamppb.New(signedValue.Value.Timestamp),
 			Signature: signedValue.Signature[:],
-		},
+		}.Build(),
 	)
 }
 

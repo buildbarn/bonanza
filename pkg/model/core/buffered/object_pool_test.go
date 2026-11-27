@@ -103,24 +103,24 @@ func newObjectPoolHarness(t *testing.T, ctrl *gomock.Controller, limit object.Li
 		h.errChan <- pool.SendQueuedObjects(ctx, client, testNamespace)
 	}()
 
-	testutil.RequireEqualProto(t, &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+	testutil.RequireEqualProto(t, dag_pb.UploadDagsRequest_builder{
+		Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 			Namespace: object_pb.Namespace_builder{
 				InstanceName:    "hello",
 				ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
 			}.Build(),
-		}},
-	}, h.expectRequest())
+		}.Build(),
+	}.Build(), h.expectRequest())
 
 	if beforeHandshake != nil {
 		beforeHandshake(h)
 	}
 
-	h.respond(&dag_pb.UploadDagsResponse{
-		Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+	h.respond(dag_pb.UploadDagsResponse_builder{
+		Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 			MaximumUnfinalizedDagsCount: maximumUnfinalizedDAGsCount,
-		}},
-	})
+		}.Build(),
+	}.Build())
 	return h
 }
 
@@ -151,43 +151,35 @@ func (h *objectPoolHarness) expectNoRequest() {
 }
 
 func (h *objectPoolHarness) expectInitiateDAG(rootReference object.LocalReference) {
-	testutil.RequireEqualProto(h.t, &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_InitiateDag_{
-			InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
-				RootReference: rootReference.GetRawReference(),
-			},
-		},
-	}, h.expectRequest())
+	testutil.RequireEqualProto(h.t, dag_pb.UploadDagsRequest_builder{
+		InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
+			RootReference: rootReference.GetRawReference(),
+		}.Build(),
+	}.Build(), h.expectRequest())
 }
 
 func (h *objectPoolHarness) requestAndExpectContents(lowestReferenceIndex uint64, contents *object.Contents) {
-	h.respond(&dag_pb.UploadDagsResponse{
-		Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{
-			RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
-				LowestReferenceIndex: lowestReferenceIndex,
-			},
-		},
-	})
-	testutil.RequireEqualProto(h.t, &dag_pb.UploadDagsRequest{
-		Type: &dag_pb.UploadDagsRequest_ProvideObjectContents_{
-			ProvideObjectContents: &dag_pb.UploadDagsRequest_ProvideObjectContents{
-				LowestReferenceIndex: lowestReferenceIndex,
-				ObjectContents:       contents.GetFullData(),
-			},
-		},
-	}, h.expectRequest())
+	h.respond(dag_pb.UploadDagsResponse_builder{
+		RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
+			LowestReferenceIndex: lowestReferenceIndex,
+		}.Build(),
+	}.Build())
+	testutil.RequireEqualProto(h.t, dag_pb.UploadDagsRequest_builder{
+		ProvideObjectContents: dag_pb.UploadDagsRequest_ProvideObjectContents_builder{
+			LowestReferenceIndex: lowestReferenceIndex,
+			ObjectContents:       contents.GetFullData(),
+		}.Build(),
+	}.Build(), h.expectRequest())
 }
 
 func (h *objectPoolHarness) finalizeObject(lowestReferenceIndex uint64, additionalReferenceIndices uint32, s *status.Status) {
-	h.respond(&dag_pb.UploadDagsResponse{
-		Type: &dag_pb.UploadDagsResponse_FinalizeObject_{
-			FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
-				LowestReferenceIndex:       lowestReferenceIndex,
-				AdditionalReferenceIndices: additionalReferenceIndices,
-				Status:                     s,
-			},
-		},
-	})
+	h.respond(dag_pb.UploadDagsResponse_builder{
+		FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
+			LowestReferenceIndex:       lowestReferenceIndex,
+			AdditionalReferenceIndices: additionalReferenceIndices,
+			Status:                     s,
+		}.Build(),
+	}.Build())
 }
 
 func (h *objectPoolHarness) respond(response *dag_pb.UploadDagsResponse) {
@@ -312,16 +304,16 @@ func TestObjectPool(t *testing.T) {
 		})
 
 		h.expectInitiateDAG(parent.LocalReference)
-		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+		h.respond(dag_pb.UploadDagsResponse_builder{
+			RequestObjectChildren: dag_pb.UploadDagsResponse_RequestObjectChildren_builder{
 				LowestReferenceIndex: 0,
-			}},
-		})
-		testutil.RequireEqualProto(t, &dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+			}.Build(),
+		}.Build())
+		testutil.RequireEqualProto(t, dag_pb.UploadDagsRequest_builder{
+			ProvideObjectChildren: dag_pb.UploadDagsRequest_ProvideObjectChildren_builder{
 				LowestReferenceIndex: 0,
-			}},
-		}, h.expectRequest())
+			}.Build(),
+		}.Build(), h.expectRequest())
 
 		// Both children are assigned reference indices. Only
 		// the second child is absent.
@@ -464,11 +456,11 @@ func TestObjectPool(t *testing.T) {
 
 		h.expectInitiateDAG(parent.LocalReference)
 		h.requestAndExpectContents(0, parent)
-		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_RequestObjectContents_{RequestObjectContents: &dag_pb.UploadDagsResponse_RequestObjectContents{
+		h.respond(dag_pb.UploadDagsResponse_builder{
+			RequestObjectContents: dag_pb.UploadDagsResponse_RequestObjectContents_builder{
 				LowestReferenceIndex: 1,
-			}},
-		})
+			}.Build(),
+		}.Build())
 		err := <-h.errChan
 		require.Equal(t, codes.Internal, grpc_status.Code(err))
 		require.ErrorContains(t, err, "Server requested the contents of object with reference ")
@@ -608,11 +600,11 @@ func TestObjectPool(t *testing.T) {
 		case <-time.After(10 * time.Millisecond):
 		}
 
-		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+		h.respond(dag_pb.UploadDagsResponse_builder{
+			FinalizeTag: dag_pb.UploadDagsResponse_FinalizeTag_builder{
 				RootReferenceIndex: 0,
-			}},
-		})
+			}.Build(),
+		}.Build())
 		require.NoError(t, <-errChan)
 		h.close()
 	})
@@ -630,12 +622,12 @@ func TestObjectPool(t *testing.T) {
 		require.NotNil(t, h.expectRequest().GetInitiateDag())
 
 		h.finalizeObject(0, 0, nil)
-		h.respond(&dag_pb.UploadDagsResponse{
-			Type: &dag_pb.UploadDagsResponse_FinalizeTag_{FinalizeTag: &dag_pb.UploadDagsResponse_FinalizeTag{
+		h.respond(dag_pb.UploadDagsResponse_builder{
+			FinalizeTag: dag_pb.UploadDagsResponse_FinalizeTag_builder{
 				RootReferenceIndex: 0,
 				Status:             grpc_status.New(codes.PermissionDenied, "Invalid signature").Proto(),
-			}},
-		})
+			}.Build(),
+		}.Build())
 
 		err := <-h.errChan
 		require.Equal(t, codes.PermissionDenied, grpc_status.Code(err))

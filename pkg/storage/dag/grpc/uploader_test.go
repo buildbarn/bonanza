@@ -59,8 +59,8 @@ func TestRemoteUploader(t *testing.T) {
 			Do(func(ctx context.Context, opts ...grpc.CallOption) { streamCtx = ctx }).
 			Return(stream, nil)
 		gomock.InOrder(
-			stream.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			stream.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -69,8 +69,8 @@ func TestRemoteUploader(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			})).Return(status.Error(codes.Unavailable, "Server offline")),
+				}.Build(),
+			}.Build())).Return(status.Error(codes.Unavailable, "Server offline")),
 			stream.EXPECT().Recv().
 				Do(func() { <-streamCtx.Done() }).
 				Return(nil, status.Error(codes.Unavailable, "Server offline")),
@@ -95,8 +95,8 @@ func TestRemoteUploader(t *testing.T) {
 		rootObjectContentsWalker := NewMockObjectContentsWalker(ctrl)
 		rootObjectContentsWalker.EXPECT().Discard()
 		gomock.InOrder(
-			stream.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_Handshake_{Handshake: &dag_pb.UploadDagsRequest_Handshake{
+			stream.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsRequest_builder{
+				Handshake: dag_pb.UploadDagsRequest_Handshake_builder{
 					Namespace: object_pb.Namespace_builder{
 						InstanceName:    "hello/world",
 						ReferenceFormat: object_pb.ReferenceFormat_SHA256_V1,
@@ -105,15 +105,15 @@ func TestRemoteUploader(t *testing.T) {
 						Count:     100,
 						SizeBytes: 1 << 20,
 					}.Build(),
-				}},
-			})),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+				}.Build(),
+			}.Build())),
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			}, nil),
-			stream.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsRequest{
-				Type: &dag_pb.UploadDagsRequest_InitiateDag_{InitiateDag: &dag_pb.UploadDagsRequest_InitiateDag{
+				}.Build(),
+			}.Build(), nil),
+			stream.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsRequest_builder{
+				InitiateDag: dag_pb.UploadDagsRequest_InitiateDag_builder{
 					RootReference: []byte{
 						// SHA-256 hash.
 						0xca, 0x3d, 0x70, 0xc7, 0x49, 0xa2, 0x1a, 0x8a,
@@ -129,13 +129,13 @@ func TestRemoteUploader(t *testing.T) {
 						// Maximum parents total size in bytes.
 						0x26, 0x49,
 					},
-				}},
-			})),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				}.Build(),
+			}.Build())),
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			stream.EXPECT().CloseSend(),
 			stream.EXPECT().Recv().Return(nil, io.EOF).MinTimes(1),
 		)
@@ -174,53 +174,53 @@ func TestRemoteUploader(t *testing.T) {
 		providedChildren := make(chan struct{})
 		gomock.InOrder(
 			stream.EXPECT().Send(gomock.Any()),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_Handshake_{Handshake: &dag_pb.UploadDagsResponse_Handshake{
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				Handshake: dag_pb.UploadDagsResponse_Handshake_builder{
 					MaximumUnfinalizedDagsCount: 5,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			stream.EXPECT().Send(gomock.Any()),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_RequestObjectChildren_{RequestObjectChildren: &dag_pb.UploadDagsResponse_RequestObjectChildren{
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				RequestObjectChildren: dag_pb.UploadDagsResponse_RequestObjectChildren_builder{
 					LowestReferenceIndex: 0,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 		)
-		stream.EXPECT().Send(testutil.EqProto(t, &dag_pb.UploadDagsRequest{
-			Type: &dag_pb.UploadDagsRequest_ProvideObjectChildren_{ProvideObjectChildren: &dag_pb.UploadDagsRequest_ProvideObjectChildren{
+		stream.EXPECT().Send(testutil.EqProto(t, dag_pb.UploadDagsRequest_builder{
+			ProvideObjectChildren: dag_pb.UploadDagsRequest_ProvideObjectChildren_builder{
 				LowestReferenceIndex: 0,
-			}},
-		})).Do(func(*dag_pb.UploadDagsRequest) { close(providedChildren) })
+			}.Build(),
+		}.Build())).Do(func(*dag_pb.UploadDagsRequest) { close(providedChildren) })
 
 		// All children are assigned reference indices 1 to 3,
 		// and are finalized individually.
 		gomock.InOrder(
 			stream.EXPECT().Recv().DoAndReturn(func() (*dag_pb.UploadDagsResponse, error) {
 				<-providedChildren
-				return &dag_pb.UploadDagsResponse{
-					Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+				return dag_pb.UploadDagsResponse_builder{
+					FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 						LowestReferenceIndex: 2,
-					}},
-				}, nil
+					}.Build(),
+				}.Build(), nil
 			}),
 			childWalker1.EXPECT().Discard(),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 1,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			childWalker0.EXPECT().Discard(),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 3,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			childWalker2.EXPECT().Discard(),
-			stream.EXPECT().Recv().Return(&dag_pb.UploadDagsResponse{
-				Type: &dag_pb.UploadDagsResponse_FinalizeObject_{FinalizeObject: &dag_pb.UploadDagsResponse_FinalizeObject{
+			stream.EXPECT().Recv().Return(dag_pb.UploadDagsResponse_builder{
+				FinalizeObject: dag_pb.UploadDagsResponse_FinalizeObject_builder{
 					LowestReferenceIndex: 0,
-				}},
-			}, nil),
+				}.Build(),
+			}.Build(), nil),
 			stream.EXPECT().CloseSend(),
 			stream.EXPECT().Recv().Return(nil, io.EOF).MinTimes(1),
 		)

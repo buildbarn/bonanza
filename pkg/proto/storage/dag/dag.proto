@@ -1,4 +1,4 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.storage.dag;
 
@@ -7,6 +7,7 @@ import "bonanza.build/pkg/proto/storage/tag/tag.proto";
 import "google/rpc/status.proto";
 import "google/protobuf/timestamp.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/storage/dag";
 
 // Uploader service that wraps bonanza.storage.object.Uploader and

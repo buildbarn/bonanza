@@ -14,7 +14,6 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -26,16 +25,10 @@ const (
 )
 
 type UploadDagsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*UploadDagsRequest_Handshake_
-	//	*UploadDagsRequest_InitiateDag_
-	//	*UploadDagsRequest_ProvideObjectContents_
-	//	*UploadDagsRequest_ProvideObjectChildren_
-	Type          isUploadDagsRequest_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Type isUploadDagsRequest_Type `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest) Reset() {
@@ -63,21 +56,9 @@ func (x *UploadDagsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *UploadDagsRequest) GetType() isUploadDagsRequest_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *UploadDagsRequest) GetHandshake() *UploadDagsRequest_Handshake {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsRequest_Handshake_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsRequest_Handshake_); ok {
 			return x.Handshake
 		}
 	}
@@ -86,7 +67,7 @@ func (x *UploadDagsRequest) GetHandshake() *UploadDagsRequest_Handshake {
 
 func (x *UploadDagsRequest) GetInitiateDag() *UploadDagsRequest_InitiateDag {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsRequest_InitiateDag_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsRequest_InitiateDag_); ok {
 			return x.InitiateDag
 		}
 	}
@@ -95,7 +76,7 @@ func (x *UploadDagsRequest) GetInitiateDag() *UploadDagsRequest_InitiateDag {
 
 func (x *UploadDagsRequest) GetProvideObjectContents() *UploadDagsRequest_ProvideObjectContents {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsRequest_ProvideObjectContents_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectContents_); ok {
 			return x.ProvideObjectContents
 		}
 	}
@@ -104,53 +85,209 @@ func (x *UploadDagsRequest) GetProvideObjectContents() *UploadDagsRequest_Provid
 
 func (x *UploadDagsRequest) GetProvideObjectChildren() *UploadDagsRequest_ProvideObjectChildren {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsRequest_ProvideObjectChildren_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectChildren_); ok {
 			return x.ProvideObjectChildren
 		}
 	}
 	return nil
 }
 
+func (x *UploadDagsRequest) SetHandshake(v *UploadDagsRequest_Handshake) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsRequest_Handshake_{v}
+}
+
+func (x *UploadDagsRequest) SetInitiateDag(v *UploadDagsRequest_InitiateDag) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsRequest_InitiateDag_{v}
+}
+
+func (x *UploadDagsRequest) SetProvideObjectContents(v *UploadDagsRequest_ProvideObjectContents) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsRequest_ProvideObjectContents_{v}
+}
+
+func (x *UploadDagsRequest) SetProvideObjectChildren(v *UploadDagsRequest_ProvideObjectChildren) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsRequest_ProvideObjectChildren_{v}
+}
+
+func (x *UploadDagsRequest) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *UploadDagsRequest) HasHandshake() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsRequest_Handshake_)
+	return ok
+}
+
+func (x *UploadDagsRequest) HasInitiateDag() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsRequest_InitiateDag_)
+	return ok
+}
+
+func (x *UploadDagsRequest) HasProvideObjectContents() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectContents_)
+	return ok
+}
+
+func (x *UploadDagsRequest) HasProvideObjectChildren() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectChildren_)
+	return ok
+}
+
+func (x *UploadDagsRequest) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *UploadDagsRequest) ClearHandshake() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsRequest_Handshake_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsRequest) ClearInitiateDag() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsRequest_InitiateDag_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsRequest) ClearProvideObjectContents() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectContents_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsRequest) ClearProvideObjectChildren() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsRequest_ProvideObjectChildren_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const UploadDagsRequest_Type_not_set_case case_UploadDagsRequest_Type = 0
+const UploadDagsRequest_Handshake_case case_UploadDagsRequest_Type = 1
+const UploadDagsRequest_InitiateDag_case case_UploadDagsRequest_Type = 2
+const UploadDagsRequest_ProvideObjectContents_case case_UploadDagsRequest_Type = 3
+const UploadDagsRequest_ProvideObjectChildren_case case_UploadDagsRequest_Type = 4
+
+func (x *UploadDagsRequest) WhichType() case_UploadDagsRequest_Type {
+	if x == nil {
+		return UploadDagsRequest_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *uploadDagsRequest_Handshake_:
+		return UploadDagsRequest_Handshake_case
+	case *uploadDagsRequest_InitiateDag_:
+		return UploadDagsRequest_InitiateDag_case
+	case *uploadDagsRequest_ProvideObjectContents_:
+		return UploadDagsRequest_ProvideObjectContents_case
+	case *uploadDagsRequest_ProvideObjectChildren_:
+		return UploadDagsRequest_ProvideObjectChildren_case
+	default:
+		return UploadDagsRequest_Type_not_set_case
+	}
+}
+
+type UploadDagsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Type:
+	Handshake             *UploadDagsRequest_Handshake
+	InitiateDag           *UploadDagsRequest_InitiateDag
+	ProvideObjectContents *UploadDagsRequest_ProvideObjectContents
+	ProvideObjectChildren *UploadDagsRequest_ProvideObjectChildren
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 UploadDagsRequest_builder) Build() *UploadDagsRequest {
+	m0 := &UploadDagsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Handshake != nil {
+		x.xxx_hidden_Type = &uploadDagsRequest_Handshake_{b.Handshake}
+	}
+	if b.InitiateDag != nil {
+		x.xxx_hidden_Type = &uploadDagsRequest_InitiateDag_{b.InitiateDag}
+	}
+	if b.ProvideObjectContents != nil {
+		x.xxx_hidden_Type = &uploadDagsRequest_ProvideObjectContents_{b.ProvideObjectContents}
+	}
+	if b.ProvideObjectChildren != nil {
+		x.xxx_hidden_Type = &uploadDagsRequest_ProvideObjectChildren_{b.ProvideObjectChildren}
+	}
+	return m0
+}
+
+type case_UploadDagsRequest_Type protoreflect.FieldNumber
+
+func (x case_UploadDagsRequest_Type) String() string {
+	md := file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isUploadDagsRequest_Type interface {
 	isUploadDagsRequest_Type()
 }
 
-type UploadDagsRequest_Handshake_ struct {
-	Handshake *UploadDagsRequest_Handshake `protobuf:"bytes,1,opt,name=handshake,proto3,oneof"`
+type uploadDagsRequest_Handshake_ struct {
+	Handshake *UploadDagsRequest_Handshake `protobuf:"bytes,1,opt,name=handshake,oneof"`
 }
 
-type UploadDagsRequest_InitiateDag_ struct {
-	InitiateDag *UploadDagsRequest_InitiateDag `protobuf:"bytes,2,opt,name=initiate_dag,json=initiateDag,proto3,oneof"`
+type uploadDagsRequest_InitiateDag_ struct {
+	InitiateDag *UploadDagsRequest_InitiateDag `protobuf:"bytes,2,opt,name=initiate_dag,json=initiateDag,oneof"`
 }
 
-type UploadDagsRequest_ProvideObjectContents_ struct {
-	ProvideObjectContents *UploadDagsRequest_ProvideObjectContents `protobuf:"bytes,3,opt,name=provide_object_contents,json=provideObjectContents,proto3,oneof"`
+type uploadDagsRequest_ProvideObjectContents_ struct {
+	ProvideObjectContents *UploadDagsRequest_ProvideObjectContents `protobuf:"bytes,3,opt,name=provide_object_contents,json=provideObjectContents,oneof"`
 }
 
-type UploadDagsRequest_ProvideObjectChildren_ struct {
-	ProvideObjectChildren *UploadDagsRequest_ProvideObjectChildren `protobuf:"bytes,4,opt,name=provide_object_children,json=provideObjectChildren,proto3,oneof"`
+type uploadDagsRequest_ProvideObjectChildren_ struct {
+	ProvideObjectChildren *UploadDagsRequest_ProvideObjectChildren `protobuf:"bytes,4,opt,name=provide_object_children,json=provideObjectChildren,oneof"`
 }
 
-func (*UploadDagsRequest_Handshake_) isUploadDagsRequest_Type() {}
+func (*uploadDagsRequest_Handshake_) isUploadDagsRequest_Type() {}
 
-func (*UploadDagsRequest_InitiateDag_) isUploadDagsRequest_Type() {}
+func (*uploadDagsRequest_InitiateDag_) isUploadDagsRequest_Type() {}
 
-func (*UploadDagsRequest_ProvideObjectContents_) isUploadDagsRequest_Type() {}
+func (*uploadDagsRequest_ProvideObjectContents_) isUploadDagsRequest_Type() {}
 
-func (*UploadDagsRequest_ProvideObjectChildren_) isUploadDagsRequest_Type() {}
+func (*uploadDagsRequest_ProvideObjectChildren_) isUploadDagsRequest_Type() {}
 
 type UploadDagsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Type:
-	//
-	//	*UploadDagsResponse_Handshake_
-	//	*UploadDagsResponse_RequestObjectContents_
-	//	*UploadDagsResponse_FinalizeObject_
-	//	*UploadDagsResponse_FinalizeTag_
-	//	*UploadDagsResponse_RequestObjectChildren_
-	Type          isUploadDagsResponse_Type `protobuf_oneof:"type"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Type isUploadDagsResponse_Type `protobuf_oneof:"type"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse) Reset() {
@@ -178,21 +315,9 @@ func (x *UploadDagsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *UploadDagsResponse) GetType() isUploadDagsResponse_Type {
-	if x != nil {
-		return x.Type
-	}
-	return nil
-}
-
 func (x *UploadDagsResponse) GetHandshake() *UploadDagsResponse_Handshake {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_Handshake_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsResponse_Handshake_); ok {
 			return x.Handshake
 		}
 	}
@@ -201,7 +326,7 @@ func (x *UploadDagsResponse) GetHandshake() *UploadDagsResponse_Handshake {
 
 func (x *UploadDagsResponse) GetRequestObjectContents() *UploadDagsResponse_RequestObjectContents {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_RequestObjectContents_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectContents_); ok {
 			return x.RequestObjectContents
 		}
 	}
@@ -210,7 +335,7 @@ func (x *UploadDagsResponse) GetRequestObjectContents() *UploadDagsResponse_Requ
 
 func (x *UploadDagsResponse) GetFinalizeObject() *UploadDagsResponse_FinalizeObject {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_FinalizeObject_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeObject_); ok {
 			return x.FinalizeObject
 		}
 	}
@@ -219,7 +344,7 @@ func (x *UploadDagsResponse) GetFinalizeObject() *UploadDagsResponse_FinalizeObj
 
 func (x *UploadDagsResponse) GetFinalizeTag() *UploadDagsResponse_FinalizeTag {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_FinalizeTag_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeTag_); ok {
 			return x.FinalizeTag
 		}
 	}
@@ -228,53 +353,245 @@ func (x *UploadDagsResponse) GetFinalizeTag() *UploadDagsResponse_FinalizeTag {
 
 func (x *UploadDagsResponse) GetRequestObjectChildren() *UploadDagsResponse_RequestObjectChildren {
 	if x != nil {
-		if x, ok := x.Type.(*UploadDagsResponse_RequestObjectChildren_); ok {
+		if x, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectChildren_); ok {
 			return x.RequestObjectChildren
 		}
 	}
 	return nil
 }
 
+func (x *UploadDagsResponse) SetHandshake(v *UploadDagsResponse_Handshake) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsResponse_Handshake_{v}
+}
+
+func (x *UploadDagsResponse) SetRequestObjectContents(v *UploadDagsResponse_RequestObjectContents) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsResponse_RequestObjectContents_{v}
+}
+
+func (x *UploadDagsResponse) SetFinalizeObject(v *UploadDagsResponse_FinalizeObject) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsResponse_FinalizeObject_{v}
+}
+
+func (x *UploadDagsResponse) SetFinalizeTag(v *UploadDagsResponse_FinalizeTag) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsResponse_FinalizeTag_{v}
+}
+
+func (x *UploadDagsResponse) SetRequestObjectChildren(v *UploadDagsResponse_RequestObjectChildren) {
+	if v == nil {
+		x.xxx_hidden_Type = nil
+		return
+	}
+	x.xxx_hidden_Type = &uploadDagsResponse_RequestObjectChildren_{v}
+}
+
+func (x *UploadDagsResponse) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Type != nil
+}
+
+func (x *UploadDagsResponse) HasHandshake() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsResponse_Handshake_)
+	return ok
+}
+
+func (x *UploadDagsResponse) HasRequestObjectContents() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectContents_)
+	return ok
+}
+
+func (x *UploadDagsResponse) HasFinalizeObject() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeObject_)
+	return ok
+}
+
+func (x *UploadDagsResponse) HasFinalizeTag() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeTag_)
+	return ok
+}
+
+func (x *UploadDagsResponse) HasRequestObjectChildren() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectChildren_)
+	return ok
+}
+
+func (x *UploadDagsResponse) ClearType() {
+	x.xxx_hidden_Type = nil
+}
+
+func (x *UploadDagsResponse) ClearHandshake() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsResponse_Handshake_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsResponse) ClearRequestObjectContents() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectContents_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsResponse) ClearFinalizeObject() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeObject_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsResponse) ClearFinalizeTag() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsResponse_FinalizeTag_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+func (x *UploadDagsResponse) ClearRequestObjectChildren() {
+	if _, ok := x.xxx_hidden_Type.(*uploadDagsResponse_RequestObjectChildren_); ok {
+		x.xxx_hidden_Type = nil
+	}
+}
+
+const UploadDagsResponse_Type_not_set_case case_UploadDagsResponse_Type = 0
+const UploadDagsResponse_Handshake_case case_UploadDagsResponse_Type = 1
+const UploadDagsResponse_RequestObjectContents_case case_UploadDagsResponse_Type = 2
+const UploadDagsResponse_FinalizeObject_case case_UploadDagsResponse_Type = 3
+const UploadDagsResponse_FinalizeTag_case case_UploadDagsResponse_Type = 4
+const UploadDagsResponse_RequestObjectChildren_case case_UploadDagsResponse_Type = 5
+
+func (x *UploadDagsResponse) WhichType() case_UploadDagsResponse_Type {
+	if x == nil {
+		return UploadDagsResponse_Type_not_set_case
+	}
+	switch x.xxx_hidden_Type.(type) {
+	case *uploadDagsResponse_Handshake_:
+		return UploadDagsResponse_Handshake_case
+	case *uploadDagsResponse_RequestObjectContents_:
+		return UploadDagsResponse_RequestObjectContents_case
+	case *uploadDagsResponse_FinalizeObject_:
+		return UploadDagsResponse_FinalizeObject_case
+	case *uploadDagsResponse_FinalizeTag_:
+		return UploadDagsResponse_FinalizeTag_case
+	case *uploadDagsResponse_RequestObjectChildren_:
+		return UploadDagsResponse_RequestObjectChildren_case
+	default:
+		return UploadDagsResponse_Type_not_set_case
+	}
+}
+
+type UploadDagsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Type:
+	Handshake             *UploadDagsResponse_Handshake
+	RequestObjectContents *UploadDagsResponse_RequestObjectContents
+	FinalizeObject        *UploadDagsResponse_FinalizeObject
+	FinalizeTag           *UploadDagsResponse_FinalizeTag
+	RequestObjectChildren *UploadDagsResponse_RequestObjectChildren
+	// -- end of xxx_hidden_Type
+}
+
+func (b0 UploadDagsResponse_builder) Build() *UploadDagsResponse {
+	m0 := &UploadDagsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Handshake != nil {
+		x.xxx_hidden_Type = &uploadDagsResponse_Handshake_{b.Handshake}
+	}
+	if b.RequestObjectContents != nil {
+		x.xxx_hidden_Type = &uploadDagsResponse_RequestObjectContents_{b.RequestObjectContents}
+	}
+	if b.FinalizeObject != nil {
+		x.xxx_hidden_Type = &uploadDagsResponse_FinalizeObject_{b.FinalizeObject}
+	}
+	if b.FinalizeTag != nil {
+		x.xxx_hidden_Type = &uploadDagsResponse_FinalizeTag_{b.FinalizeTag}
+	}
+	if b.RequestObjectChildren != nil {
+		x.xxx_hidden_Type = &uploadDagsResponse_RequestObjectChildren_{b.RequestObjectChildren}
+	}
+	return m0
+}
+
+type case_UploadDagsResponse_Type protoreflect.FieldNumber
+
+func (x case_UploadDagsResponse_Type) String() string {
+	md := file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isUploadDagsResponse_Type interface {
 	isUploadDagsResponse_Type()
 }
 
-type UploadDagsResponse_Handshake_ struct {
-	Handshake *UploadDagsResponse_Handshake `protobuf:"bytes,1,opt,name=handshake,proto3,oneof"`
+type uploadDagsResponse_Handshake_ struct {
+	Handshake *UploadDagsResponse_Handshake `protobuf:"bytes,1,opt,name=handshake,oneof"`
 }
 
-type UploadDagsResponse_RequestObjectContents_ struct {
-	RequestObjectContents *UploadDagsResponse_RequestObjectContents `protobuf:"bytes,2,opt,name=request_object_contents,json=requestObjectContents,proto3,oneof"`
+type uploadDagsResponse_RequestObjectContents_ struct {
+	RequestObjectContents *UploadDagsResponse_RequestObjectContents `protobuf:"bytes,2,opt,name=request_object_contents,json=requestObjectContents,oneof"`
 }
 
-type UploadDagsResponse_FinalizeObject_ struct {
-	FinalizeObject *UploadDagsResponse_FinalizeObject `protobuf:"bytes,3,opt,name=finalize_object,json=finalizeObject,proto3,oneof"`
+type uploadDagsResponse_FinalizeObject_ struct {
+	FinalizeObject *UploadDagsResponse_FinalizeObject `protobuf:"bytes,3,opt,name=finalize_object,json=finalizeObject,oneof"`
 }
 
-type UploadDagsResponse_FinalizeTag_ struct {
-	FinalizeTag *UploadDagsResponse_FinalizeTag `protobuf:"bytes,4,opt,name=finalize_tag,json=finalizeTag,proto3,oneof"`
+type uploadDagsResponse_FinalizeTag_ struct {
+	FinalizeTag *UploadDagsResponse_FinalizeTag `protobuf:"bytes,4,opt,name=finalize_tag,json=finalizeTag,oneof"`
 }
 
-type UploadDagsResponse_RequestObjectChildren_ struct {
-	RequestObjectChildren *UploadDagsResponse_RequestObjectChildren `protobuf:"bytes,5,opt,name=request_object_children,json=requestObjectChildren,proto3,oneof"`
+type uploadDagsResponse_RequestObjectChildren_ struct {
+	RequestObjectChildren *UploadDagsResponse_RequestObjectChildren `protobuf:"bytes,5,opt,name=request_object_children,json=requestObjectChildren,oneof"`
 }
 
-func (*UploadDagsResponse_Handshake_) isUploadDagsResponse_Type() {}
+func (*uploadDagsResponse_Handshake_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_RequestObjectContents_) isUploadDagsResponse_Type() {}
+func (*uploadDagsResponse_RequestObjectContents_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_FinalizeObject_) isUploadDagsResponse_Type() {}
+func (*uploadDagsResponse_FinalizeObject_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_FinalizeTag_) isUploadDagsResponse_Type() {}
+func (*uploadDagsResponse_FinalizeTag_) isUploadDagsResponse_Type() {}
 
-func (*UploadDagsResponse_RequestObjectChildren_) isUploadDagsResponse_Type() {}
+func (*uploadDagsResponse_RequestObjectChildren_) isUploadDagsResponse_Type() {}
 
 type UploadDagsRequest_Handshake struct {
-	state                          protoimpl.MessageState `protogen:"open.v1"`
-	Namespace                      *object.Namespace      `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	MaximumUnfinalizedParentsLimit *object.Limit          `protobuf:"bytes,2,opt,name=maximum_unfinalized_parents_limit,json=maximumUnfinalizedParentsLimit,proto3" json:"maximum_unfinalized_parents_limit,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Namespace                      *object.Namespace      `protobuf:"bytes,1,opt,name=namespace"`
+	xxx_hidden_MaximumUnfinalizedParentsLimit *object.Limit          `protobuf:"bytes,2,opt,name=maximum_unfinalized_parents_limit,json=maximumUnfinalizedParentsLimit"`
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest_Handshake) Reset() {
@@ -302,31 +619,72 @@ func (x *UploadDagsRequest_Handshake) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest_Handshake.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest_Handshake) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 0}
-}
-
 func (x *UploadDagsRequest_Handshake) GetNamespace() *object.Namespace {
 	if x != nil {
-		return x.Namespace
+		return x.xxx_hidden_Namespace
 	}
 	return nil
 }
 
 func (x *UploadDagsRequest_Handshake) GetMaximumUnfinalizedParentsLimit() *object.Limit {
 	if x != nil {
-		return x.MaximumUnfinalizedParentsLimit
+		return x.xxx_hidden_MaximumUnfinalizedParentsLimit
 	}
 	return nil
 }
 
+func (x *UploadDagsRequest_Handshake) SetNamespace(v *object.Namespace) {
+	x.xxx_hidden_Namespace = v
+}
+
+func (x *UploadDagsRequest_Handshake) SetMaximumUnfinalizedParentsLimit(v *object.Limit) {
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = v
+}
+
+func (x *UploadDagsRequest_Handshake) HasNamespace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Namespace != nil
+}
+
+func (x *UploadDagsRequest_Handshake) HasMaximumUnfinalizedParentsLimit() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumUnfinalizedParentsLimit != nil
+}
+
+func (x *UploadDagsRequest_Handshake) ClearNamespace() {
+	x.xxx_hidden_Namespace = nil
+}
+
+func (x *UploadDagsRequest_Handshake) ClearMaximumUnfinalizedParentsLimit() {
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = nil
+}
+
+type UploadDagsRequest_Handshake_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Namespace                      *object.Namespace
+	MaximumUnfinalizedParentsLimit *object.Limit
+}
+
+func (b0 UploadDagsRequest_Handshake_builder) Build() *UploadDagsRequest_Handshake {
+	m0 := &UploadDagsRequest_Handshake{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Namespace = b.Namespace
+	x.xxx_hidden_MaximumUnfinalizedParentsLimit = b.MaximumUnfinalizedParentsLimit
+	return m0
+}
+
 type UploadDagsRequest_InitiateDag struct {
-	state         protoimpl.MessageState             `protogen:"open.v1"`
-	RootReference []byte                             `protobuf:"bytes,1,opt,name=root_reference,json=rootReference,proto3" json:"root_reference,omitempty"`
-	RootTag       *UploadDagsRequest_InitiateDag_Tag `protobuf:"bytes,2,opt,name=root_tag,json=rootTag,proto3" json:"root_tag,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState             `protogen:"opaque.v1"`
+	xxx_hidden_RootReference []byte                             `protobuf:"bytes,1,opt,name=root_reference,json=rootReference"`
+	xxx_hidden_RootTag       *UploadDagsRequest_InitiateDag_Tag `protobuf:"bytes,2,opt,name=root_tag,json=rootTag"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest_InitiateDag) Reset() {
@@ -354,31 +712,64 @@ func (x *UploadDagsRequest_InitiateDag) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest_InitiateDag.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest_InitiateDag) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 1}
-}
-
 func (x *UploadDagsRequest_InitiateDag) GetRootReference() []byte {
 	if x != nil {
-		return x.RootReference
+		return x.xxx_hidden_RootReference
 	}
 	return nil
 }
 
 func (x *UploadDagsRequest_InitiateDag) GetRootTag() *UploadDagsRequest_InitiateDag_Tag {
 	if x != nil {
-		return x.RootTag
+		return x.xxx_hidden_RootTag
 	}
 	return nil
 }
 
+func (x *UploadDagsRequest_InitiateDag) SetRootReference(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_RootReference = v
+}
+
+func (x *UploadDagsRequest_InitiateDag) SetRootTag(v *UploadDagsRequest_InitiateDag_Tag) {
+	x.xxx_hidden_RootTag = v
+}
+
+func (x *UploadDagsRequest_InitiateDag) HasRootTag() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RootTag != nil
+}
+
+func (x *UploadDagsRequest_InitiateDag) ClearRootTag() {
+	x.xxx_hidden_RootTag = nil
+}
+
+type UploadDagsRequest_InitiateDag_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RootReference []byte
+	RootTag       *UploadDagsRequest_InitiateDag_Tag
+}
+
+func (b0 UploadDagsRequest_InitiateDag_builder) Build() *UploadDagsRequest_InitiateDag {
+	m0 := &UploadDagsRequest_InitiateDag{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RootReference = b.RootReference
+	x.xxx_hidden_RootTag = b.RootTag
+	return m0
+}
+
 type UploadDagsRequest_ProvideObjectContents struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	ObjectContents       []byte                 `protobuf:"bytes,2,opt,name=object_contents,json=objectContents,proto3" json:"object_contents,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex"`
+	xxx_hidden_ObjectContents       []byte                 `protobuf:"bytes,2,opt,name=object_contents,json=objectContents"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest_ProvideObjectContents) Reset() {
@@ -406,31 +797,53 @@ func (x *UploadDagsRequest_ProvideObjectContents) ProtoReflect() protoreflect.Me
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest_ProvideObjectContents.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest_ProvideObjectContents) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 2}
-}
-
 func (x *UploadDagsRequest_ProvideObjectContents) GetLowestReferenceIndex() uint64 {
 	if x != nil {
-		return x.LowestReferenceIndex
+		return x.xxx_hidden_LowestReferenceIndex
 	}
 	return 0
 }
 
 func (x *UploadDagsRequest_ProvideObjectContents) GetObjectContents() []byte {
 	if x != nil {
-		return x.ObjectContents
+		return x.xxx_hidden_ObjectContents
 	}
 	return nil
 }
 
+func (x *UploadDagsRequest_ProvideObjectContents) SetLowestReferenceIndex(v uint64) {
+	x.xxx_hidden_LowestReferenceIndex = v
+}
+
+func (x *UploadDagsRequest_ProvideObjectContents) SetObjectContents(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_ObjectContents = v
+}
+
+type UploadDagsRequest_ProvideObjectContents_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LowestReferenceIndex uint64
+	ObjectContents       []byte
+}
+
+func (b0 UploadDagsRequest_ProvideObjectContents_builder) Build() *UploadDagsRequest_ProvideObjectContents {
+	m0 := &UploadDagsRequest_ProvideObjectContents{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LowestReferenceIndex = b.LowestReferenceIndex
+	x.xxx_hidden_ObjectContents = b.ObjectContents
+	return m0
+}
+
 type UploadDagsRequest_ProvideObjectChildren struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	Cancel               bool                   `protobuf:"varint,2,opt,name=cancel,proto3" json:"cancel,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex"`
+	xxx_hidden_Cancel               bool                   `protobuf:"varint,2,opt,name=cancel"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest_ProvideObjectChildren) Reset() {
@@ -458,32 +871,51 @@ func (x *UploadDagsRequest_ProvideObjectChildren) ProtoReflect() protoreflect.Me
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest_ProvideObjectChildren.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest_ProvideObjectChildren) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 3}
-}
-
 func (x *UploadDagsRequest_ProvideObjectChildren) GetLowestReferenceIndex() uint64 {
 	if x != nil {
-		return x.LowestReferenceIndex
+		return x.xxx_hidden_LowestReferenceIndex
 	}
 	return 0
 }
 
 func (x *UploadDagsRequest_ProvideObjectChildren) GetCancel() bool {
 	if x != nil {
-		return x.Cancel
+		return x.xxx_hidden_Cancel
 	}
 	return false
 }
 
+func (x *UploadDagsRequest_ProvideObjectChildren) SetLowestReferenceIndex(v uint64) {
+	x.xxx_hidden_LowestReferenceIndex = v
+}
+
+func (x *UploadDagsRequest_ProvideObjectChildren) SetCancel(v bool) {
+	x.xxx_hidden_Cancel = v
+}
+
+type UploadDagsRequest_ProvideObjectChildren_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LowestReferenceIndex uint64
+	Cancel               bool
+}
+
+func (b0 UploadDagsRequest_ProvideObjectChildren_builder) Build() *UploadDagsRequest_ProvideObjectChildren {
+	m0 := &UploadDagsRequest_ProvideObjectChildren{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LowestReferenceIndex = b.LowestReferenceIndex
+	x.xxx_hidden_Cancel = b.Cancel
+	return m0
+}
+
 type UploadDagsRequest_InitiateDag_Tag struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           *tag.Key               `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Signature     []byte                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Key       *tag.Key               `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_Timestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp"`
+	xxx_hidden_Signature []byte                 `protobuf:"bytes,3,opt,name=signature"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UploadDagsRequest_InitiateDag_Tag) Reset() {
@@ -511,37 +943,87 @@ func (x *UploadDagsRequest_InitiateDag_Tag) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsRequest_InitiateDag_Tag.ProtoReflect.Descriptor instead.
-func (*UploadDagsRequest_InitiateDag_Tag) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{0, 1, 0}
-}
-
 func (x *UploadDagsRequest_InitiateDag_Tag) GetKey() *tag.Key {
 	if x != nil {
-		return x.Key
+		return x.xxx_hidden_Key
 	}
 	return nil
 }
 
 func (x *UploadDagsRequest_InitiateDag_Tag) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.Timestamp
+		return x.xxx_hidden_Timestamp
 	}
 	return nil
 }
 
 func (x *UploadDagsRequest_InitiateDag_Tag) GetSignature() []byte {
 	if x != nil {
-		return x.Signature
+		return x.xxx_hidden_Signature
 	}
 	return nil
 }
 
+func (x *UploadDagsRequest_InitiateDag_Tag) SetKey(v *tag.Key) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) SetTimestamp(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Timestamp = v
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) SetSignature(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Signature = v
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) HasTimestamp() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Timestamp != nil
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+func (x *UploadDagsRequest_InitiateDag_Tag) ClearTimestamp() {
+	x.xxx_hidden_Timestamp = nil
+}
+
+type UploadDagsRequest_InitiateDag_Tag_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Key       *tag.Key
+	Timestamp *timestamppb.Timestamp
+	Signature []byte
+}
+
+func (b0 UploadDagsRequest_InitiateDag_Tag_builder) Build() *UploadDagsRequest_InitiateDag_Tag {
+	m0 := &UploadDagsRequest_InitiateDag_Tag{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_Timestamp = b.Timestamp
+	x.xxx_hidden_Signature = b.Signature
+	return m0
+}
+
 type UploadDagsResponse_Handshake struct {
-	state                       protoimpl.MessageState `protogen:"open.v1"`
-	MaximumUnfinalizedDagsCount uint32                 `protobuf:"varint,1,opt,name=maximum_unfinalized_dags_count,json=maximumUnfinalizedDagsCount,proto3" json:"maximum_unfinalized_dags_count,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	state                                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MaximumUnfinalizedDagsCount uint32                 `protobuf:"varint,1,opt,name=maximum_unfinalized_dags_count,json=maximumUnfinalizedDagsCount"`
+	unknownFields                          protoimpl.UnknownFields
+	sizeCache                              protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_Handshake) Reset() {
@@ -569,23 +1051,36 @@ func (x *UploadDagsResponse_Handshake) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_Handshake.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_Handshake) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 0}
-}
-
 func (x *UploadDagsResponse_Handshake) GetMaximumUnfinalizedDagsCount() uint32 {
 	if x != nil {
-		return x.MaximumUnfinalizedDagsCount
+		return x.xxx_hidden_MaximumUnfinalizedDagsCount
 	}
 	return 0
 }
 
+func (x *UploadDagsResponse_Handshake) SetMaximumUnfinalizedDagsCount(v uint32) {
+	x.xxx_hidden_MaximumUnfinalizedDagsCount = v
+}
+
+type UploadDagsResponse_Handshake_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MaximumUnfinalizedDagsCount uint32
+}
+
+func (b0 UploadDagsResponse_Handshake_builder) Build() *UploadDagsResponse_Handshake {
+	m0 := &UploadDagsResponse_Handshake{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_MaximumUnfinalizedDagsCount = b.MaximumUnfinalizedDagsCount
+	return m0
+}
+
 type UploadDagsResponse_RequestObjectContents struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_RequestObjectContents) Reset() {
@@ -613,23 +1108,36 @@ func (x *UploadDagsResponse_RequestObjectContents) ProtoReflect() protoreflect.M
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_RequestObjectContents.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_RequestObjectContents) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 1}
-}
-
 func (x *UploadDagsResponse_RequestObjectContents) GetLowestReferenceIndex() uint64 {
 	if x != nil {
-		return x.LowestReferenceIndex
+		return x.xxx_hidden_LowestReferenceIndex
 	}
 	return 0
 }
 
+func (x *UploadDagsResponse_RequestObjectContents) SetLowestReferenceIndex(v uint64) {
+	x.xxx_hidden_LowestReferenceIndex = v
+}
+
+type UploadDagsResponse_RequestObjectContents_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LowestReferenceIndex uint64
+}
+
+func (b0 UploadDagsResponse_RequestObjectContents_builder) Build() *UploadDagsResponse_RequestObjectContents {
+	m0 := &UploadDagsResponse_RequestObjectContents{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LowestReferenceIndex = b.LowestReferenceIndex
+	return m0
+}
+
 type UploadDagsResponse_RequestObjectChildren struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LowestReferenceIndex uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_RequestObjectChildren) Reset() {
@@ -657,25 +1165,38 @@ func (x *UploadDagsResponse_RequestObjectChildren) ProtoReflect() protoreflect.M
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_RequestObjectChildren.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_RequestObjectChildren) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 2}
-}
-
 func (x *UploadDagsResponse_RequestObjectChildren) GetLowestReferenceIndex() uint64 {
 	if x != nil {
-		return x.LowestReferenceIndex
+		return x.xxx_hidden_LowestReferenceIndex
 	}
 	return 0
 }
 
+func (x *UploadDagsResponse_RequestObjectChildren) SetLowestReferenceIndex(v uint64) {
+	x.xxx_hidden_LowestReferenceIndex = v
+}
+
+type UploadDagsResponse_RequestObjectChildren_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LowestReferenceIndex uint64
+}
+
+func (b0 UploadDagsResponse_RequestObjectChildren_builder) Build() *UploadDagsResponse_RequestObjectChildren {
+	m0 := &UploadDagsResponse_RequestObjectChildren{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LowestReferenceIndex = b.LowestReferenceIndex
+	return m0
+}
+
 type UploadDagsResponse_FinalizeObject struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	LowestReferenceIndex       uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex,proto3" json:"lowest_reference_index,omitempty"`
-	AdditionalReferenceIndices uint32                 `protobuf:"varint,2,opt,name=additional_reference_indices,json=additionalReferenceIndices,proto3" json:"additional_reference_indices,omitempty"`
-	Status                     *status.Status         `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_LowestReferenceIndex       uint64                 `protobuf:"varint,1,opt,name=lowest_reference_index,json=lowestReferenceIndex"`
+	xxx_hidden_AdditionalReferenceIndices uint32                 `protobuf:"varint,2,opt,name=additional_reference_indices,json=additionalReferenceIndices"`
+	xxx_hidden_Status                     *status.Status         `protobuf:"bytes,3,opt,name=status"`
+	unknownFields                         protoimpl.UnknownFields
+	sizeCache                             protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_FinalizeObject) Reset() {
@@ -703,38 +1224,74 @@ func (x *UploadDagsResponse_FinalizeObject) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_FinalizeObject.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_FinalizeObject) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 3}
-}
-
 func (x *UploadDagsResponse_FinalizeObject) GetLowestReferenceIndex() uint64 {
 	if x != nil {
-		return x.LowestReferenceIndex
+		return x.xxx_hidden_LowestReferenceIndex
 	}
 	return 0
 }
 
 func (x *UploadDagsResponse_FinalizeObject) GetAdditionalReferenceIndices() uint32 {
 	if x != nil {
-		return x.AdditionalReferenceIndices
+		return x.xxx_hidden_AdditionalReferenceIndices
 	}
 	return 0
 }
 
 func (x *UploadDagsResponse_FinalizeObject) GetStatus() *status.Status {
 	if x != nil {
-		return x.Status
+		return x.xxx_hidden_Status
 	}
 	return nil
 }
 
+func (x *UploadDagsResponse_FinalizeObject) SetLowestReferenceIndex(v uint64) {
+	x.xxx_hidden_LowestReferenceIndex = v
+}
+
+func (x *UploadDagsResponse_FinalizeObject) SetAdditionalReferenceIndices(v uint32) {
+	x.xxx_hidden_AdditionalReferenceIndices = v
+}
+
+func (x *UploadDagsResponse_FinalizeObject) SetStatus(v *status.Status) {
+	x.xxx_hidden_Status = v
+}
+
+func (x *UploadDagsResponse_FinalizeObject) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Status != nil
+}
+
+func (x *UploadDagsResponse_FinalizeObject) ClearStatus() {
+	x.xxx_hidden_Status = nil
+}
+
+type UploadDagsResponse_FinalizeObject_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	LowestReferenceIndex       uint64
+	AdditionalReferenceIndices uint32
+	Status                     *status.Status
+}
+
+func (b0 UploadDagsResponse_FinalizeObject_builder) Build() *UploadDagsResponse_FinalizeObject {
+	m0 := &UploadDagsResponse_FinalizeObject{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_LowestReferenceIndex = b.LowestReferenceIndex
+	x.xxx_hidden_AdditionalReferenceIndices = b.AdditionalReferenceIndices
+	x.xxx_hidden_Status = b.Status
+	return m0
+}
+
 type UploadDagsResponse_FinalizeTag struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	RootReferenceIndex uint64                 `protobuf:"varint,1,opt,name=root_reference_index,json=rootReferenceIndex,proto3" json:"root_reference_index,omitempty"`
-	Status             *status.Status         `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RootReferenceIndex uint64                 `protobuf:"varint,1,opt,name=root_reference_index,json=rootReferenceIndex"`
+	xxx_hidden_Status             *status.Status         `protobuf:"bytes,2,opt,name=status"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *UploadDagsResponse_FinalizeTag) Reset() {
@@ -762,23 +1319,53 @@ func (x *UploadDagsResponse_FinalizeTag) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UploadDagsResponse_FinalizeTag.ProtoReflect.Descriptor instead.
-func (*UploadDagsResponse_FinalizeTag) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP(), []int{1, 4}
-}
-
 func (x *UploadDagsResponse_FinalizeTag) GetRootReferenceIndex() uint64 {
 	if x != nil {
-		return x.RootReferenceIndex
+		return x.xxx_hidden_RootReferenceIndex
 	}
 	return 0
 }
 
 func (x *UploadDagsResponse_FinalizeTag) GetStatus() *status.Status {
 	if x != nil {
-		return x.Status
+		return x.xxx_hidden_Status
 	}
 	return nil
+}
+
+func (x *UploadDagsResponse_FinalizeTag) SetRootReferenceIndex(v uint64) {
+	x.xxx_hidden_RootReferenceIndex = v
+}
+
+func (x *UploadDagsResponse_FinalizeTag) SetStatus(v *status.Status) {
+	x.xxx_hidden_Status = v
+}
+
+func (x *UploadDagsResponse_FinalizeTag) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Status != nil
+}
+
+func (x *UploadDagsResponse_FinalizeTag) ClearStatus() {
+	x.xxx_hidden_Status = nil
+}
+
+type UploadDagsResponse_FinalizeTag_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RootReferenceIndex uint64
+	Status             *status.Status
+}
+
+func (b0 UploadDagsResponse_FinalizeTag_builder) Build() *UploadDagsResponse_FinalizeTag {
+	m0 := &UploadDagsResponse_FinalizeTag{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RootReferenceIndex = b.RootReferenceIndex
+	x.xxx_hidden_Status = b.Status
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_storage_dag_dag_proto protoreflect.FileDescriptor
@@ -830,19 +1417,7 @@ const file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc = "" +
 	"\x04type2m\n" +
 	"\bUploader\x12a\n" +
 	"\n" +
-	"UploadDags\x12&.bonanza.storage.dag.UploadDagsRequest\x1a'.bonanza.storage.dag.UploadDagsResponse(\x010\x01B%Z#bonanza.build/pkg/proto/storage/dagb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc), len(file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_storage_dag_dag_proto_rawDescData
-}
+	"UploadDags\x12&.bonanza.storage.dag.UploadDagsRequest\x1a'.bonanza.storage.dag.UploadDagsResponse(\x010\x01B*Z#bonanza.build/pkg/proto/storage/dag\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_bonanza_build_pkg_proto_storage_dag_dag_proto_goTypes = []any{
@@ -896,17 +1471,17 @@ func file_bonanza_build_pkg_proto_storage_dag_dag_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[0].OneofWrappers = []any{
-		(*UploadDagsRequest_Handshake_)(nil),
-		(*UploadDagsRequest_InitiateDag_)(nil),
-		(*UploadDagsRequest_ProvideObjectContents_)(nil),
-		(*UploadDagsRequest_ProvideObjectChildren_)(nil),
+		(*uploadDagsRequest_Handshake_)(nil),
+		(*uploadDagsRequest_InitiateDag_)(nil),
+		(*uploadDagsRequest_ProvideObjectContents_)(nil),
+		(*uploadDagsRequest_ProvideObjectChildren_)(nil),
 	}
 	file_bonanza_build_pkg_proto_storage_dag_dag_proto_msgTypes[1].OneofWrappers = []any{
-		(*UploadDagsResponse_Handshake_)(nil),
-		(*UploadDagsResponse_RequestObjectContents_)(nil),
-		(*UploadDagsResponse_FinalizeObject_)(nil),
-		(*UploadDagsResponse_FinalizeTag_)(nil),
-		(*UploadDagsResponse_RequestObjectChildren_)(nil),
+		(*uploadDagsResponse_Handshake_)(nil),
+		(*uploadDagsResponse_RequestObjectContents_)(nil),
+		(*uploadDagsResponse_FinalizeObject_)(nil),
+		(*uploadDagsResponse_FinalizeTag_)(nil),
+		(*uploadDagsResponse_RequestObjectChildren_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
