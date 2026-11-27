@@ -23,10 +23,11 @@ func NewActionRouterFromConfiguration(
 	if configuration == nil {
 		return nil, status.Error(codes.InvalidArgument, "No action router configuration provided")
 	}
-	switch kind := configuration.Kind.(type) {
-	case *pb.ActionRouterConfiguration_Simple:
-		invocationKeyExtractors := make([]invocation.KeyExtractor, 0, len(kind.Simple.InvocationKeyExtractors))
-		for i, entry := range kind.Simple.InvocationKeyExtractors {
+	switch configuration.WhichKind() {
+	case pb.ActionRouterConfiguration_Simple_case:
+		extractorConfigurations := configuration.GetSimple().GetInvocationKeyExtractors()
+		invocationKeyExtractors := make([]invocation.KeyExtractor, 0, len(extractorConfigurations))
+		for i, entry := range extractorConfigurations {
 			invocationKeyExtractor, err := invocation.NewKeyExtractorFromConfiguration(entry)
 			if err != nil {
 				return nil, util.StatusWrapf(err, "Failed to create invocation key extractor at index %d", i)
@@ -34,7 +35,7 @@ func NewActionRouterFromConfiguration(
 			invocationKeyExtractors = append(invocationKeyExtractors, invocationKeyExtractor)
 		}
 		initialSizeClassAnalyzer, err := initialsizeclass.NewAnalyzerFromConfiguration(
-			kind.Simple.InitialSizeClassAnalyzer,
+			configuration.GetSimple().GetInitialSizeClassAnalyzer(),
 			previousExecutionStatsStore,
 			previousExecutionStatsCommonKeyDataReference,
 			previousExecutionStatsDecodingParametersSizeBytes,

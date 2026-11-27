@@ -24,33 +24,33 @@ func NewAnalyzerFromConfiguration(
 		return nil, status.Error(codes.InvalidArgument, "No initial size class analyzer configuration provided")
 	}
 
-	maximumExecutionTimeout := configuration.MaximumExecutionTimeout
+	maximumExecutionTimeout := configuration.GetMaximumExecutionTimeout()
 	if err := maximumExecutionTimeout.CheckValid(); err != nil {
 		return nil, util.StatusWrap(err, "Invalid maximum execution timeout")
 	}
 	actionTimeoutExtractor := NewActionTimeoutExtractor(maximumExecutionTimeout.AsDuration())
 
 	analyzer := NewFallbackAnalyzer(actionTimeoutExtractor)
-	if fdConfiguration := configuration.FeedbackDriven; fdConfiguration != nil {
+	if fdConfiguration := configuration.GetFeedbackDriven(); fdConfiguration != nil {
 		if previousExecutionStatsStore == nil {
 			return nil, status.Error(codes.InvalidArgument, "Feedback driven analysis can only be enabled if a PreviousExecutionStats store is configured")
 		}
-		failureCacheDuration := fdConfiguration.FailureCacheDuration
+		failureCacheDuration := fdConfiguration.GetFailureCacheDuration()
 		if err := failureCacheDuration.CheckValid(); err != nil {
 			return nil, util.StatusWrap(err, "Invalid failure cache duration")
 		}
 
 		strategyCalculator := SmallestSizeClassStrategyCalculator
-		if pageRankConfiguration := fdConfiguration.PageRank; pageRankConfiguration != nil {
-			minimumExecutionTimeout := pageRankConfiguration.MinimumExecutionTimeout
+		if pageRankConfiguration := fdConfiguration.GetPageRank(); pageRankConfiguration != nil {
+			minimumExecutionTimeout := pageRankConfiguration.GetMinimumExecutionTimeout()
 			if err := minimumExecutionTimeout.CheckValid(); err != nil {
 				return nil, util.StatusWrap(err, "Invalid minimum acceptable execution time")
 			}
 			strategyCalculator = NewPageRankStrategyCalculator(
 				minimumExecutionTimeout.AsDuration(),
-				pageRankConfiguration.AcceptableExecutionTimeIncreaseExponent,
-				pageRankConfiguration.SmallerSizeClassExecutionTimeoutMultiplier,
-				pageRankConfiguration.MaximumConvergenceError,
+				pageRankConfiguration.GetAcceptableExecutionTimeIncreaseExponent(),
+				pageRankConfiguration.GetSmallerSizeClassExecutionTimeoutMultiplier(),
+				pageRankConfiguration.GetMaximumConvergenceError(),
 			)
 		}
 
@@ -64,7 +64,7 @@ func NewAnalyzerFromConfiguration(
 			actionTimeoutExtractor,
 			failureCacheDuration.AsDuration(),
 			strategyCalculator,
-			int(fdConfiguration.HistorySize),
+			int(fdConfiguration.GetHistorySize()),
 		)
 	}
 	return analyzer, nil

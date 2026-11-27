@@ -12,7 +12,6 @@ import (
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -24,13 +23,10 @@ const (
 )
 
 type ActionRouterConfiguration struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*ActionRouterConfiguration_Simple
-	Kind          isActionRouterConfiguration_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState           `protogen:"opaque.v1"`
+	xxx_hidden_Kind isActionRouterConfiguration_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ActionRouterConfiguration) Reset() {
@@ -58,43 +54,107 @@ func (x *ActionRouterConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ActionRouterConfiguration.ProtoReflect.Descriptor instead.
-func (*ActionRouterConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ActionRouterConfiguration) GetKind() isActionRouterConfiguration_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *ActionRouterConfiguration) GetSimple() *SimpleActionRouterConfiguration {
 	if x != nil {
-		if x, ok := x.Kind.(*ActionRouterConfiguration_Simple); ok {
+		if x, ok := x.xxx_hidden_Kind.(*actionRouterConfiguration_Simple); ok {
 			return x.Simple
 		}
 	}
 	return nil
 }
 
+func (x *ActionRouterConfiguration) SetSimple(v *SimpleActionRouterConfiguration) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &actionRouterConfiguration_Simple{v}
+}
+
+func (x *ActionRouterConfiguration) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *ActionRouterConfiguration) HasSimple() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*actionRouterConfiguration_Simple)
+	return ok
+}
+
+func (x *ActionRouterConfiguration) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *ActionRouterConfiguration) ClearSimple() {
+	if _, ok := x.xxx_hidden_Kind.(*actionRouterConfiguration_Simple); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const ActionRouterConfiguration_Kind_not_set_case case_ActionRouterConfiguration_Kind = 0
+const ActionRouterConfiguration_Simple_case case_ActionRouterConfiguration_Kind = 1
+
+func (x *ActionRouterConfiguration) WhichKind() case_ActionRouterConfiguration_Kind {
+	if x == nil {
+		return ActionRouterConfiguration_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *actionRouterConfiguration_Simple:
+		return ActionRouterConfiguration_Simple_case
+	default:
+		return ActionRouterConfiguration_Kind_not_set_case
+	}
+}
+
+type ActionRouterConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	Simple *SimpleActionRouterConfiguration
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 ActionRouterConfiguration_builder) Build() *ActionRouterConfiguration {
+	m0 := &ActionRouterConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Simple != nil {
+		x.xxx_hidden_Kind = &actionRouterConfiguration_Simple{b.Simple}
+	}
+	return m0
+}
+
+type case_ActionRouterConfiguration_Kind protoreflect.FieldNumber
+
+func (x case_ActionRouterConfiguration_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isActionRouterConfiguration_Kind interface {
 	isActionRouterConfiguration_Kind()
 }
 
-type ActionRouterConfiguration_Simple struct {
-	Simple *SimpleActionRouterConfiguration `protobuf:"bytes,1,opt,name=simple,proto3,oneof"`
+type actionRouterConfiguration_Simple struct {
+	Simple *SimpleActionRouterConfiguration `protobuf:"bytes,1,opt,name=simple,oneof"`
 }
 
-func (*ActionRouterConfiguration_Simple) isActionRouterConfiguration_Kind() {}
+func (*actionRouterConfiguration_Simple) isActionRouterConfiguration_Kind() {}
 
 type SimpleActionRouterConfiguration struct {
-	state                    protoimpl.MessageState                 `protogen:"open.v1"`
-	InvocationKeyExtractors  []*InvocationKeyExtractorConfiguration `protobuf:"bytes,1,rep,name=invocation_key_extractors,json=invocationKeyExtractors,proto3" json:"invocation_key_extractors,omitempty"`
-	InitialSizeClassAnalyzer *InitialSizeClassAnalyzerConfiguration `protobuf:"bytes,2,opt,name=initial_size_class_analyzer,json=initialSizeClassAnalyzer,proto3" json:"initial_size_class_analyzer,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                               protoimpl.MessageState                  `protogen:"opaque.v1"`
+	xxx_hidden_InvocationKeyExtractors  *[]*InvocationKeyExtractorConfiguration `protobuf:"bytes,1,rep,name=invocation_key_extractors,json=invocationKeyExtractors"`
+	xxx_hidden_InitialSizeClassAnalyzer *InitialSizeClassAnalyzerConfiguration  `protobuf:"bytes,2,opt,name=initial_size_class_analyzer,json=initialSizeClassAnalyzer"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *SimpleActionRouterConfiguration) Reset() {
@@ -122,33 +182,62 @@ func (x *SimpleActionRouterConfiguration) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SimpleActionRouterConfiguration.ProtoReflect.Descriptor instead.
-func (*SimpleActionRouterConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *SimpleActionRouterConfiguration) GetInvocationKeyExtractors() []*InvocationKeyExtractorConfiguration {
 	if x != nil {
-		return x.InvocationKeyExtractors
+		if x.xxx_hidden_InvocationKeyExtractors != nil {
+			return *x.xxx_hidden_InvocationKeyExtractors
+		}
 	}
 	return nil
 }
 
 func (x *SimpleActionRouterConfiguration) GetInitialSizeClassAnalyzer() *InitialSizeClassAnalyzerConfiguration {
 	if x != nil {
-		return x.InitialSizeClassAnalyzer
+		return x.xxx_hidden_InitialSizeClassAnalyzer
 	}
 	return nil
 }
 
+func (x *SimpleActionRouterConfiguration) SetInvocationKeyExtractors(v []*InvocationKeyExtractorConfiguration) {
+	x.xxx_hidden_InvocationKeyExtractors = &v
+}
+
+func (x *SimpleActionRouterConfiguration) SetInitialSizeClassAnalyzer(v *InitialSizeClassAnalyzerConfiguration) {
+	x.xxx_hidden_InitialSizeClassAnalyzer = v
+}
+
+func (x *SimpleActionRouterConfiguration) HasInitialSizeClassAnalyzer() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_InitialSizeClassAnalyzer != nil
+}
+
+func (x *SimpleActionRouterConfiguration) ClearInitialSizeClassAnalyzer() {
+	x.xxx_hidden_InitialSizeClassAnalyzer = nil
+}
+
+type SimpleActionRouterConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	InvocationKeyExtractors  []*InvocationKeyExtractorConfiguration
+	InitialSizeClassAnalyzer *InitialSizeClassAnalyzerConfiguration
+}
+
+func (b0 SimpleActionRouterConfiguration_builder) Build() *SimpleActionRouterConfiguration {
+	m0 := &SimpleActionRouterConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_InvocationKeyExtractors = &b.InvocationKeyExtractors
+	x.xxx_hidden_InitialSizeClassAnalyzer = b.InitialSizeClassAnalyzer
+	return m0
+}
+
 type InvocationKeyExtractorConfiguration struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Kind:
-	//
-	//	*InvocationKeyExtractorConfiguration_AuthenticationMetadata
-	Kind          isInvocationKeyExtractorConfiguration_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState                     `protogen:"opaque.v1"`
+	xxx_hidden_Kind isInvocationKeyExtractorConfiguration_Kind `protobuf_oneof:"kind"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *InvocationKeyExtractorConfiguration) Reset() {
@@ -176,44 +265,108 @@ func (x *InvocationKeyExtractorConfiguration) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InvocationKeyExtractorConfiguration.ProtoReflect.Descriptor instead.
-func (*InvocationKeyExtractorConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *InvocationKeyExtractorConfiguration) GetKind() isInvocationKeyExtractorConfiguration_Kind {
-	if x != nil {
-		return x.Kind
-	}
-	return nil
-}
-
 func (x *InvocationKeyExtractorConfiguration) GetAuthenticationMetadata() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Kind.(*InvocationKeyExtractorConfiguration_AuthenticationMetadata); ok {
+		if x, ok := x.xxx_hidden_Kind.(*invocationKeyExtractorConfiguration_AuthenticationMetadata); ok {
 			return x.AuthenticationMetadata
 		}
 	}
 	return nil
 }
 
+func (x *InvocationKeyExtractorConfiguration) SetAuthenticationMetadata(v *emptypb.Empty) {
+	if v == nil {
+		x.xxx_hidden_Kind = nil
+		return
+	}
+	x.xxx_hidden_Kind = &invocationKeyExtractorConfiguration_AuthenticationMetadata{v}
+}
+
+func (x *InvocationKeyExtractorConfiguration) HasKind() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Kind != nil
+}
+
+func (x *InvocationKeyExtractorConfiguration) HasAuthenticationMetadata() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Kind.(*invocationKeyExtractorConfiguration_AuthenticationMetadata)
+	return ok
+}
+
+func (x *InvocationKeyExtractorConfiguration) ClearKind() {
+	x.xxx_hidden_Kind = nil
+}
+
+func (x *InvocationKeyExtractorConfiguration) ClearAuthenticationMetadata() {
+	if _, ok := x.xxx_hidden_Kind.(*invocationKeyExtractorConfiguration_AuthenticationMetadata); ok {
+		x.xxx_hidden_Kind = nil
+	}
+}
+
+const InvocationKeyExtractorConfiguration_Kind_not_set_case case_InvocationKeyExtractorConfiguration_Kind = 0
+const InvocationKeyExtractorConfiguration_AuthenticationMetadata_case case_InvocationKeyExtractorConfiguration_Kind = 1
+
+func (x *InvocationKeyExtractorConfiguration) WhichKind() case_InvocationKeyExtractorConfiguration_Kind {
+	if x == nil {
+		return InvocationKeyExtractorConfiguration_Kind_not_set_case
+	}
+	switch x.xxx_hidden_Kind.(type) {
+	case *invocationKeyExtractorConfiguration_AuthenticationMetadata:
+		return InvocationKeyExtractorConfiguration_AuthenticationMetadata_case
+	default:
+		return InvocationKeyExtractorConfiguration_Kind_not_set_case
+	}
+}
+
+type InvocationKeyExtractorConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Kind:
+	AuthenticationMetadata *emptypb.Empty
+	// -- end of xxx_hidden_Kind
+}
+
+func (b0 InvocationKeyExtractorConfiguration_builder) Build() *InvocationKeyExtractorConfiguration {
+	m0 := &InvocationKeyExtractorConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.AuthenticationMetadata != nil {
+		x.xxx_hidden_Kind = &invocationKeyExtractorConfiguration_AuthenticationMetadata{b.AuthenticationMetadata}
+	}
+	return m0
+}
+
+type case_InvocationKeyExtractorConfiguration_Kind protoreflect.FieldNumber
+
+func (x case_InvocationKeyExtractorConfiguration_Kind) String() string {
+	md := file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isInvocationKeyExtractorConfiguration_Kind interface {
 	isInvocationKeyExtractorConfiguration_Kind()
 }
 
-type InvocationKeyExtractorConfiguration_AuthenticationMetadata struct {
-	AuthenticationMetadata *emptypb.Empty `protobuf:"bytes,1,opt,name=authentication_metadata,json=authenticationMetadata,proto3,oneof"`
+type invocationKeyExtractorConfiguration_AuthenticationMetadata struct {
+	AuthenticationMetadata *emptypb.Empty `protobuf:"bytes,1,opt,name=authentication_metadata,json=authenticationMetadata,oneof"`
 }
 
-func (*InvocationKeyExtractorConfiguration_AuthenticationMetadata) isInvocationKeyExtractorConfiguration_Kind() {
+func (*invocationKeyExtractorConfiguration_AuthenticationMetadata) isInvocationKeyExtractorConfiguration_Kind() {
 }
 
 type InitialSizeClassAnalyzerConfiguration struct {
-	state                   protoimpl.MessageState                               `protogen:"open.v1"`
-	MaximumExecutionTimeout *durationpb.Duration                                 `protobuf:"bytes,1,opt,name=maximum_execution_timeout,json=maximumExecutionTimeout,proto3" json:"maximum_execution_timeout,omitempty"`
-	FeedbackDriven          *InitialSizeClassFeedbackDrivenAnalyzerConfiguration `protobuf:"bytes,2,opt,name=feedback_driven,json=feedbackDriven,proto3" json:"feedback_driven,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                              protoimpl.MessageState                               `protogen:"opaque.v1"`
+	xxx_hidden_MaximumExecutionTimeout *durationpb.Duration                                 `protobuf:"bytes,1,opt,name=maximum_execution_timeout,json=maximumExecutionTimeout"`
+	xxx_hidden_FeedbackDriven          *InitialSizeClassFeedbackDrivenAnalyzerConfiguration `protobuf:"bytes,2,opt,name=feedback_driven,json=feedbackDriven"`
+	unknownFields                      protoimpl.UnknownFields
+	sizeCache                          protoimpl.SizeCache
 }
 
 func (x *InitialSizeClassAnalyzerConfiguration) Reset() {
@@ -241,32 +394,73 @@ func (x *InitialSizeClassAnalyzerConfiguration) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitialSizeClassAnalyzerConfiguration.ProtoReflect.Descriptor instead.
-func (*InitialSizeClassAnalyzerConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *InitialSizeClassAnalyzerConfiguration) GetMaximumExecutionTimeout() *durationpb.Duration {
 	if x != nil {
-		return x.MaximumExecutionTimeout
+		return x.xxx_hidden_MaximumExecutionTimeout
 	}
 	return nil
 }
 
 func (x *InitialSizeClassAnalyzerConfiguration) GetFeedbackDriven() *InitialSizeClassFeedbackDrivenAnalyzerConfiguration {
 	if x != nil {
-		return x.FeedbackDriven
+		return x.xxx_hidden_FeedbackDriven
 	}
 	return nil
 }
 
+func (x *InitialSizeClassAnalyzerConfiguration) SetMaximumExecutionTimeout(v *durationpb.Duration) {
+	x.xxx_hidden_MaximumExecutionTimeout = v
+}
+
+func (x *InitialSizeClassAnalyzerConfiguration) SetFeedbackDriven(v *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) {
+	x.xxx_hidden_FeedbackDriven = v
+}
+
+func (x *InitialSizeClassAnalyzerConfiguration) HasMaximumExecutionTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MaximumExecutionTimeout != nil
+}
+
+func (x *InitialSizeClassAnalyzerConfiguration) HasFeedbackDriven() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FeedbackDriven != nil
+}
+
+func (x *InitialSizeClassAnalyzerConfiguration) ClearMaximumExecutionTimeout() {
+	x.xxx_hidden_MaximumExecutionTimeout = nil
+}
+
+func (x *InitialSizeClassAnalyzerConfiguration) ClearFeedbackDriven() {
+	x.xxx_hidden_FeedbackDriven = nil
+}
+
+type InitialSizeClassAnalyzerConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MaximumExecutionTimeout *durationpb.Duration
+	FeedbackDriven          *InitialSizeClassFeedbackDrivenAnalyzerConfiguration
+}
+
+func (b0 InitialSizeClassAnalyzerConfiguration_builder) Build() *InitialSizeClassAnalyzerConfiguration {
+	m0 := &InitialSizeClassAnalyzerConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_MaximumExecutionTimeout = b.MaximumExecutionTimeout
+	x.xxx_hidden_FeedbackDriven = b.FeedbackDriven
+	return m0
+}
+
 type InitialSizeClassFeedbackDrivenAnalyzerConfiguration struct {
-	state                protoimpl.MessageState                                   `protogen:"open.v1"`
-	FailureCacheDuration *durationpb.Duration                                     `protobuf:"bytes,1,opt,name=failure_cache_duration,json=failureCacheDuration,proto3" json:"failure_cache_duration,omitempty"`
-	HistorySize          int32                                                    `protobuf:"varint,2,opt,name=history_size,json=historySize,proto3" json:"history_size,omitempty"`
-	PageRank             *InitialSizeClassPageRankStrategyCalculatorConfiguration `protobuf:"bytes,3,opt,name=page_rank,json=pageRank,proto3" json:"page_rank,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                           protoimpl.MessageState                                   `protogen:"opaque.v1"`
+	xxx_hidden_FailureCacheDuration *durationpb.Duration                                     `protobuf:"bytes,1,opt,name=failure_cache_duration,json=failureCacheDuration"`
+	xxx_hidden_HistorySize          int32                                                    `protobuf:"varint,2,opt,name=history_size,json=historySize"`
+	xxx_hidden_PageRank             *InitialSizeClassPageRankStrategyCalculatorConfiguration `protobuf:"bytes,3,opt,name=page_rank,json=pageRank"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) Reset() {
@@ -294,40 +488,87 @@ func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) ProtoReflect() pro
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitialSizeClassFeedbackDrivenAnalyzerConfiguration.ProtoReflect.Descriptor instead.
-func (*InitialSizeClassFeedbackDrivenAnalyzerConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetFailureCacheDuration() *durationpb.Duration {
 	if x != nil {
-		return x.FailureCacheDuration
+		return x.xxx_hidden_FailureCacheDuration
 	}
 	return nil
 }
 
 func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetHistorySize() int32 {
 	if x != nil {
-		return x.HistorySize
+		return x.xxx_hidden_HistorySize
 	}
 	return 0
 }
 
 func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) GetPageRank() *InitialSizeClassPageRankStrategyCalculatorConfiguration {
 	if x != nil {
-		return x.PageRank
+		return x.xxx_hidden_PageRank
 	}
 	return nil
 }
 
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) SetFailureCacheDuration(v *durationpb.Duration) {
+	x.xxx_hidden_FailureCacheDuration = v
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) SetHistorySize(v int32) {
+	x.xxx_hidden_HistorySize = v
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) SetPageRank(v *InitialSizeClassPageRankStrategyCalculatorConfiguration) {
+	x.xxx_hidden_PageRank = v
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) HasFailureCacheDuration() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FailureCacheDuration != nil
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) HasPageRank() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PageRank != nil
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) ClearFailureCacheDuration() {
+	x.xxx_hidden_FailureCacheDuration = nil
+}
+
+func (x *InitialSizeClassFeedbackDrivenAnalyzerConfiguration) ClearPageRank() {
+	x.xxx_hidden_PageRank = nil
+}
+
+type InitialSizeClassFeedbackDrivenAnalyzerConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	FailureCacheDuration *durationpb.Duration
+	HistorySize          int32
+	PageRank             *InitialSizeClassPageRankStrategyCalculatorConfiguration
+}
+
+func (b0 InitialSizeClassFeedbackDrivenAnalyzerConfiguration_builder) Build() *InitialSizeClassFeedbackDrivenAnalyzerConfiguration {
+	m0 := &InitialSizeClassFeedbackDrivenAnalyzerConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_FailureCacheDuration = b.FailureCacheDuration
+	x.xxx_hidden_HistorySize = b.HistorySize
+	x.xxx_hidden_PageRank = b.PageRank
+	return m0
+}
+
 type InitialSizeClassPageRankStrategyCalculatorConfiguration struct {
-	state                                      protoimpl.MessageState `protogen:"open.v1"`
-	AcceptableExecutionTimeIncreaseExponent    float64                `protobuf:"fixed64,1,opt,name=acceptable_execution_time_increase_exponent,json=acceptableExecutionTimeIncreaseExponent,proto3" json:"acceptable_execution_time_increase_exponent,omitempty"`
-	SmallerSizeClassExecutionTimeoutMultiplier float64                `protobuf:"fixed64,2,opt,name=smaller_size_class_execution_timeout_multiplier,json=smallerSizeClassExecutionTimeoutMultiplier,proto3" json:"smaller_size_class_execution_timeout_multiplier,omitempty"`
-	MinimumExecutionTimeout                    *durationpb.Duration   `protobuf:"bytes,3,opt,name=minimum_execution_timeout,json=minimumExecutionTimeout,proto3" json:"minimum_execution_timeout,omitempty"`
-	MaximumConvergenceError                    float64                `protobuf:"fixed64,4,opt,name=maximum_convergence_error,json=maximumConvergenceError,proto3" json:"maximum_convergence_error,omitempty"`
-	unknownFields                              protoimpl.UnknownFields
-	sizeCache                                  protoimpl.SizeCache
+	state                                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_AcceptableExecutionTimeIncreaseExponent    float64                `protobuf:"fixed64,1,opt,name=acceptable_execution_time_increase_exponent,json=acceptableExecutionTimeIncreaseExponent"`
+	xxx_hidden_SmallerSizeClassExecutionTimeoutMultiplier float64                `protobuf:"fixed64,2,opt,name=smaller_size_class_execution_timeout_multiplier,json=smallerSizeClassExecutionTimeoutMultiplier"`
+	xxx_hidden_MinimumExecutionTimeout                    *durationpb.Duration   `protobuf:"bytes,3,opt,name=minimum_execution_timeout,json=minimumExecutionTimeout"`
+	xxx_hidden_MaximumConvergenceError                    float64                `protobuf:"fixed64,4,opt,name=maximum_convergence_error,json=maximumConvergenceError"`
+	unknownFields                                         protoimpl.UnknownFields
+	sizeCache                                             protoimpl.SizeCache
 }
 
 func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) Reset() {
@@ -355,37 +596,79 @@ func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) ProtoReflect()
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitialSizeClassPageRankStrategyCalculatorConfiguration.ProtoReflect.Descriptor instead.
-func (*InitialSizeClassPageRankStrategyCalculatorConfiguration) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetAcceptableExecutionTimeIncreaseExponent() float64 {
 	if x != nil {
-		return x.AcceptableExecutionTimeIncreaseExponent
+		return x.xxx_hidden_AcceptableExecutionTimeIncreaseExponent
 	}
 	return 0
 }
 
 func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetSmallerSizeClassExecutionTimeoutMultiplier() float64 {
 	if x != nil {
-		return x.SmallerSizeClassExecutionTimeoutMultiplier
+		return x.xxx_hidden_SmallerSizeClassExecutionTimeoutMultiplier
 	}
 	return 0
 }
 
 func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetMinimumExecutionTimeout() *durationpb.Duration {
 	if x != nil {
-		return x.MinimumExecutionTimeout
+		return x.xxx_hidden_MinimumExecutionTimeout
 	}
 	return nil
 }
 
 func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) GetMaximumConvergenceError() float64 {
 	if x != nil {
-		return x.MaximumConvergenceError
+		return x.xxx_hidden_MaximumConvergenceError
 	}
 	return 0
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) SetAcceptableExecutionTimeIncreaseExponent(v float64) {
+	x.xxx_hidden_AcceptableExecutionTimeIncreaseExponent = v
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) SetSmallerSizeClassExecutionTimeoutMultiplier(v float64) {
+	x.xxx_hidden_SmallerSizeClassExecutionTimeoutMultiplier = v
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) SetMinimumExecutionTimeout(v *durationpb.Duration) {
+	x.xxx_hidden_MinimumExecutionTimeout = v
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) SetMaximumConvergenceError(v float64) {
+	x.xxx_hidden_MaximumConvergenceError = v
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) HasMinimumExecutionTimeout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_MinimumExecutionTimeout != nil
+}
+
+func (x *InitialSizeClassPageRankStrategyCalculatorConfiguration) ClearMinimumExecutionTimeout() {
+	x.xxx_hidden_MinimumExecutionTimeout = nil
+}
+
+type InitialSizeClassPageRankStrategyCalculatorConfiguration_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	AcceptableExecutionTimeIncreaseExponent    float64
+	SmallerSizeClassExecutionTimeoutMultiplier float64
+	MinimumExecutionTimeout                    *durationpb.Duration
+	MaximumConvergenceError                    float64
+}
+
+func (b0 InitialSizeClassPageRankStrategyCalculatorConfiguration_builder) Build() *InitialSizeClassPageRankStrategyCalculatorConfiguration {
+	m0 := &InitialSizeClassPageRankStrategyCalculatorConfiguration{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_AcceptableExecutionTimeIncreaseExponent = b.AcceptableExecutionTimeIncreaseExponent
+	x.xxx_hidden_SmallerSizeClassExecutionTimeoutMultiplier = b.SmallerSizeClassExecutionTimeoutMultiplier
+	x.xxx_hidden_MinimumExecutionTimeout = b.MinimumExecutionTimeout
+	x.xxx_hidden_MaximumConvergenceError = b.MaximumConvergenceError
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto protoreflect.FileDescriptor
@@ -413,19 +696,7 @@ const file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDe
 	"+acceptable_execution_time_increase_exponent\x18\x01 \x01(\x01R'acceptableExecutionTimeIncreaseExponent\x12c\n" +
 	"/smaller_size_class_execution_timeout_multiplier\x18\x02 \x01(\x01R*smallerSizeClassExecutionTimeoutMultiplier\x12U\n" +
 	"\x19minimum_execution_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x17minimumExecutionTimeout\x12:\n" +
-	"\x19maximum_convergence_error\x18\x04 \x01(\x01R\x17maximumConvergenceErrorB1Z/bonanza.build/pkg/proto/configuration/schedulerb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc), len(file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_rawDescData
-}
+	"\x19maximum_convergence_error\x18\x04 \x01(\x01R\x17maximumConvergenceErrorB6Z/bonanza.build/pkg/proto/configuration/scheduler\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_goTypes = []any{
@@ -461,10 +732,10 @@ func file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_init()
 		return
 	}
 	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[0].OneofWrappers = []any{
-		(*ActionRouterConfiguration_Simple)(nil),
+		(*actionRouterConfiguration_Simple)(nil),
 	}
 	file_bonanza_build_pkg_proto_configuration_scheduler_scheduler_proto_msgTypes[2].OneofWrappers = []any{
-		(*InvocationKeyExtractorConfiguration_AuthenticationMetadata)(nil),
+		(*invocationKeyExtractorConfiguration_AuthenticationMetadata)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
