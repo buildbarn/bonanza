@@ -1,10 +1,11 @@
-syntax = "proto3";
+edition = "2024";
 
 package bonanza.model.fetch;
 
 import "bonanza.build/pkg/proto/model/filesystem/filesystem.proto";
 import "google/rpc/status.proto";
 
+option features.field_presence = IMPLICIT;
 option go_package = "bonanza.build/pkg/proto/model/fetch";
 
 // Action and result messages for "fetch" workers.
@@ -78,7 +79,7 @@ message Event {
 }
 
 message Result {
-  message Success {
+  export message Success {
     // The contents of the file, if the file was non-empty.
     bonanza.model.filesystem.FileContents contents = 1;
 

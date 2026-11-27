@@ -941,10 +941,10 @@ func parseSubresourceIntegrity(integrity string) (*model_fetch_pb.SubresourceInt
 		return nil, fmt.Errorf("invalid hash %#v: %w", hashStr, err)
 	}
 
-	return &model_fetch_pb.SubresourceIntegrity{
+	return model_fetch_pb.SubresourceIntegrity_builder{
 		HashAlgorithm: model_fetch_pb.SubresourceIntegrity_HashAlgorithm(hashAlgorithm),
 		Hash:          hash,
-	}, nil
+	}.Build(), nil
 }
 
 func parseSubresourceIntegrityOrSHA256(integrity, sha256 string) (*model_fetch_pb.SubresourceIntegrity, error) {
@@ -956,10 +956,10 @@ func parseSubresourceIntegrityOrSHA256(integrity, sha256 string) (*model_fetch_p
 		if err != nil {
 			return nil, fmt.Errorf("invalid sha256: %w", err)
 		}
-		return &model_fetch_pb.SubresourceIntegrity{
+		return model_fetch_pb.SubresourceIntegrity_builder{
 			HashAlgorithm: model_fetch_pb.SubresourceIntegrity_SHA256,
 			Hash:          sha256Bytes,
-		}, nil
+		}.Build(), nil
 	}
 	return nil, nil
 }
@@ -993,9 +993,9 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	sourceJSONContentsValue := e.GetHTTPFileContentsValue(
 		&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
-				Target: &model_fetch_pb.Target{
+				Target: model_fetch_pb.Target_builder{
 					Urls: []string{sourceJSONURL},
-				},
+				}.Build(),
 			},
 		},
 	)
@@ -1038,10 +1038,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 	missingDependencies := false
 	archiveContentsValue := e.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
-			Target: &model_fetch_pb.Target{
+			Target: model_fetch_pb.Target_builder{
 				Urls:      []string{sourceJSON.URL},
 				Integrity: integrity,
-			},
+			}.Build(),
 		},
 		Format: archiveFormat,
 	})
@@ -1073,10 +1073,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 
 		overlayContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
-				Target: &model_fetch_pb.Target{
+				Target: model_fetch_pb.Target_builder{
 					Urls:      []string{overlayURL},
 					Integrity: integrity,
-				},
+				}.Build(),
 			},
 		})
 		if !overlayContentsValue.IsSet() {
@@ -1126,10 +1126,10 @@ func (c *baseComputer[TReference, TMetadata]) fetchModuleFromRegistry(
 
 		patchContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
-				Target: &model_fetch_pb.Target{
+				Target: model_fetch_pb.Target_builder{
 					Urls:      []string{patchURL},
 					Integrity: integrity,
-				},
+				}.Build(),
 			},
 		})
 		if !patchContentsValue.IsSet() {
@@ -1727,14 +1727,15 @@ func createDownloadSuccessResult[TReference object.BasicReference, TMetadata mod
 	}
 
 	if integrity == nil {
-		integrity = &model_fetch_pb.SubresourceIntegrity{
-			HashAlgorithm: model_fetch_pb.SubresourceIntegrity_SHA256,
-			Hash:          sha256,
+		integrity = &model_fetch_pb.SubresourceIntegrity{}
+		integrity.SetHashAlgorithm(model_fetch_pb.SubresourceIntegrity_SHA256)
+		if sha256 != nil {
+			integrity.SetHash(sha256)
 		}
 	}
-	fields["integrity"] = eval.String(strings.ToLower(model_fetch_pb.SubresourceIntegrity_HashAlgorithm_name[int32(integrity.HashAlgorithm)]) + "-" + base64.StdEncoding.EncodeToString(integrity.Hash))
-	if integrity.HashAlgorithm == model_fetch_pb.SubresourceIntegrity_SHA256 {
-		fields["sha256"] = eval.String(hex.EncodeToString(integrity.Hash))
+	fields["integrity"] = eval.String(strings.ToLower(model_fetch_pb.SubresourceIntegrity_HashAlgorithm_name[int32(integrity.GetHashAlgorithm())]) + "-" + base64.StdEncoding.EncodeToString(integrity.GetHash()))
+	if integrity.GetHashAlgorithm() == model_fetch_pb.SubresourceIntegrity_SHA256 {
+		fields["sha256"] = eval.String(hex.EncodeToString(integrity.GetHash()))
 	}
 
 	return model_starlark.NewStructFromDict[TReference, TMetadata](nil, fields)
@@ -1788,20 +1789,21 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownload(thread *
 
 	headersEntries := make([]*model_fetch_pb.Target_Header, 0, len(headers))
 	for _, name := range slices.Sorted(maps.Keys(headers)) {
-		headersEntries = append(headersEntries, &model_fetch_pb.Target_Header{
+		headersEntries = append(headersEntries, model_fetch_pb.Target_Header_builder{
 			Name:  name,
 			Value: headers[name],
-		})
+		}.Build())
 	}
 
+	target := model_fetch_pb.Target_builder{
+		Urls:      urls,
+		Integrity: integrityMessage,
+		Headers:   headersEntries,
+	}.Build()
+	// TODO: Set auth!
 	fileContentsValue := mrc.environment.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
-			Target: &model_fetch_pb.Target{
-				Urls:      urls,
-				Integrity: integrityMessage,
-				Headers:   headersEntries,
-				// TODO: Set auth!
-			},
+			Target:    target,
 			AllowFail: allowFail,
 		},
 	})
@@ -1823,7 +1825,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) completeDownload(ou
 	if !fileContentsValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
-	exists := fileContentsValue.Message.Exists
+	exists := fileContentsValue.Message.GetExists()
 	if exists == nil {
 		// File does not exist, or allow_fail was set and an
 		// error occurred.
@@ -1850,14 +1852,14 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) completeDownload(ou
 		&changeTrackingFile[TReference, TMetadata]{
 			isExecutable: executable,
 			contents: unmodifiedFileContents[TReference, TMetadata]{
-				contents: model_core.Nested(fileContentsValue, exists.Contents),
+				contents: model_core.Nested(fileContentsValue, exists.GetContents()),
 			},
 		},
 	); err != nil {
 		return nil, err
 	}
 
-	return createDownloadSuccessResult[TReference, TMetadata](integrity, exists.Sha256), nil
+	return createDownloadSuccessResult[TReference, TMetadata](integrity, exists.GetSha256()), nil
 }
 
 func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtract(thread *eval.Thread, b *eval.Builtin, args eval.Args) (eval.Value, error) {
@@ -1925,10 +1927,10 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 
 	archiveContentsValue := mrc.environment.GetHTTPArchiveContentsValue(&model_analysis_pb.HttpArchiveContents_Key{
 		FetchOptions: &model_analysis_pb.HttpFetchOptions{
-			Target: &model_fetch_pb.Target{
+			Target: model_fetch_pb.Target_builder{
 				Integrity: integrityMessage,
 				Urls:      urls,
-			},
+			}.Build(),
 			AllowFail: allowFail,
 		},
 		Format: archiveFormat,
@@ -1936,7 +1938,8 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 	if !archiveContentsValue.IsSet() {
 		return nil, evaluation.ErrMissingDependency
 	}
-	if archiveContentsValue.Message.Exists == nil {
+	archive := archiveContentsValue.Message.GetExists()
+	if archive == nil {
 		// File does not exist, or allow_fail was set and an
 		// error occurred.
 		return model_starlark.NewStructFromDict[TReference, TMetadata](nil, map[string]any{
@@ -1946,7 +1949,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 
 	// Determine which directory to place inside the file system.
 	archiveRootDirectory := changeTrackingDirectory[TReference, TMetadata]{
-		unmodifiedDirectory: newUnmodifiedDirectoryFromReference(model_core.Nested(archiveContentsValue, archiveContentsValue.Message.Exists.Contents)),
+		unmodifiedDirectory: newUnmodifiedDirectoryFromReference(model_core.Nested(archiveContentsValue, archive.GetContents())),
 	}
 	rootDirectoryResolver := changeTrackingDirectoryResolver[TReference, TMetadata]{
 		loadOptions: mrc.directoryLoadOptions,
@@ -1967,7 +1970,7 @@ func (mrc *moduleOrRepositoryContext[TReference, TMetadata]) doDownloadAndExtrac
 
 	*r.stack.Peek() = *rootDirectoryResolver.stack.Peek()
 
-	return createDownloadSuccessResult[TReference, TMetadata](integrityMessage, archiveContentsValue.Message.Exists.Sha256), nil
+	return createDownloadSuccessResult[TReference, TMetadata](integrityMessage, archive.GetSha256()), nil
 }
 
 // bytesToValidString converts a byte slice containing UTF-8 encoded

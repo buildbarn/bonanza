@@ -57,10 +57,10 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	referenceFormat := c.referenceFormat
 	createdAction, err := model_core.MarshalAndEncodeDeterministic(
 		model_core.NewSimplePatchedMessage[TMetadata](
-			model_format.NewProto[model_fetch_pb.Action]().NewMarshaler(&model_fetch_pb.Action{
+			model_format.NewProto[model_fetch_pb.Action]().NewMarshaler(model_fetch_pb.Action_builder{
 				FileCreationParameters: fileCreationParametersValue.Message.GetFileCreationParameters(),
 				Target:                 target,
-			}),
+			}.Build()),
 		),
 		referenceFormat,
 		actionEncoders.Encoder,
@@ -76,9 +76,9 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 	var stableTarget anypb.Any
 	marshalOptions := proto.MarshalOptions{Deterministic: true}
 	if err := anypb.MarshalFrom(
-		&stableTarget, &model_fetch_pb.Target{
+		&stableTarget, model_fetch_pb.Target_builder{
 			Urls: target.GetUrls(),
-		},
+		}.Build(),
 		marshalOptions,
 	); err != nil {
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to marshal stable target: %w", err)
@@ -144,8 +144,8 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 		return PatchedHTTPFileContentsValue[TMetadata]{}, fmt.Errorf("failed to read completion event: %w", err)
 	}
 
-	switch result.Message.GetOutcome().(type) {
-	case *model_fetch_pb.Result_Success_:
+	switch result.Message.WhichOutcome() {
+	case model_fetch_pb.Result_Success_case:
 		success := model_core.Patch(e, model_core.Nested(result, result.Message.GetSuccess()))
 		return model_core.NewPatchedMessage(
 			&model_analysis_pb.HttpFileContents_Value{
@@ -153,7 +153,7 @@ func (c *baseComputer[TReference, TMetadata]) ComputeHTTPFileContentsValue(ctx c
 			},
 			success.Patcher,
 		), nil
-	case *model_fetch_pb.Result_Failure:
+	case model_fetch_pb.Result_Failure_case:
 		err := status.ErrorProto(result.Message.GetFailure())
 		if fetchOptions.GetAllowFail() || status.Code(err) == codes.NotFound {
 			return model_core.NewSimplePatchedMessage[TMetadata](

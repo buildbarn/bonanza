@@ -31,7 +31,7 @@ func (f *httpFetcher) Fetch(ctx context.Context, url string, headers []*model_fe
 		return nil, 0, util.StatusWrapWithCode(err, codes.InvalidArgument, "Failed to create HTTP request")
 	}
 	for _, entry := range headers {
-		req.Header.Set(entry.Name, entry.Value)
+		req.Header.Set(entry.GetName(), entry.GetValue())
 	}
 
 	resp, err := f.client.Do(req)

@@ -93,9 +93,9 @@ func testRandomData(sizeBytes int) string {
 }
 
 var testFetchOptions = &model_analysis_pb.HttpFetchOptions{
-	Target: &model_fetch_pb.Target{
+	Target: model_fetch_pb.Target_builder{
 		Urls: []string{"https://example.com/archive"},
-	},
+	}.Build(),
 }
 
 // httpArchiveContentsResult contains the outcome of calling
@@ -135,9 +135,9 @@ func (bct *baseComputerTester) computeHTTPArchiveContents(ctx context.Context, t
 			FetchOptions: testFetchOptions,
 		}),
 	).Return(model_core.Nested(archiveContentsMessage, &model_analysis_pb.HttpFileContents_Value{
-		Exists: &model_fetch_pb.Result_Success{
+		Exists: model_fetch_pb.Result_Success_builder{
 			Contents: archiveContentsMessage.Message,
-		},
+		}.Build(),
 	}))
 	e.EXPECT().CaptureCreatedObject(gomock.Any(), gomock.Any()).
 		DoAndReturn(capturer.CaptureCreatedObject).AnyTimes()

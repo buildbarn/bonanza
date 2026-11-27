@@ -267,27 +267,27 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleRoughBuildListValue(ctx 
 
 	// Obtain the root module name. Traversal of the modules needs
 	// to start there.
-	rootModuleName, err := label.NewModule(rootModuleValue.Message.RootModuleName)
+	rootModuleName, err := label.NewModule(rootModuleValue.Message.GetRootModuleName())
 	if err != nil {
-		return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.RootModuleName, err)
+		return PatchedModuleRoughBuildListValue[TMetadata]{}, fmt.Errorf("invalid root module name %#v: %w", rootModuleValue.Message.GetRootModuleName(), err)
 	}
 
 	// Obtain the list of modules for which overrides are in place.
 	// For these we should not attempt to load MODULE.bazel files
 	// from Bazel Central Registry (BCR).
-	modulesWithOverrides, err := parseOverridesList(modulesWithOverridesValue.Message.OverridesList)
+	modulesWithOverrides, err := parseOverridesList(modulesWithOverridesValue.Message.GetOverridesList())
 	if err != nil {
 		return PatchedModuleRoughBuildListValue[TMetadata]{}, err
 	}
 
-	ignoreDevDependencies := rootModuleValue.Message.IgnoreRootModuleDevDependencies
+	ignoreDevDependencies := rootModuleValue.Message.GetIgnoreRootModuleDevDependencies()
 	queue := newModuleDiscoveryQueue()
 	queue.add(moduleToCheck{
 		name:    rootModuleName,
 		version: util.Must(label.NewModuleVersion("0")),
 	})
 	missingDependencies := false
-	registryURLs := registryURLsValue.Message.RegistryUrls
+	registryURLs := registryURLsValue.Message.GetRegistryUrls()
 	var buildList roughBuildList
 
 ProcessModule:
@@ -315,7 +315,7 @@ ProcessModule:
 				missingDependencies = true
 				continue ProcessModule
 			}
-			moduleFileContents = model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.Contents)
+			moduleFileContents = model_core.Nested(moduleFileContentsValue, moduleFileContentsValue.Message.GetContents())
 		} else {
 			// No override exists. Download the MODULE.bazel
 			// file from Bazel Central Registry (BCR). We
@@ -330,9 +330,9 @@ ProcessModule:
 				httpFileContents := e.GetHTTPFileContentsValue(
 					&model_analysis_pb.HttpFileContents_Key{
 						FetchOptions: &model_analysis_pb.HttpFetchOptions{
-							Target: &model_fetch_pb.Target{
+							Target: model_fetch_pb.Target_builder{
 								Urls: []string{moduleFileURL},
-							},
+							}.Build(),
 						},
 					},
 				)
@@ -340,15 +340,15 @@ ProcessModule:
 					missingDependencies = true
 					continue ProcessModule
 				}
-				if httpFileContents.Message.Exists != nil {
-					moduleFileContents = model_core.Nested(httpFileContents, httpFileContents.Message.Exists.Contents)
-					buildListEntry = &model_analysis_pb.BuildListModule{
-						Name: module.name.String(),
-						Definition: &model_analysis_pb.BuildListModule_Definition{
-							Version:     module.version.String(),
-							RegistryUrl: registryURL,
-						},
+				if exists := httpFileContents.Message.GetExists(); exists != nil {
+					moduleFileContents = model_core.Nested(httpFileContents, exists.GetContents())
+					bd := &model_analysis_pb.BuildListModule_Definition{
+						Version:     module.version.String(),
+						RegistryUrl: registryURL,
 					}
+					buildListEntry = &model_analysis_pb.BuildListModule{}
+					buildListEntry.Name = module.name.String()
+					buildListEntry.Definition = bd
 					goto GotModuleFileContents
 				}
 			}

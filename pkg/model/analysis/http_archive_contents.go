@@ -289,17 +289,18 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 	directoryCreationParameters, gotDirectoryCreationParameters := e.GetDirectoryCreationParametersObject(&model_analysis_pb.DirectoryCreationParameters_Key{})
 	fileCreationParameters, gotFileCreationParameters := e.GetFileCreationParametersObject(&model_analysis_pb.FileCreationParameters_Key{})
 	httpFileContentsValue := e.GetHTTPFileContentsValue(&model_analysis_pb.HttpFileContents_Key{
-		FetchOptions: key.FetchOptions,
+		FetchOptions: key.GetFetchOptions(),
 	})
 	if !gotFileReader || !gotDirectoryCreationParameters || !gotFileCreationParameters || !httpFileContentsValue.IsSet() {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, evaluation.ErrMissingDependency
 	}
-	if httpFileContentsValue.Message.Exists == nil {
+	exists := httpFileContentsValue.Message.GetExists()
+	if exists == nil {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, errors.New("file does not exist")
 	}
 
 	httpFileContentsEntry, err := model_filesystem.NewFileContentsEntryFromProto(
-		model_core.Nested(httpFileContentsValue, httpFileContentsValue.Message.Exists.Contents),
+		model_core.Nested(httpFileContentsValue, exists.GetContents()),
 	)
 	if err != nil {
 		return PatchedHTTPArchiveContentsValue[TMetadata]{}, fmt.Errorf("invalid file contents: %w", err)
@@ -327,7 +328,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 
 	var rootDirectory archiveDirectory[TReference]
 
-	switch key.Format {
+	switch key.GetFormat() {
 	case model_analysis_pb.HttpArchiveContents_Key_TAR_GZ, model_analysis_pb.HttpArchiveContents_Key_TAR_XZ:
 		compressedReader := progressReportingReader{
 			r: fileReader.FileOpenRead(ctx, httpFileContentsEntry, 0),
@@ -337,7 +338,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 			),
 		}
 		var decompressedReader io.Reader
-		switch key.Format {
+		switch key.GetFormat() {
 		case model_analysis_pb.HttpArchiveContents_Key_TAR_GZ:
 			decompressedReader, err = gzip.NewReader(compressedReader)
 			if err != nil {
@@ -470,7 +471,7 @@ func (*baseComputer[TReference, TMetadata]) ComputeHTTPArchiveContentsValue(ctx 
 		return &model_analysis_pb.HttpArchiveContents_Value{
 			Exists: &model_analysis_pb.HttpArchiveContents_Value_Exists{
 				Contents: contentsReference.Merge(patcher),
-				Sha256:   httpFileContentsValue.Message.Exists.Sha256,
+				Sha256:   httpFileContentsValue.Message.GetExists().GetSha256(),
 			},
 		}, nil
 	})

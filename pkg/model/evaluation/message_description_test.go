@@ -126,9 +126,9 @@ func TestDescribeKey(t *testing.T) {
 	t.Run("NestedRepeatedField", func(t *testing.T) {
 		description, ok, err := model_evaluation.DescribeKey((&model_analysis_pb.HttpFileContents_Key{
 			FetchOptions: &model_analysis_pb.HttpFetchOptions{
-				Target: &model_fetch_pb.Target{
+				Target: model_fetch_pb.Target_builder{
 					Urls: []string{"https://example.com/a", "https://example.org/a"},
-				},
+				}.Build(),
 			},
 		}).ProtoReflect())
 		require.NoError(t, err)

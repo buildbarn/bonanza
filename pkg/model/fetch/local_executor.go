@@ -156,12 +156,12 @@ func (e *localExecutor) copyWithProgress(
 			case <-tChan:
 			}
 
-			event := &model_fetch_pb.Event{
+			event := model_fetch_pb.Event_builder{
 				Url:                 url,
 				DownloadedSizeBytes: bytesRead.Load(),
-			}
+			}.Build()
 			if sizeBytes > 0 {
-				event.TotalSizeBytes = uint64(sizeBytes)
+				event.SetTotalSizeBytes(uint64(sizeBytes))
 			}
 			eventReference, err := uploadMessage(
 				reportingCtx,
@@ -226,40 +226,32 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 			var err error
 			action, err = actionReader.ReadObject(ctx, *namespacedAction.Reference)
 			if err != nil {
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrap(err, "Failed to read action")).Proto(),
-				}
+				result.SetFailure(status.Convert(util.StatusWrap(err, "Failed to read action")).Proto())
 				return &result
 			}
 		}
 
-		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(action.Message.FileCreationParameters, referenceFormat, e.binaryEncoderFactory)
+		fileCreationParameters, err := model_filesystem.NewFileCreationParametersFromProto(action.Message.GetFileCreationParameters(), referenceFormat, e.binaryEncoderFactory)
 		if err != nil {
-			result.Outcome = &model_fetch_pb.Result_Failure{
-				Failure: status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto(),
-			}
+			result.SetFailure(status.Convert(util.StatusWrap(err, "Invalid file creation parameters")).Proto())
 			return &result
 		}
 
-		target := action.Message.Target
+		target := action.Message.GetTarget()
 		if target == nil {
-			result.Outcome = &model_fetch_pb.Result_Failure{
-				Failure: status.New(codes.InvalidArgument, "No target provided").Proto(),
-			}
+			result.SetFailure(status.New(codes.InvalidArgument, "No target provided").Proto())
 			return &result
 		}
 
 		var downloadErrors []error
 	ProcessURLs:
-		for _, url := range target.Urls {
+		for _, url := range target.GetUrls() {
 			downloadedFile, err := e.filePool.NewFile(pool.ZeroHoleSource, 0)
 			if err != nil {
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create temporary file for download")).Proto(),
-				}
+				result.SetFailure(status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create temporary file for download")).Proto())
 				return &result
 			}
-			body, sizeBytes, err := e.fetcher.Fetch(ctx, url, target.Headers)
+			body, sizeBytes, err := e.fetcher.Fetch(ctx, url, target.GetHeaders())
 			if err != nil {
 				downloadedFile.Close()
 				if status.Code(err) != codes.NotFound {
@@ -291,10 +283,10 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 			}
 
 			var hasher hash.Hash
-			if integrity := target.Integrity; integrity == nil {
+			if integrity := target.GetIntegrity(); integrity == nil {
 				hasher = sha256.New()
 			} else {
-				switch integrity.HashAlgorithm {
+				switch integrity.GetHashAlgorithm() {
 				case model_fetch_pb.SubresourceIntegrity_SHA256:
 					hasher = sha256.New()
 				case model_fetch_pb.SubresourceIntegrity_SHA384:
@@ -303,29 +295,23 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 					hasher = sha512.New()
 				default:
 					downloadedFile.Close()
-					result.Outcome = &model_fetch_pb.Result_Failure{
-						Failure: status.New(codes.Internal, "Unknown subresource integrity hash algorithm").Proto(),
-					}
+					result.SetFailure(status.New(codes.Internal, "Unknown subresource integrity hash algorithm").Proto())
 					return &result
 				}
 			}
 			if _, err := io.Copy(hasher, io.NewSectionReader(downloadedFile, 0, math.MaxInt64)); err != nil {
 				downloadedFile.Close()
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to hash file")).Proto(),
-				}
+				result.SetFailure(status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to hash file")).Proto())
 				return &result
 			}
 			hash := hasher.Sum(nil)
 
 			var sha256 []byte
-			if integrity := target.Integrity; integrity == nil {
+			if integrity := target.GetIntegrity(); integrity == nil {
 				sha256 = hash
-			} else if !bytes.Equal(hash, integrity.Hash) {
+			} else if !bytes.Equal(hash, integrity.GetHash()) {
 				downloadedFile.Close()
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Newf(codes.InvalidArgument, "File has hash %s, while %s was expected", hex.EncodeToString(hash), hex.EncodeToString(integrity.Hash)).Proto(),
-				}
+				result.SetFailure(status.Newf(codes.InvalidArgument, "File has hash %s, while %s was expected", hex.EncodeToString(hash), hex.EncodeToString(integrity.GetHash())).Proto())
 				return &result
 			}
 
@@ -336,29 +322,21 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 			// large amount of memory otherwise.
 			fileMerkleTree, err := model_filesystem.CreateChunkDiscardingFileMerkleTree(ctx, fileCreationParameters, downloadedFile)
 			if err != nil {
-				result.Outcome = &model_fetch_pb.Result_Failure{
-					Failure: status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create file Merkle tree")).Proto(),
-				}
+				result.SetFailure(status.Convert(util.StatusWrapWithCode(err, codes.Internal, "Failed to create file Merkle tree")).Proto())
 				return &result
 			}
 			patcher.Merge(fileMerkleTree.Patcher)
-			result.Outcome = &model_fetch_pb.Result_Success_{
-				Success: &model_fetch_pb.Result_Success{
-					Contents: fileMerkleTree.Message,
-					Sha256:   sha256,
-				},
-			}
+			result.SetSuccess(model_fetch_pb.Result_Success_builder{
+				Contents: fileMerkleTree.Message,
+				Sha256:   sha256,
+			}.Build())
 			return &result
 		}
 
 		if len(downloadErrors) > 0 {
-			result.Outcome = &model_fetch_pb.Result_Failure{
-				Failure: status.Convert(util.StatusFromMultiple(downloadErrors)).Proto(),
-			}
+			result.SetFailure(status.Convert(util.StatusFromMultiple(downloadErrors)).Proto())
 		} else {
-			result.Outcome = &model_fetch_pb.Result_Failure{
-				Failure: status.New(codes.NotFound, "File not found").Proto(),
-			}
+			result.SetFailure(status.New(codes.NotFound, "File not found").Proto())
 		}
 		return &result
 	})
@@ -370,7 +348,7 @@ func (e *localExecutor) Execute(ctx context.Context, namespacedAction *model_exe
 	}
 
 	resultCode := remoteworker_pb.CurrentState_Completed_SUCCEEDED
-	if _, ok := result.Message.Outcome.(*model_fetch_pb.Result_Failure); ok {
+	if result.Message.GetFailure() != nil {
 		resultCode = remoteworker_pb.CurrentState_Completed_FAILED
 	}
 	return resultReference, virtualExecutionDuration, resultCode, nil

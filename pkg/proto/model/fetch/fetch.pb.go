@@ -12,7 +12,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -67,17 +66,12 @@ func (x SubresourceIntegrity_HashAlgorithm) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use SubresourceIntegrity_HashAlgorithm.Descriptor instead.
-func (SubresourceIntegrity_HashAlgorithm) EnumDescriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0, 0}
-}
-
 type SubresourceIntegrity struct {
-	state         protoimpl.MessageState             `protogen:"open.v1"`
-	HashAlgorithm SubresourceIntegrity_HashAlgorithm `protobuf:"varint,1,opt,name=hash_algorithm,json=hashAlgorithm,proto3,enum=bonanza.model.fetch.SubresourceIntegrity_HashAlgorithm" json:"hash_algorithm,omitempty"`
-	Hash          []byte                             `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState             `protogen:"opaque.v1"`
+	xxx_hidden_HashAlgorithm SubresourceIntegrity_HashAlgorithm `protobuf:"varint,1,opt,name=hash_algorithm,json=hashAlgorithm,enum=bonanza.model.fetch.SubresourceIntegrity_HashAlgorithm"`
+	xxx_hidden_Hash          []byte                             `protobuf:"bytes,2,opt,name=hash"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *SubresourceIntegrity) Reset() {
@@ -105,32 +99,54 @@ func (x *SubresourceIntegrity) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SubresourceIntegrity.ProtoReflect.Descriptor instead.
-func (*SubresourceIntegrity) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *SubresourceIntegrity) GetHashAlgorithm() SubresourceIntegrity_HashAlgorithm {
 	if x != nil {
-		return x.HashAlgorithm
+		return x.xxx_hidden_HashAlgorithm
 	}
 	return SubresourceIntegrity_SHA256
 }
 
 func (x *SubresourceIntegrity) GetHash() []byte {
 	if x != nil {
-		return x.Hash
+		return x.xxx_hidden_Hash
 	}
 	return nil
 }
 
+func (x *SubresourceIntegrity) SetHashAlgorithm(v SubresourceIntegrity_HashAlgorithm) {
+	x.xxx_hidden_HashAlgorithm = v
+}
+
+func (x *SubresourceIntegrity) SetHash(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Hash = v
+}
+
+type SubresourceIntegrity_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	HashAlgorithm SubresourceIntegrity_HashAlgorithm
+	Hash          []byte
+}
+
+func (b0 SubresourceIntegrity_builder) Build() *SubresourceIntegrity {
+	m0 := &SubresourceIntegrity{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_HashAlgorithm = b.HashAlgorithm
+	x.xxx_hidden_Hash = b.Hash
+	return m0
+}
+
 type Target struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Urls          []string               `protobuf:"bytes,1,rep,name=urls,proto3" json:"urls,omitempty"`
-	Integrity     *SubresourceIntegrity  `protobuf:"bytes,2,opt,name=integrity,proto3" json:"integrity,omitempty"`
-	Headers       []*Target_Header       `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Urls      []string               `protobuf:"bytes,1,rep,name=urls"`
+	xxx_hidden_Integrity *SubresourceIntegrity  `protobuf:"bytes,2,opt,name=integrity"`
+	xxx_hidden_Headers   *[]*Target_Header      `protobuf:"bytes,3,rep,name=headers"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Target) Reset() {
@@ -158,38 +174,76 @@ func (x *Target) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Target.ProtoReflect.Descriptor instead.
-func (*Target) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Target) GetUrls() []string {
 	if x != nil {
-		return x.Urls
+		return x.xxx_hidden_Urls
 	}
 	return nil
 }
 
 func (x *Target) GetIntegrity() *SubresourceIntegrity {
 	if x != nil {
-		return x.Integrity
+		return x.xxx_hidden_Integrity
 	}
 	return nil
 }
 
 func (x *Target) GetHeaders() []*Target_Header {
 	if x != nil {
-		return x.Headers
+		if x.xxx_hidden_Headers != nil {
+			return *x.xxx_hidden_Headers
+		}
 	}
 	return nil
 }
 
+func (x *Target) SetUrls(v []string) {
+	x.xxx_hidden_Urls = v
+}
+
+func (x *Target) SetIntegrity(v *SubresourceIntegrity) {
+	x.xxx_hidden_Integrity = v
+}
+
+func (x *Target) SetHeaders(v []*Target_Header) {
+	x.xxx_hidden_Headers = &v
+}
+
+func (x *Target) HasIntegrity() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Integrity != nil
+}
+
+func (x *Target) ClearIntegrity() {
+	x.xxx_hidden_Integrity = nil
+}
+
+type Target_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Urls      []string
+	Integrity *SubresourceIntegrity
+	Headers   []*Target_Header
+}
+
+func (b0 Target_builder) Build() *Target {
+	m0 := &Target{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Urls = b.Urls
+	x.xxx_hidden_Integrity = b.Integrity
+	x.xxx_hidden_Headers = &b.Headers
+	return m0
+}
+
 type Action struct {
-	state                  protoimpl.MessageState             `protogen:"open.v1"`
-	FileCreationParameters *filesystem.FileCreationParameters `protobuf:"bytes,1,opt,name=file_creation_parameters,json=fileCreationParameters,proto3" json:"file_creation_parameters,omitempty"`
-	Target                 *Target                            `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState             `protogen:"opaque.v1"`
+	xxx_hidden_FileCreationParameters *filesystem.FileCreationParameters `protobuf:"bytes,1,opt,name=file_creation_parameters,json=fileCreationParameters"`
+	xxx_hidden_Target                 *Target                            `protobuf:"bytes,2,opt,name=target"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *Action) Reset() {
@@ -217,32 +271,73 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Action.ProtoReflect.Descriptor instead.
-func (*Action) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *Action) GetFileCreationParameters() *filesystem.FileCreationParameters {
 	if x != nil {
-		return x.FileCreationParameters
+		return x.xxx_hidden_FileCreationParameters
 	}
 	return nil
 }
 
 func (x *Action) GetTarget() *Target {
 	if x != nil {
-		return x.Target
+		return x.xxx_hidden_Target
 	}
 	return nil
 }
 
+func (x *Action) SetFileCreationParameters(v *filesystem.FileCreationParameters) {
+	x.xxx_hidden_FileCreationParameters = v
+}
+
+func (x *Action) SetTarget(v *Target) {
+	x.xxx_hidden_Target = v
+}
+
+func (x *Action) HasFileCreationParameters() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_FileCreationParameters != nil
+}
+
+func (x *Action) HasTarget() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Target != nil
+}
+
+func (x *Action) ClearFileCreationParameters() {
+	x.xxx_hidden_FileCreationParameters = nil
+}
+
+func (x *Action) ClearTarget() {
+	x.xxx_hidden_Target = nil
+}
+
+type Action_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	FileCreationParameters *filesystem.FileCreationParameters
+	Target                 *Target
+}
+
+func (b0 Action_builder) Build() *Action {
+	m0 := &Action{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_FileCreationParameters = b.FileCreationParameters
+	x.xxx_hidden_Target = b.Target
+	return m0
+}
+
 type Event struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Url                 string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	DownloadedSizeBytes uint64                 `protobuf:"varint,2,opt,name=downloaded_size_bytes,json=downloadedSizeBytes,proto3" json:"downloaded_size_bytes,omitempty"`
-	TotalSizeBytes      uint64                 `protobuf:"varint,3,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Url                 string                 `protobuf:"bytes,1,opt,name=url"`
+	xxx_hidden_DownloadedSizeBytes uint64                 `protobuf:"varint,2,opt,name=downloaded_size_bytes,json=downloadedSizeBytes"`
+	xxx_hidden_TotalSizeBytes      uint64                 `protobuf:"varint,3,opt,name=total_size_bytes,json=totalSizeBytes"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *Event) Reset() {
@@ -270,41 +365,62 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Event.ProtoReflect.Descriptor instead.
-func (*Event) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *Event) GetUrl() string {
 	if x != nil {
-		return x.Url
+		return x.xxx_hidden_Url
 	}
 	return ""
 }
 
 func (x *Event) GetDownloadedSizeBytes() uint64 {
 	if x != nil {
-		return x.DownloadedSizeBytes
+		return x.xxx_hidden_DownloadedSizeBytes
 	}
 	return 0
 }
 
 func (x *Event) GetTotalSizeBytes() uint64 {
 	if x != nil {
-		return x.TotalSizeBytes
+		return x.xxx_hidden_TotalSizeBytes
 	}
 	return 0
 }
 
+func (x *Event) SetUrl(v string) {
+	x.xxx_hidden_Url = v
+}
+
+func (x *Event) SetDownloadedSizeBytes(v uint64) {
+	x.xxx_hidden_DownloadedSizeBytes = v
+}
+
+func (x *Event) SetTotalSizeBytes(v uint64) {
+	x.xxx_hidden_TotalSizeBytes = v
+}
+
+type Event_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Url                 string
+	DownloadedSizeBytes uint64
+	TotalSizeBytes      uint64
+}
+
+func (b0 Event_builder) Build() *Event {
+	m0 := &Event{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Url = b.Url
+	x.xxx_hidden_DownloadedSizeBytes = b.DownloadedSizeBytes
+	x.xxx_hidden_TotalSizeBytes = b.TotalSizeBytes
+	return m0
+}
+
 type Result struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Outcome:
-	//
-	//	*Result_Failure
-	//	*Result_Success_
-	Outcome       isResult_Outcome `protobuf_oneof:"outcome"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Outcome isResult_Outcome       `protobuf_oneof:"outcome"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Result) Reset() {
@@ -332,21 +448,9 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Result.ProtoReflect.Descriptor instead.
-func (*Result) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Result) GetOutcome() isResult_Outcome {
-	if x != nil {
-		return x.Outcome
-	}
-	return nil
-}
-
 func (x *Result) GetFailure() *status.Status {
 	if x != nil {
-		if x, ok := x.Outcome.(*Result_Failure); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*result_Failure); ok {
 			return x.Failure
 		}
 	}
@@ -355,35 +459,140 @@ func (x *Result) GetFailure() *status.Status {
 
 func (x *Result) GetSuccess() *Result_Success {
 	if x != nil {
-		if x, ok := x.Outcome.(*Result_Success_); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*result_Success_); ok {
 			return x.Success
 		}
 	}
 	return nil
 }
 
+func (x *Result) SetFailure(v *status.Status) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &result_Failure{v}
+}
+
+func (x *Result) SetSuccess(v *Result_Success) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &result_Success_{v}
+}
+
+func (x *Result) HasOutcome() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Outcome != nil
+}
+
+func (x *Result) HasFailure() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*result_Failure)
+	return ok
+}
+
+func (x *Result) HasSuccess() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*result_Success_)
+	return ok
+}
+
+func (x *Result) ClearOutcome() {
+	x.xxx_hidden_Outcome = nil
+}
+
+func (x *Result) ClearFailure() {
+	if _, ok := x.xxx_hidden_Outcome.(*result_Failure); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+func (x *Result) ClearSuccess() {
+	if _, ok := x.xxx_hidden_Outcome.(*result_Success_); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+const Result_Outcome_not_set_case case_Result_Outcome = 0
+const Result_Failure_case case_Result_Outcome = 1
+const Result_Success_case case_Result_Outcome = 2
+
+func (x *Result) WhichOutcome() case_Result_Outcome {
+	if x == nil {
+		return Result_Outcome_not_set_case
+	}
+	switch x.xxx_hidden_Outcome.(type) {
+	case *result_Failure:
+		return Result_Failure_case
+	case *result_Success_:
+		return Result_Success_case
+	default:
+		return Result_Outcome_not_set_case
+	}
+}
+
+type Result_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Outcome:
+	Failure *status.Status
+	Success *Result_Success
+	// -- end of xxx_hidden_Outcome
+}
+
+func (b0 Result_builder) Build() *Result {
+	m0 := &Result{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Failure != nil {
+		x.xxx_hidden_Outcome = &result_Failure{b.Failure}
+	}
+	if b.Success != nil {
+		x.xxx_hidden_Outcome = &result_Success_{b.Success}
+	}
+	return m0
+}
+
+type case_Result_Outcome protoreflect.FieldNumber
+
+func (x case_Result_Outcome) String() string {
+	md := file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isResult_Outcome interface {
 	isResult_Outcome()
 }
 
-type Result_Failure struct {
-	Failure *status.Status `protobuf:"bytes,1,opt,name=failure,proto3,oneof"`
+type result_Failure struct {
+	Failure *status.Status `protobuf:"bytes,1,opt,name=failure,oneof"`
 }
 
-type Result_Success_ struct {
-	Success *Result_Success `protobuf:"bytes,2,opt,name=success,proto3,oneof"`
+type result_Success_ struct {
+	Success *Result_Success `protobuf:"bytes,2,opt,name=success,oneof"`
 }
 
-func (*Result_Failure) isResult_Outcome() {}
+func (*result_Failure) isResult_Outcome() {}
 
-func (*Result_Success_) isResult_Outcome() {}
+func (*result_Success_) isResult_Outcome() {}
 
 type Target_Header struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name  string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Value string                 `protobuf:"bytes,2,opt,name=value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Target_Header) Reset() {
@@ -411,31 +620,50 @@ func (x *Target_Header) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Target_Header.ProtoReflect.Descriptor instead.
-func (*Target_Header) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{1, 0}
-}
-
 func (x *Target_Header) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Target_Header) GetValue() string {
 	if x != nil {
-		return x.Value
+		return x.xxx_hidden_Value
 	}
 	return ""
 }
 
+func (x *Target_Header) SetName(v string) {
+	x.xxx_hidden_Name = v
+}
+
+func (x *Target_Header) SetValue(v string) {
+	x.xxx_hidden_Value = v
+}
+
+type Target_Header_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name  string
+	Value string
+}
+
+func (b0 Target_Header_builder) Build() *Target_Header {
+	m0 := &Target_Header{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Value = b.Value
+	return m0
+}
+
 type Result_Success struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Contents      *filesystem.FileContents `protobuf:"bytes,1,opt,name=contents,proto3" json:"contents,omitempty"`
-	Sha256        []byte                   `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Contents *filesystem.FileContents `protobuf:"bytes,1,opt,name=contents"`
+	xxx_hidden_Sha256   []byte                   `protobuf:"bytes,2,opt,name=sha256"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Result_Success) Reset() {
@@ -463,23 +691,56 @@ func (x *Result_Success) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Result_Success.ProtoReflect.Descriptor instead.
-func (*Result_Success) Descriptor() ([]byte, []int) {
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP(), []int{4, 0}
-}
-
 func (x *Result_Success) GetContents() *filesystem.FileContents {
 	if x != nil {
-		return x.Contents
+		return x.xxx_hidden_Contents
 	}
 	return nil
 }
 
 func (x *Result_Success) GetSha256() []byte {
 	if x != nil {
-		return x.Sha256
+		return x.xxx_hidden_Sha256
 	}
 	return nil
+}
+
+func (x *Result_Success) SetContents(v *filesystem.FileContents) {
+	x.xxx_hidden_Contents = v
+}
+
+func (x *Result_Success) SetSha256(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Sha256 = v
+}
+
+func (x *Result_Success) HasContents() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Contents != nil
+}
+
+func (x *Result_Success) ClearContents() {
+	x.xxx_hidden_Contents = nil
+}
+
+type Result_Success_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Contents *filesystem.FileContents
+	Sha256   []byte
+}
+
+func (b0 Result_Success_builder) Build() *Result_Success {
+	m0 := &Result_Success{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Contents = b.Contents
+	x.xxx_hidden_Sha256 = b.Sha256
+	return m0
 }
 
 var File_bonanza_build_pkg_proto_model_fetch_fetch_proto protoreflect.FileDescriptor
@@ -510,26 +771,14 @@ const file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc = "" +
 	"\x05Event\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x122\n" +
 	"\x15downloaded_size_bytes\x18\x02 \x01(\x04R\x13downloadedSizeBytes\x12(\n" +
-	"\x10total_size_bytes\x18\x03 \x01(\x04R\x0etotalSizeBytes\"\xeb\x01\n" +
+	"\x10total_size_bytes\x18\x03 \x01(\x04R\x0etotalSizeBytes\"\xed\x01\n" +
 	"\x06Result\x12.\n" +
 	"\afailure\x18\x01 \x01(\v2\x12.google.rpc.StatusH\x00R\afailure\x12?\n" +
-	"\asuccess\x18\x02 \x01(\v2#.bonanza.model.fetch.Result.SuccessH\x00R\asuccess\x1ae\n" +
+	"\asuccess\x18\x02 \x01(\v2#.bonanza.model.fetch.Result.SuccessH\x00R\asuccess\x1ag\n" +
 	"\aSuccess\x12B\n" +
 	"\bcontents\x18\x01 \x01(\v2&.bonanza.model.filesystem.FileContentsR\bcontents\x12\x16\n" +
-	"\x06sha256\x18\x02 \x01(\fR\x06sha256B\t\n" +
-	"\aoutcomeB%Z#bonanza.build/pkg/proto/model/fetchb\x06proto3"
-
-var (
-	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescOnce sync.Once
-	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData []byte
-)
-
-func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescGZIP() []byte {
-	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescOnce.Do(func() {
-		file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc), len(file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDesc)))
-	})
-	return file_bonanza_build_pkg_proto_model_fetch_fetch_proto_rawDescData
-}
+	"\x06sha256\x18\x02 \x01(\fR\x06sha256X\x02B\t\n" +
+	"\aoutcomeB*Z#bonanza.build/pkg/proto/model/fetch\x92\x03\x02\b\x02b\beditionsp\xe9\a"
 
 var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
@@ -568,8 +817,8 @@ func file_bonanza_build_pkg_proto_model_fetch_fetch_proto_init() {
 		return
 	}
 	file_bonanza_build_pkg_proto_model_fetch_fetch_proto_msgTypes[4].OneofWrappers = []any{
-		(*Result_Failure)(nil),
-		(*Result_Success_)(nil),
+		(*result_Failure)(nil),
+		(*result_Success_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -304,9 +304,9 @@ func (baseComputer[TReference, TMetadata]) ComputeModuleDotBazelContentsValue(ct
 			fileContentsValue := e.GetHTTPFileContentsValue(
 				&model_analysis_pb.HttpFileContents_Key{
 					FetchOptions: &model_analysis_pb.HttpFetchOptions{
-						Target: &model_fetch_pb.Target{
+						Target: model_fetch_pb.Target_builder{
 							Urls: []string{moduleFileURL},
-						},
+						}.Build(),
 					},
 				},
 			)
